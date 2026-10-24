@@ -1,6 +1,6 @@
 # GitHub 호스팅 CI 검증 기록
 
-2026-10-24. S11의 실제 GitHub 실행·실패 전파·보고서 업로드와 다운로드를 확인했다. 이 기록의 최초 실행은 실패했으며, 로컬 성공 결과로 대체하지 않는다.
+2026-10-24. S11의 실제 GitHub 실행·실패 전파·보고서 업로드와 다운로드를 확인했다. 최초 실행은 실패했고, 아래 수정 후 두 번째 실행은 모두 통과했다. 두 실행의 증거를 별도로 보존한다.
 
 ## 최초 PR 실행
 
@@ -43,6 +43,27 @@ yarn playwright show-report <새-증거-폴더>/playwright-chromium-40059118282-
 yarn playwright show-trace <실패-테스트-폴더>/trace.zip
 ```
 
-이번 실행으로 Linux 설치, 실제 PR 트리거, 검사 실패의 체크 실패 전파, 실패 후 보고서 업로드, 실제 다운로드 및 만료 메타데이터까지 확인했다. 성공 실행의 업로드 증거는 후속 성공 실행으로 확인해야 한다. Branch protection의 필수 체크 설정은 변경하지 않았다.
+이번 실행으로 Linux 설치, 실제 PR 트리거, 검사 실패의 체크 실패 전파, 실패 후 보고서 업로드, 실제 다운로드 및 만료 메타데이터까지 확인했다. 아래 두 번째 실행에서 성공 후 업로드·다운로드도 별도로 확인했다. Branch protection의 필수 체크 설정은 변경하지 않았다.
 
 브라우저 테스트는 데모 저장소와 디스크 handle 대역을 사용한다. 실제 사용자 폴더 선택창, 권한 승인·거부·철회·재연결, macOS 네이티브 한글 IME, 운영체제 클립보드와 실제 사이트 CORS는 이 CI로 검증하지 않았다. [기존 검증 범위](verification.md)와 [수용 검증표](acceptance-matrix.md)의 한계를 유지한다.
+
+
+## 수정 후 두 번째 실행: 성공
+
+[Tests #40059553384, attempt 1](https://github.com/moreal/granite/actions/runs/40059553384)은 `pull_request` 이벤트로 실행되어 전체 `success`로 완료됐다. PR head는 `30258710e70cdc2f63c0004b9199297dcc257ba0`, 두 작업의 실제 checkout merge commit은 `1823784bf25be0bd34c5fc73aa41be2ea5e9b0bc`다. 최초 실패의 플랫폼별 redo 키와 자동완성 키 처리 문제를 수정하고 인접 키 입력 회귀를 추가한 실행이다.
+
+- [단위·타입·빌드](https://github.com/moreal/granite/actions/runs/40059553384/job/120769885487): 성공, 24초. 단위 44개 통과, 타입 검사·빌드 성공.
+- [Chromium 브라우저·디스크](https://github.com/moreal/granite/actions/runs/40059553384/job/120769885343): 성공, 작업 전체 1분 16초. 테스트 **42개 통과, 41.2초**, 실패·flaky·skip 0개. 설치와 업로드 단계도 성공했다.
+- 새 폴더 `/private/tmp/granite-hosted-fix.wXBzCz/`에 메타데이터·전체 로그·artifact를 내려받았다. 다운로드 종료 코드 0.
+
+| 성공 artifact 항목 | 실제 값 |
+| --- | --- |
+| 이름 | `playwright-chromium-40059553384-1` |
+| ID | `12546397837` |
+| 압축 크기 | 68,311,777 bytes |
+| 생성 UTC | `2026-10-24T03:46:04Z` |
+| 만료 UTC | `2026-11-07T03:46:01Z` |
+| 조회 당시 expired | `false` |
+| API digest | `sha256:cb381ed2ba2f3b4c24369658de0abc0fc7ed6ed420c8f26877926e113fb61980` |
+
+다운로드된 HTML 보고서는 665,716 bytes이며, 내장 보고서 ZIP CRC와 JSON 통계(total 42, expected 42, unexpected/flaky/skipped 0, ok true)를 확인했다. `test-results` trace 42개와 보고서 첨부 사본 42개, **총 84개 ZIP 모두 CRC 검사를 통과**했다. PNG 11개가 포함되어 있다. 성공·실패 양쪽에서 실제 보고서 업로드·다운로드와 약 14일의 만료 메타데이터를 확인했다. 앞서 명시한 HTML 화면 렌더링·원본 외부 ZIP digest 재계산·네이티브 권한/IME 미검증 한계는 그대로다.
