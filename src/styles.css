@@ -983,14 +983,186 @@ svg {
 }
 
 /* Rich content stays within the writing column, including narrow viewports. */
-.cm-rich-preview { cursor: text; max-width: 100%; }
-.cm-rich-image { display: inline-block; vertical-align: middle; }
-.cm-rich-image img { display: block; max-width: 100%; max-height: 540px; object-fit: contain; }
-.cm-rich-math, .cm-rich-mermaid { overflow-x: auto; }
-.cm-rich-math .katex { font-size: 1.1em; }
-.cm-rich-mermaid { padding: 16px 0; }
-.cm-rich-mermaid svg { display: block; max-width: 100%; height: auto; }
-.cm-rich-error { white-space: pre-wrap; overflow-wrap: anywhere; color: #9b3333; border-bottom: 1px dotted currentColor; }
-.image-status { margin: 10px 0; font-size: 14px; }
-span.cm-rich-math { display: inline-block; vertical-align: middle; }
-.cm-fenced-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; background: #f7f7f7; }
+.cm-rich-preview {
+  cursor: text;
+  max-width: 100%;
+}
+.cm-rich-image {
+  display: inline-block;
+  vertical-align: middle;
+}
+.cm-rich-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 540px;
+  object-fit: contain;
+}
+.cm-rich-math,
+.cm-rich-mermaid {
+  overflow-x: auto;
+}
+.cm-rich-math .katex {
+  font-size: 1.1em;
+}
+.cm-rich-mermaid {
+  padding: 16px 0;
+}
+.cm-rich-mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.cm-rich-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #9b3333;
+  border-bottom: 1px dotted currentColor;
+}
+.image-status {
+  margin: 10px 0;
+  font-size: 14px;
+}
+span.cm-rich-math {
+  display: inline-block;
+  vertical-align: middle;
+}
+.cm-fenced-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: #f7f7f7;
+}
+
+/* Optional schema metadata stays subordinate to the writing surface. */
+.note-properties {
+  margin: 12px 0;
+  font-size: 13px;
+  color: var(--muted, #74746e);
+}
+.note-properties summary,
+.note-graph summary {
+  cursor: pointer;
+  padding: 7px 0;
+}
+.note-properties summary > span + span {
+  margin-left: 10px;
+}
+.schema-type {
+  font-size: 11px;
+  border: 1px solid var(--line, #e5e4df);
+  border-radius: 5px;
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+}
+.property-content {
+  padding: 10px 0;
+  min-width: 0;
+}
+.property-list {
+  margin: 0 0 14px;
+}
+.property-list > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(0, 3fr);
+  gap: 12px;
+  margin: 7px 0;
+}
+.property-list dt,
+.property-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.property-list dt {
+  font-weight: 600;
+}
+.property-source-label {
+  display: grid;
+  gap: 7px;
+}
+.property-source-label textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--line, #e5e4df);
+  border-radius: 6px;
+  padding: 10px;
+  background: transparent;
+  color: inherit;
+  font:
+    12px/1.7 ui-monospace,
+    monospace;
+}
+.property-help {
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.property-warning {
+  color: #8a4b22;
+  line-height: 1.6;
+}
+.property-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.property-create select,
+.property-create button {
+  border: 1px solid var(--line, #e5e4df);
+  border-radius: 5px;
+  padding: 5px 8px;
+  background: transparent;
+  color: inherit;
+}
+.note-graph {
+  margin: 15px 0 24px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line, #e5e4df);
+  padding-bottom: 12px;
+}
+.note-graph summary > span + span {
+  margin-left: 8px;
+  color: #8b8b83;
+}
+.graph-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.graph-direction h3 {
+  font-size: 11px;
+  font-weight: 500;
+  margin: 18px 0 8px;
+}
+.graph-direction h3 span {
+  color: #93938b;
+}
+.graph-direction ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.graph-node {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 7px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+.graph-node:hover {
+  background: #efeee8;
+}
+.graph-edge-label,
+.graph-node small {
+  color: #77786f;
+  font-size: 11px;
+}
+.graph-node-title {
+  color: #363a32;
+}

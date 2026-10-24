@@ -1,0 +1,58 @@
+name: Visual review
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  visual:
+    name: Capture synthetic demo and publish to Chromatic
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CI: true
+      STORYBOOK_DISABLE_TELEMETRY: "1"
+      VITE_BASE_PATH: /granite/
+      CHROMATIC_ARCHIVE_LOCATION: chromatic-results
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          yarn --version
+      - run: yarn install --immutable
+      - run: yarn build
+      - run: yarn playwright install --with-deps chromium
+      - run: yarn test:visual
+      - name: Check project token configuration
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [ -z "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "::error::Set the repository Actions secret CHROMATIC_PROJECT_TOKEN from the Chromatic project settings. The appId is not a token."
+            exit 1
+          fi
+      - name: Publish visual review
+        uses: chromaui/action@5bcadb5104b09e360e210c54f95a7437c2d82bab # v18.13.3
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        with:
+          playwright: true
+          exitZeroOnChanges: false

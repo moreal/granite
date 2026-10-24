@@ -131,7 +131,10 @@ test("S04/S06/S10/S12: edits, commands, autocomplete and note loads preserve chr
   expect(await effectiveOpacity(page.getByRole("dialog"))).toBe(1);
   await expect(chrome).toHaveCSS("opacity", "1");
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "덤프", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "빠른 노트" })
+    .getByRole("button", { name: "덤프", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "덤프", exact: true }),
   ).toBeVisible();

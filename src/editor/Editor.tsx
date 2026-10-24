@@ -166,7 +166,9 @@ function preview() {
             }
             if (activeLines.has(line.number)) return;
             if (
-              ["HeaderMark", "EmphasisMark", "CodeMark"].includes(node.name)
+              ["HeaderMark", "EmphasisMark", "CodeMark", "CodeInfo"].includes(
+                node.name,
+              )
             ) {
               ranges.push(Decoration.replace({}).range(node.from, node.to));
             }

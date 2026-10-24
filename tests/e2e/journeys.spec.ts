@@ -159,7 +159,10 @@ test("S07 command dates use the browser local day and email is ordinary text", a
   await expect(
     page.getByRole("heading", { name: "2026-10-23", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "덤프", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "빠른 노트" })
+    .getByRole("button", { name: "덤프", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "덤프", exact: true }),
   ).toBeVisible();
@@ -212,6 +215,7 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await editor(page).click();
   await paste(page, "https://source.test/success");
   await page
+    .getByRole("dialog", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(editor(page)).toContainText(
@@ -223,6 +227,7 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await body(page, "");
   await paste(page, "https://source.test/failure");
   await page
+    .getByRole("dialog", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(
@@ -244,6 +249,7 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await body(page, "");
   await paste(page, "https://source.test/slow");
   await page
+    .getByRole("dialog", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(

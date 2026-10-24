@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   ArrowUpRight,
   BookOpen,
@@ -25,6 +25,10 @@ import {
 } from "lucide-react";
 import { Editor, type EditorHandle } from "./editor/Editor";
 import { Dialog } from "./components/Dialog";
+import { NoteProperties } from "./components/NoteProperties";
+import { NoteGraph } from "./components/NoteGraph";
+import { projectNoteGraph } from "./domain/note-graph";
+import { readFrontmatter } from "./domain/frontmatter";
 import { backlinks, localDate } from "./domain/links";
 import type { Note } from "./domain/notes";
 import { Workspace, type Entry } from "./storage/workspace";
@@ -342,11 +346,23 @@ export default function App() {
       .toLocaleLowerCase()
       .includes(query.toLocaleLowerCase()),
   );
+  const graph = useMemo(
+    () =>
+      projectNoteGraph(
+        notes.map((note) => ({
+          ...note,
+          body: workspace?.entries.get(note.filename)?.body ?? note.body,
+        })),
+      ),
+    [notes, workspace, revision],
+  );
   const linked = entry
     ? backlinks(
         notes.map((n) => ({
           ...n,
-          body: workspace?.entries.get(n.filename)?.body ?? n.body,
+          body: readFrontmatter(
+            workspace?.entries.get(n.filename)?.body ?? n.body,
+          ).markdown,
         })),
         entry.note.title,
       )
@@ -491,11 +507,13 @@ export default function App() {
                 <BookOpen size={15} />
                 {n.title}
               </span>
-              <span className="note-excerpt">
-                {(workspace.entries.get(n.filename)?.body ?? n.body)
-                  .replace(/[#*`>\[\]]/g, "")
-                  .slice(0, 70) || "아직 비어 있는 노트"}
-              </span>
+              {query && (
+                <span className="note-excerpt">
+                  {(workspace.entries.get(n.filename)?.body ?? n.body)
+                    .replace(/[#*`>\[\]]/g, "")
+                    .slice(0, 70) || "아직 비어 있는 노트"}
+                </span>
+              )}
             </button>
           ))}
           {!filtered.length && (
@@ -616,6 +634,12 @@ export default function App() {
                     </div>
                   </div>
                   <h1>{entry.note.title}</h1>
+                  <NoteProperties
+                    key={workspace.storage.id + ":" + current}
+                    body={entry.body}
+                    locked={busy}
+                    onChange={(body) => workspace.edit(current!, body)}
+                  />
                   <div className="note-meta">
                     <span>
                       {new Intl.DateTimeFormat("ko-KR", {
@@ -754,6 +778,14 @@ export default function App() {
                 <Link2 size={16} />
                 <h2>연결된 생각</h2>
               </div>
+              {current && (
+                <NoteGraph
+                  graph={graph}
+                  current={current}
+                  onOpen={openTitle}
+                  locked={busy}
+                />
+              )}
               <div className="backlink-heading">
                 이 노트를 언급한 곳<span>{linked.length}</span>
               </div>

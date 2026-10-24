@@ -1,0 +1,5 @@
+{
+  "$schema": "https://www.chromatic.com/config-file.schema.json",
+  "projectId": "Project:6adcb003518f31ed207ae4d4",
+  "playwright": true
+}

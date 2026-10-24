@@ -58,3 +58,7 @@ Playwright `filechooser.setFiles()`는 연결된 파일 입력 요소를 설정�
 ## 예제와 배포
 
 [예제·배포 스펙](superpowers/specs/2026-10-24-demo-pages-security.md)을 따른다. S15는 새/기존 데모 예제, 수정 보존·충돌·동시 열기·실패 재시도를 확인한다. S16은 `/granite/` 프로덕션 경로의 자산·폰트·Mermaid, zizmor/actionlint 및 PR의 읽기 전용 빌드와 main 전용 배포를 확인한다. 실제 공개 배포 성공은 main 머지 후 실행으로 구분한다.
+
+## 타입과 시각적 회귀
+
+S17: frontmatter 원문·알 수 없는 속성 보존, 오류/alias/tag/크기 제한, 제목과 파일명 불변, 미저장 변경과 속성별 들어오는/나가는 연결, 없는 노트 탐색을 검증한다. S18: 결정적인 합성 데이터로 Playwright 시각 캡처와 Chromatic archive를 생성하고, 토큰 설정 뒤 실제 게시를 별도로 검증한다. [스펙](superpowers/specs/2026-10-25-typed-notes-visual-review.md).
