@@ -44,6 +44,12 @@ GitHub Pages는 `main` 변경을 [공개 앱](https://moreal.github.io/granite/)
 
 수식은 `$x^2$`와 별도 줄의 `$$` 블록으로 작성하며 KaTeX가 표시합니다. 코드 fence는 언어별로 색상을 표시하고 `mermaid` fence는 다이어그램으로 표시합니다. 해당 표현을 편집할 때는 원문으로 돌아가며, 원문 보기에서는 전체 Markdown이 보입니다. 문법 오류가 있어도 원문은 보존됩니다. 세부 선택과 검증 기준은 [본문 표현 스펙](docs/superpowers/specs/2026-10-24-rich-note-content.md)에 기록합니다.
 
+## 설정과 링크 붙여넣기
+
+**설정**에서 라이트·다크·시스템 모드와 링크 템플릿을 바꿀 수 있습니다. 템플릿은 Markdown 문자열이며 `{{url}}`, `{{title}}`, `{{selection}}`, `{{hostname}}`를 지원합니다. 예: `[{{title}}]({{url}})`. 설정은 이 브라우저에 저장되고 노트 파일에는 쓰지 않습니다.
+
+URL을 붙여넣으면 커서 근처에서 형식을 선택합니다. 화살표·Enter·Escape로 조작할 수 있고, 별칭은 본문에서 바로 입력합니다. 제목을 요청하는 형식은 사용자가 선택했을 때만 가져오며 브라우저 CORS 제한을 따릅니다.
+
 ## 타입과 연결
 
 노트 앞의 YAML frontmatter에 `type: Book` 같은 schema.org 타입과 `author: "[[저자]]"` 같은 속성을 넣을 수 있습니다. 접을 수 있는 **속성** 영역에서 원문 YAML을 편집하며, 연결 패널은 본문 링크와 속성 이름을 가진 관계를 보여줍니다. 미지정 속성·주석은 자동 변환하지 않습니다. [설계와 범위](docs/superpowers/specs/2026-10-25-typed-notes-visual-review.md)를 참고하세요.

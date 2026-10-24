@@ -64,7 +64,7 @@ test("S04/S08/S12: selection, menus, reduced motion and manual focus remain usab
   await page.keyboard.press("ArrowRight");
   await paste(page, "https://example.com/");
   await expect(
-    page.getByRole("dialog", { name: "붙여넣은 링크" }),
+    page.getByRole("group", { name: "붙여넣은 링크" }),
   ).toBeVisible();
   expect(await effectiveOpacity(page.locator(".paste-menu"))).toBe(1);
   await expect(chrome).toHaveCSS("opacity", "1");

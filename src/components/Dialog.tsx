@@ -11,7 +11,9 @@ export function Dialog({
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
-    panel.current?.querySelector<HTMLElement>("input,button")?.focus();
+    panel.current
+      ?.querySelector<HTMLElement>("input,button,textarea,select")
+      ?.focus();
     return () => previous?.focus();
   }, []);
   return (
@@ -34,7 +36,7 @@ export function Dialog({
           }
           if (e.key === "Tab") {
             const els = panel.current?.querySelectorAll<HTMLElement>(
-              "button:not(:disabled),input:not(:disabled),a[href]",
+              "button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),a[href]",
             );
             if (!els?.length) return;
             const first = els[0],

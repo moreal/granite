@@ -43,7 +43,7 @@ it("offers URL paste choices and preserves selected text as alias", async () => 
   fireEvent.paste(box, {
     clipboardData: { getData: () => "https://example.com/" },
   });
-  expect(screen.getByRole("dialog", { name: "붙여넣은 링크" })).toBeTruthy();
+  expect(screen.getByRole("group", { name: "붙여넣은 링크" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "별칭 달기" }));
   expect(view.state.doc.toString()).toBe(
     "[selected words](https://example.com/)",
@@ -66,7 +66,7 @@ it.each(["Escape", "닫기"])(
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(view.state.doc.toString()).toBe("https://example.com/");
-    expect(screen.queryByRole("dialog", { name: "붙여넣은 링크" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
   },
 );
 it("keeps multiline Markdown links editable without crashing live preview", () => {
@@ -214,4 +214,72 @@ it("S06/S07/S12: completion is an explicit command rather than ordinary typing",
     }),
   );
   expect(onUserEdit).toHaveBeenCalledTimes(1);
+});
+
+it("S08/S19 keyboard paste choices wrap and alias leaves the caret inside empty brackets", () => {
+  const { box, view } = setup();
+  fireEvent.paste(box, {
+    clipboardData: { getData: () => "https://example.com/" },
+  });
+  fireEvent.keyDown(box, { key: "ArrowUp" });
+  expect(
+    screen
+      .getByRole("button", { name: "제목 가져오기" })
+      .getAttribute("data-active"),
+  ).toBe("true");
+  fireEvent.keyDown(box, { key: "ArrowDown" });
+  fireEvent.keyDown(box, { key: "ArrowDown" });
+  fireEvent.keyDown(box, { key: "Enter" });
+  expect(view.state.doc.toString()).toBe("[](https://example.com/)");
+  expect(view.state.selection.main.head).toBe(1);
+});
+it("S08/S19 caret movement closes URL choices and IME Enter does not select", () => {
+  const { box, view } = setup();
+  fireEvent.paste(box, {
+    clipboardData: { getData: () => "https://example.com/" },
+  });
+  fireEvent.keyDown(box, { key: "Enter", isComposing: true });
+  expect(view.state.doc.toString()).not.toContain("[](");
+  fireEvent.paste(box, {
+    clipboardData: { getData: () => "https://example.org/" },
+  });
+  act(() => view.dispatch({ selection: { anchor: 0 } }));
+  expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
+});
+it.each([
+  "https://example.com/ text",
+  "https://example.com/\nhttps://example.org/",
+])("S08/S19 mixed clipboard text does not offer URL choices: %s", (text) => {
+  const { box } = setup();
+  fireEvent.paste(box, { clipboardData: { getData: () => text } });
+  expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
+});
+
+it("S08 menu-focused Escape dismisses and returns to the editor", () => {
+  const { box } = setup();
+  fireEvent.paste(box, {
+    clipboardData: { getData: () => "https://example.com/" },
+  });
+  const button = screen.getByRole("button", { name: "별칭 달기" });
+  act(() => button.focus());
+  fireEvent.keyDown(button, { key: "Escape" });
+  expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
+  expect(document.activeElement).toBe(box);
+});
+it("S08 title retrieval prefers normalized OG title and escapes remote Markdown", async () => {
+  vi.stubGlobal("fetch", async () => ({
+    ok: true,
+    text: async () =>
+      '<title>Fallback</title><meta property="og:title" content="  A   [title] &amp; *text*  ">',
+  }));
+  const { box, view } = setup();
+  fireEvent.paste(box, {
+    clipboardData: { getData: () => "https://example.com/" },
+  });
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "제목 가져오기" }));
+  });
+  expect(view.state.doc.toString()).toBe(
+    "[A \\[title\\] & \\*text\\*](https://example.com/)",
+  );
 });

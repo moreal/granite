@@ -95,13 +95,21 @@ test("S14 renders math, Mermaid and highlighted code with contextual editing and
     .click();
   await expect(page.locator(".katex")).toHaveCount(2);
   await expect(page.locator(".cm-rich-mermaid svg")).toBeVisible();
+  const keywordColor = await page.evaluate(() => {
+    const sample = document.createElement("span");
+    sample.style.color = "var(--syntax-keyword)";
+    document.body.append(sample);
+    const color = getComputedStyle(sample).color;
+    sample.remove();
+    return color;
+  });
   await expect(
     page
       .locator(".cm-line")
       .filter({ hasText: "const answer" })
       .locator("span")
       .filter({ hasText: /^const$/ }),
-  ).toHaveCSS("color", "rgb(135, 82, 154)");
+  ).toHaveCSS("color", keywordColor);
   await page.locator(".cm-rich-math").first().click();
   await expect(editor(page)).toContainText("$x^2$");
   await expect(page.locator(".katex")).toHaveCount(1);

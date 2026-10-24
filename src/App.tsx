@@ -19,11 +19,14 @@ import {
   Plus,
   Search,
   Shuffle,
+  Settings,
   X,
   TriangleAlert,
   RefreshCw,
 } from "lucide-react";
 import { Editor, type EditorHandle } from "./editor/Editor";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { readSettings, subscribeSettings } from "./settings";
 import { Dialog } from "./components/Dialog";
 import { NoteProperties } from "./components/NoteProperties";
 import { NoteGraph } from "./components/NoteGraph";
@@ -43,6 +46,28 @@ type Modal =
   | { kind: "create"; title: string; missing?: boolean }
   | { kind: "reload"; title: string };
 export default function App() {
+  const [settings, setSettings] = useState(readSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => subscribeSettings(() => setSettings(readSettings())), []);
+  const settingsDialog = settingsOpen ? (
+    <SettingsDialog
+      settings={settings}
+      onClose={() => setSettingsOpen(false)}
+    />
+  ) : null;
+  const settingsButton = (
+    <button
+      className="icon-button"
+      aria-label="설정"
+      title="설정"
+      onClick={() => {
+        setSettingsOpen(true);
+        setChromeIntent("clear");
+      }}
+    >
+      <Settings size={18} />
+    </button>
+  );
   const [workspace, setWorkspace] = useState<Workspace | null>(null),
     [notes, setNotes] = useState<Note[]>([]),
     [current, setCurrent] = useState<string | null>(null),
@@ -385,6 +410,7 @@ export default function App() {
     <div className="welcome">
       <header className="welcome-header">
         <div className="brand">granite</div>
+        {settingsButton}
       </header>
       <main className="welcome-main">
         <div className="welcome-copy">
@@ -432,12 +458,17 @@ export default function App() {
           )}
         </div>
       </main>
+      {settingsDialog}
     </div>
   ) : (
     <div
       className={
         "app-shell" +
-        (chromeIntent === "typing" && !selection && !modal && !editorMenu
+        (chromeIntent === "typing" &&
+        !selection &&
+        !modal &&
+        !settingsOpen &&
+        !editorMenu
           ? " typing"
           : "") +
         (chromeIntent === "pointer" ? " pointer-reveal" : "") +
@@ -505,7 +536,7 @@ export default function App() {
             >
               <span className="note-title">
                 <BookOpen size={15} />
-                {n.title}
+                <span>{n.title}</span>
               </span>
               {query && (
                 <span className="note-excerpt">
@@ -525,6 +556,7 @@ export default function App() {
           )}
         </div>
         <footer className="sidebar-footer">
+          {settingsButton}
           <span>
             <span className="online-dot" />{" "}
             {workspace.storage.kind === "demo"
@@ -536,6 +568,7 @@ export default function App() {
       </aside>
       <div className="work-area">
         <header className="topbar">
+          {focus && settingsButton}
           <div className="breadcrumb">
             <button
               className="icon-button focus-toggle"
@@ -725,6 +758,7 @@ export default function App() {
                 )}
                 <Editor
                   key={workspace.storage.id + ":" + current}
+                  linkTemplates={settings.linkTemplates}
                   documentKey={workspace.storage.id + ":" + current}
                   onPasteImage={putImage}
                   readImage={readImage}
@@ -803,7 +837,7 @@ export default function App() {
                   >
                     <span>
                       <BookOpen size={14} />
-                      {n.title}
+                      <span>{n.title}</span>
                     </span>
                     <p>{n.context}</p>
                     <small>
@@ -850,6 +884,7 @@ export default function App() {
           )}
         </div>
       </div>
+      {settingsDialog}
       {modal && (
         <Dialog
           title={

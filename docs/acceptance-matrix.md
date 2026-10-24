@@ -62,3 +62,7 @@ Playwright `filechooser.setFiles()`는 연결된 파일 입력 요소를 설정�
 ## 타입과 시각적 회귀
 
 S17: frontmatter 원문·알 수 없는 속성 보존, 오류/alias/tag/크기 제한, 제목과 파일명 불변, 미저장 변경과 속성별 들어오는/나가는 연결, 없는 노트 탐색을 검증한다. S18: 결정적인 합성 데이터로 Playwright 시각 캡처와 Chromatic archive를 생성하고, 토큰 설정 뒤 실제 게시를 별도로 검증한다. [스펙](superpowers/specs/2026-10-25-typed-notes-visual-review.md).
+
+## 설정과 테마
+
+[설정·붙여넣기 스펙](superpowers/specs/2026-10-25-settings-link-paste-theme.md): S08은 커서 메뉴·키보드/IME·템플릿·시간/크기 제한·오래된 제목 응답 취소를 포함한다. S19는 라이트/다크/시스템·첫 화면·설정 취소/저장/탭 동기화·유효성 오류·코드/수식/Mermaid와 좁은 화면을 검증한다.

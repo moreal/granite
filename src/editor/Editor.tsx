@@ -23,7 +23,12 @@ import {
   syntaxHighlighting,
   HighlightStyle,
 } from "@codemirror/language";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  isolateHistory,
+} from "@codemirror/commands";
 import {
   autocompletion,
   completionKeymap,
@@ -32,17 +37,19 @@ import {
 import { tags } from "@lezer/highlight";
 import {
   localDate,
-  markdownLink,
   menuTrigger,
   parseWikiLinks,
   wikiLink,
 } from "../domain/links";
 import { pasteStillCurrent, safeWebUrl } from "./helpers";
+import type { LinkTemplate } from "../settings";
+import { renderLinkTemplate } from "./link-templates";
 export interface EditorHandle {
   selection(): { from: number; to: number };
   focus(): void;
 }
 interface Props {
+  linkTemplates?: readonly LinkTemplate[];
   documentKey?: string;
   onPasteImage?: (blob: Blob) => Promise<string>;
   readImage?: (path: string) => Promise<Blob>;
@@ -236,7 +243,9 @@ interface Paste {
   url: string;
   alias: string;
   revision: number;
-  mode: "choices" | "alias" | "loading" | "failed";
+  mode: "choices" | "loading" | "failed";
+  active: number;
+  key: string | undefined;
 }
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
@@ -249,6 +258,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
         to: number;
         key: string | undefined;
       } | null>(null),
+      fetchJob = useRef<AbortController | null>(null),
+      menu = useRef<HTMLDivElement>(null),
       pasteRef = useRef<Paste | null>(null),
       [paste, setPaste] = useState<Paste | null>(null);
     if (latest.current.documentKey !== props.documentKey || props.locked)
@@ -257,6 +268,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
     const previewConfig = useRef(new Compartment()),
       lockConfig = useRef(new Compartment());
     function changePaste(p: Paste | null) {
+      if (!p) {
+        fetchJob.current?.abort();
+        fetchJob.current = null;
+      }
       pasteRef.current = p;
       setPaste(p);
       latest.current.onMenuChange?.(p !== null);
@@ -347,15 +362,22 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 { tag: tags.strong, fontWeight: "650" },
                 { tag: tags.emphasis, fontStyle: "italic" },
                 { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
-                { tag: tags.link, color: "#344f6a" },
-                { tag: tags.url, color: "#595959" },
-                { tag: tags.keyword, color: "#87529a" },
-                { tag: tags.string, color: "#386949" },
-                { tag: [tags.number, tags.bool], color: "#976029" },
-                { tag: tags.comment, color: "#687078", fontStyle: "italic" },
+                { tag: tags.link, color: "var(--link)" },
+                { tag: tags.url, color: "var(--muted)" },
+                { tag: tags.keyword, color: "var(--syntax-keyword)" },
+                { tag: tags.string, color: "var(--syntax-string)" },
+                {
+                  tag: [tags.number, tags.bool],
+                  color: "var(--syntax-number)",
+                },
+                {
+                  tag: tags.comment,
+                  color: "var(--syntax-comment)",
+                  fontStyle: "italic",
+                },
                 {
                   tag: [tags.function(tags.variableName), tags.typeName],
-                  color: "#2f6387",
+                  color: "var(--link)",
                 },
               ]),
             ),
@@ -417,6 +439,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 )
                   latest.current.onUserEdit?.();
               }
+              if (update.selectionSet && !update.docChanged) changePaste(null);
               if (update.selectionSet || update.docChanged) {
                 const s = update.state.selection.main;
                 latest.current.onSelection(s.to - s.from);
@@ -499,7 +522,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
                   const text = event.clipboardData
                     ?.getData("text/plain")
                     .trim();
-                  if (!text || !safeWebUrl(text)) return false;
+                  if (
+                    !text ||
+                    /\s/.test(text) ||
+                    !/^https?:\/\//i.test(text) ||
+                    !safeWebUrl(text)
+                  )
+                    return false;
                   event.preventDefault();
                   const s = v.state.selection.main,
                     alias = v.state.sliceDoc(s.from, s.to);
@@ -515,15 +544,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
                     alias,
                     revision: revision.current,
                     mode: "choices",
+                    active: 0,
+                    key: latest.current.documentKey,
                   });
                   return true;
                 },
                 keydown(event) {
-                  if (event.key === "Escape" && pasteRef.current) {
-                    changePaste(null);
-                    return true;
-                  }
-                  return false;
+                  return pasteKey(event);
                 },
                 mousedown(event) {
                   // A navigation gesture must not first move the caret and reveal syntax.
@@ -567,12 +594,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       view.current = v;
       return () => {
         imageJob.current = null;
+        fetchJob.current?.abort();
+        pasteRef.current = null;
         v.destroy();
         view.current = null;
       };
     }, []);
     useEffect(() => {
       imageJob.current = null;
+      changePaste(null);
       latest.current.onImageStatus?.(null);
     }, [props.documentKey, props.locked]);
     useEffect(() => {
@@ -598,13 +628,73 @@ export const Editor = forwardRef<EditorHandle, Props>(
         ]),
       });
     }, [props.locked]);
-    function replace(p: Paste, label: string) {
-      const v = view.current;
+    useEffect(() => {
+      if (!paste) return;
+      function position() {
+        const v = view.current,
+          element = menu.current;
+        if (!v || !element || !pasteRef.current) return;
+        const rect = v.coordsAtPos(pasteRef.current.to);
+        if (!rect) return;
+        const height = element.offsetHeight,
+          width = element.offsetWidth;
+        element.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
+        element.style.top = `${Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - height - 8))}px`;
+      }
+      function outside(event: PointerEvent) {
+        if (!menu.current?.contains(event.target as Node)) changePaste(null);
+      }
+      position();
+      window.addEventListener("scroll", position, true);
+      window.addEventListener("resize", position);
+      document.addEventListener("pointerdown", outside);
+      return () => {
+        window.removeEventListener("scroll", position, true);
+        window.removeEventListener("resize", position);
+        document.removeEventListener("pointerdown", outside);
+      };
+    }, [paste]);
+    function pasteKey(event: KeyboardEvent) {
+      const p = pasteRef.current;
       if (
-        !v ||
-        pasteRef.current?.revision !== p.revision ||
-        latest.current.locked ||
-        !pasteStillCurrent(
+        !p ||
+        event.isComposing ||
+        view.current?.composing ||
+        event.keyCode === 229
+      )
+        return false;
+      if (event.key === "Escape") {
+        changePaste(null);
+        view.current?.focus();
+        return true;
+      }
+      if (p.mode === "loading") return false;
+      const count = 3 + (latest.current.linkTemplates?.length ?? 0);
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const active =
+          (p.active + (event.key === "ArrowDown" ? 1 : count - 1)) % count;
+        changePaste({ ...p, active });
+        if (menu.current?.contains(event.target as Node)) {
+          menu.current
+            .querySelectorAll<HTMLButtonElement>(".paste-actions button")
+            [active]?.focus();
+        }
+        return true;
+      }
+      if (event.key === "Enter") {
+        choose(p, p.active);
+        return true;
+      }
+      return false;
+    }
+    function current(p: Paste) {
+      const v = view.current;
+      return (
+        !!v &&
+        pasteRef.current?.revision === p.revision &&
+        latest.current.documentKey === p.key &&
+        !latest.current.locked &&
+        pasteStillCurrent(
           v.state.doc.toString(),
           p.from,
           p.to,
@@ -612,39 +702,126 @@ export const Editor = forwardRef<EditorHandle, Props>(
           p.revision,
           revision.current,
         )
-      ) {
-        changePaste(null);
-        return;
-      }
-      const text = markdownLink(label, p.url);
+      );
+    }
+    function replace(p: Paste, text: string, caret = text.length) {
+      const v = view.current;
+      if (!v || !current(p)) return;
       v.dispatch({
         changes: { from: p.from, to: p.to, insert: text },
-        selection: { anchor: p.from + text.length },
+        selection: { anchor: p.from + caret },
+        userEvent: "input.paste",
+        annotations: isolateHistory.of("full"),
       });
       changePaste(null);
       v.focus();
     }
-    async function fetchTitle(p: Paste) {
+    function choose(p: Paste, index: number) {
+      if (!current(p)) return;
+      if (index === 0) {
+        changePaste(null);
+        view.current?.focus();
+        return;
+      }
+      if (index === 1) {
+        replace(
+          p,
+          renderLinkTemplate("[{{selection}}]({{url}})", {
+            url: p.url,
+            title: "",
+            selection: p.alias,
+            hostname: new URL(p.url).hostname,
+          }),
+          p.alias ? undefined : 1,
+        );
+        return;
+      }
+      const template =
+        index === 2
+          ? "[{{title}}]({{url}})"
+          : latest.current.linkTemplates?.[index - 3]?.template;
+      if (!template) return;
+      if (template.includes("{{title}}")) void fetchTitle(p, template);
+      else
+        replace(
+          p,
+          renderLinkTemplate(template, {
+            url: p.url,
+            title: "",
+            selection: p.alias,
+            hostname: new URL(p.url).hostname,
+          }),
+        );
+    }
+    async function fetchTitle(p: Paste, template: string) {
+      const controller = new AbortController();
+      fetchJob.current?.abort();
+      fetchJob.current = controller;
       changePaste({ ...p, mode: "loading" });
+      const timeout = window.setTimeout(() => controller.abort(), 12000);
       try {
         const response = await fetch(p.url, {
           credentials: "omit",
-          signal: AbortSignal.timeout(12000),
+          mode: "cors",
+          signal: controller.signal,
         });
         if (!response.ok) throw Error();
-        const html = await response.text();
-        const title = new DOMParser()
-          .parseFromString(html, "text/html")
-          .querySelector("title")
-          ?.textContent?.trim();
-        if (!title) throw Error();
-        replace(p, title);
-      } catch {
+        const limit = 1024 * 1024;
+        if (Number(response.headers?.get("content-length")) > limit)
+          throw Error();
+        let html = "";
+        if (response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let bytes = 0;
+          try {
+            while (true) {
+              const part = await reader.read();
+              if (part.done) break;
+              bytes += part.value.byteLength;
+              if (bytes > limit) throw Error();
+              html += decoder.decode(part.value, { stream: true });
+            }
+            html += decoder.decode();
+          } finally {
+            await reader.cancel();
+          }
+        } else {
+          html = await response.text();
+          if (html.length > limit) throw Error();
+        }
         if (
-          pasteRef.current?.revision === p.revision &&
-          revision.current === p.revision
+          controller.signal.aborted ||
+          fetchJob.current !== controller ||
+          !current(p)
         )
+          return;
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const title = (
+          doc
+            .querySelector('meta[property="og:title"]')
+            ?.getAttribute("content") ||
+          doc.querySelector("title")?.textContent ||
+          ""
+        )
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 300);
+        if (!title) throw Error();
+        replace(
+          p,
+          renderLinkTemplate(template, {
+            url: p.url,
+            title,
+            selection: p.alias,
+            hostname: new URL(p.url).hostname,
+          }),
+        );
+      } catch {
+        if (fetchJob.current === controller && current(p))
           changePaste({ ...p, mode: "failed" });
+      } finally {
+        window.clearTimeout(timeout);
       }
     }
     return (
@@ -652,65 +829,81 @@ export const Editor = forwardRef<EditorHandle, Props>(
         <div ref={mount} />
         {paste && (
           <div
+            ref={menu}
             className="paste-menu"
-            role="dialog"
+            role="group"
             aria-label="붙여넣은 링크"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.stopPropagation();
-                changePaste(null);
-                view.current?.focus();
+            style={{
+              position: "fixed",
+              maxWidth: "calc(100vw - 16px)",
+              maxHeight: "calc(100vh - 16px)",
+              overflow: "auto",
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" &&
+                (event.target as HTMLElement).closest(".text-button")
+              )
+                return;
+              if (pasteKey(event.nativeEvent)) {
+                event.preventDefault();
+                event.stopPropagation();
               }
             }}
+            onMouseDown={(event) => event.preventDefault()}
           >
-            <div className="eyebrow">외부 출처</div>
+            <div className="eyebrow">{new URL(paste.url).hostname}</div>
             {paste.mode === "loading" ? (
               <p role="status">제목을 가져오는 중… 계속 써도 괜찮아요.</p>
             ) : (
               <>
-                <p>
-                  {paste.mode === "failed"
-                    ? "제목을 가져오지 못했어요. CORS가 허용된 주소만 가져올 수 있습니다."
-                    : "링크를 어떻게 남길까요?"}
-                </p>
-                <div className="paste-actions">
-                  <button onClick={() => changePaste(null)}>URL 그대로</button>
-                  <button
-                    onClick={() =>
-                      paste.alias
-                        ? replace(paste, paste.alias)
-                        : changePaste({ ...paste, mode: "alias" })
-                    }
-                  >
-                    별칭 달기
-                  </button>
-                  <button onClick={() => void fetchTitle(paste)}>
-                    제목 가져오기
-                  </button>
-                </div>
-                {paste.mode === "alias" && (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (paste.alias.trim()) replace(paste, paste.alias);
-                    }}
-                  >
-                    <label>
-                      링크 별칭
-                      <input
-                        autoFocus
-                        value={paste.alias}
-                        onChange={(e) =>
-                          changePaste({ ...paste, alias: e.target.value })
-                        }
-                      />
-                    </label>
-                    <button type="submit">적용</button>
-                  </form>
+                {paste.mode === "failed" && (
+                  <p role="status">
+                    제목을 가져오지 못했어요. CORS가 허용된 주소만 가져올 수
+                    있습니다.
+                  </p>
                 )}
+                <span className="sr-only" role="status">
+                  {
+                    [
+                      "URL 그대로",
+                      "별칭 달기",
+                      "제목 가져오기",
+                      ...(props.linkTemplates ?? []).map(
+                        (template) => template.name,
+                      ),
+                    ][paste.active]
+                  }{" "}
+                  선택됨. 위아래 화살표로 이동하고 Enter로 적용합니다.
+                </span>
+                <div className="paste-actions">
+                  {[
+                    "URL 그대로",
+                    "별칭 달기",
+                    "제목 가져오기",
+                    ...(props.linkTemplates ?? []).map(
+                      (template) => template.name,
+                    ),
+                  ].map((label, index) => (
+                    <button
+                      key={index}
+                      data-active={paste.active === index}
+                      onFocus={() => changePaste({ ...paste, active: index })}
+                      onClick={() => choose(paste, index)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
-            <button className="text-button" onClick={() => changePaste(null)}>
+            <button
+              className="text-button"
+              onClick={() => {
+                changePaste(null);
+                view.current?.focus();
+              }}
+            >
               닫기 · Esc
             </button>
           </div>

@@ -33,11 +33,9 @@ for (const cancel of ["Escape", "닫기"] as const) {
         .getByRole("button", { name: "닫기 · Esc", exact: true })
         .click();
     await expect(
-      page.getByRole("dialog", { name: "붙여넣은 링크" }),
+      page.getByRole("group", { name: "붙여넣은 링크" }),
     ).toBeHidden();
-    const response = page.waitForResponse("https://source.test/cancel");
     release();
-    await (await response).finished();
     await page.evaluate(
       () =>
         new Promise<void>((resolve) =>

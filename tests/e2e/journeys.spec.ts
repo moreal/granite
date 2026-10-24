@@ -177,8 +177,7 @@ test("S08 URL paste alias, selected alias, Escape and continued typing", async (
   await editor(page).click();
   await paste(page, "https://example.com/a");
   await page.getByRole("button", { name: "별칭 달기", exact: true }).click();
-  await page.getByLabel("링크 별칭").fill("읽을 글");
-  await page.getByRole("button", { name: "적용", exact: true }).click();
+  await page.keyboard.insertText("읽을 글");
   await expect(editor(page)).toContainText("[읽을 글](https://example.com/a)");
   await body(page, "선택한 이름");
   await editor(page).press("ControlOrMeta+a");
@@ -190,16 +189,12 @@ test("S08 URL paste alias, selected alias, Escape and continued typing", async (
   await body(page, "");
   await paste(page, "https://example.com/c");
   await editor(page).press("Escape");
-  await expect(
-    page.getByRole("dialog", { name: "붙여넣은 링크" }),
-  ).toBeHidden();
+  await expect(page.getByRole("group", { name: "붙여넣은 링크" })).toBeHidden();
   await expect(editor(page)).toHaveText("https://example.com/c");
   await body(page, "");
   await paste(page, "https://example.com/d");
   await page.keyboard.insertText(" 이어 쓰기");
-  await expect(
-    page.getByRole("dialog", { name: "붙여넣은 링크" }),
-  ).toBeHidden();
+  await expect(page.getByRole("group", { name: "붙여넣은 링크" })).toBeHidden();
   await expect(editor(page)).toContainText("https://example.com/d 이어 쓰기");
 });
 
@@ -215,7 +210,7 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await editor(page).click();
   await paste(page, "https://source.test/success");
   await page
-    .getByRole("dialog", { name: "붙여넣은 링크" })
+    .getByRole("group", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(editor(page)).toContainText(
@@ -227,11 +222,11 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await body(page, "");
   await paste(page, "https://source.test/failure");
   await page
-    .getByRole("dialog", { name: "붙여넣은 링크" })
+    .getByRole("group", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(
-    page.getByRole("dialog", { name: "붙여넣은 링크" }),
+    page.getByRole("group", { name: "붙여넣은 링크" }),
   ).toContainText("가져오지 못했어요");
   await expect(editor(page)).toHaveText("https://source.test/failure");
   await page.getByRole("button", { name: "URL 그대로", exact: true }).click();
@@ -249,7 +244,7 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await body(page, "");
   await paste(page, "https://source.test/slow");
   await page
-    .getByRole("dialog", { name: "붙여넣은 링크" })
+    .getByRole("group", { name: "붙여넣은 링크" })
     .getByRole("button", { name: "제목 가져오기", exact: true })
     .click();
   await expect(

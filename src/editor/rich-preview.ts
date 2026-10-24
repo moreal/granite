@@ -188,20 +188,41 @@ export function sanitizeDiagram(svg: string): string {
 let diagramId = 0;
 let mermaidLibrary: Promise<(typeof import("mermaid"))["default"]> | undefined;
 function mermaid() {
-  return (mermaidLibrary ??= import("mermaid").then(({ default: library }) => {
+  return (mermaidLibrary ??= import("mermaid").then(
+    ({ default: library }) => library,
+  ));
+}
+// Mermaid configuration is global. Keep initialization and its entire async render
+// together so another widget cannot change the theme midway through rendering.
+let diagramQueue: Promise<unknown> = Promise.resolve();
+function renderDiagram(source: string, dark: boolean, current: () => boolean) {
+  const result = diagramQueue.then(async () => {
+    if (!current()) return;
+    const library = await mermaid();
+    if (!current()) return;
     library.initialize({
       startOnLoad: false,
       securityLevel: "strict",
+      theme: dark ? "dark" : "default",
+      fontFamily: "system-ui, sans-serif",
       flowchart: { htmlLabels: false },
       htmlLabels: false,
       suppressErrorRendering: true,
     });
-    return library;
-  }));
+    const rendered = await library.render(
+      `granite-diagram-${++diagramId}`,
+      source,
+    );
+    return current() ? sanitizeDiagram(rendered.svg) : undefined;
+  });
+  diagramQueue = result.catch(() => undefined);
+  return result;
 }
 class RichWidget extends WidgetType {
   private disposed = false;
   private objectUrl?: string;
+  private renderVersion = 0;
+  private stopThemeListener?: () => void;
   constructor(
     readonly node: RichNode,
     readonly readImage?: (path: string) => Promise<Blob>,
@@ -283,23 +304,30 @@ class RichWidget extends WidgetType {
       el.textContent = "다이어그램 그리는 중…";
       if (!safeMermaidSource(this.node.value))
         fail("안전하지 않거나 지원하지 않는 다이어그램입니다.");
-      else
-        void mermaid()
-          .then(async (library) => {
-            if (this.disposed) return;
-            const rendered = await library.render(
-              `granite-diagram-${++diagramId}`,
-              this.node.value,
-            );
-            const safe = sanitizeDiagram(rendered.svg);
-            if (!this.disposed) {
+      else {
+        const render = () => {
+          const version = ++this.renderVersion;
+          const current = () =>
+            !this.disposed && version === this.renderVersion;
+          const dark = document.documentElement.dataset.theme === "dark";
+          void renderDiagram(this.node.value, dark, current)
+            .then((safe) => {
+              if (!current() || safe === undefined) return;
+              el.classList.remove("cm-rich-error");
+              el.removeAttribute("title");
               el.innerHTML = safe;
               view.requestMeasure();
-            }
-          })
-          .catch(() =>
-            fail("다이어그램을 표시할 수 없습니다. 클릭해서 수정하세요."),
-          );
+            })
+            .catch(() => {
+              if (current())
+                fail("다이어그램을 표시할 수 없습니다. 클릭해서 수정하세요.");
+            });
+        };
+        window.addEventListener("granite-theme-change", render);
+        this.stopThemeListener = () =>
+          window.removeEventListener("granite-theme-change", render);
+        render();
+      }
     }
     return el;
   }
@@ -308,6 +336,9 @@ class RichWidget extends WidgetType {
   }
   destroy() {
     this.disposed = true;
+    this.renderVersion++;
+    this.stopThemeListener?.();
+    this.stopThemeListener = undefined;
     if (this.objectUrl) {
       URL.revokeObjectURL(this.objectUrl);
       this.objectUrl = undefined;
