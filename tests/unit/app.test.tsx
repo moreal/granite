@@ -7,6 +7,7 @@ import {
   cleanup,
 } from "@testing-library/react";
 import App from "../../src/App";
+import { DemoStorage } from "../../src/storage/storage";
 const data = new Map<string, string>();
 vi.stubGlobal("localStorage", {
   getItem: (k: string) => data.get(k) ?? null,
@@ -21,6 +22,14 @@ vi.stubGlobal("localStorage", {
 afterEach(cleanup);
 it("opens a visibly separate demo and creates a searchable persistent note", async () => {
   localStorage.clear();
+  // Real image persistence is exercised by demo-examples.spec.ts in Chromium.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: true, blob: async () => new Blob() }),
+  );
+  const image = vi
+    .spyOn(DemoStorage.prototype, "putImage")
+    .mockResolvedValue("assets/" + "a".repeat(64) + ".png");
   render(<App />);
   fireEvent.click(screen.getByRole("button", { name: "데모 둘러보기" }));
   await screen.findByRole("button", { name: "새 노트" });
@@ -33,6 +42,7 @@ it("opens a visibly separate demo and creates a searchable persistent note", asy
   await waitFor(() =>
     expect(screen.getByRole("heading", { name: "테스트 노트" })).toBeTruthy(),
   );
+  image.mockRestore();
   expect(localStorage.getItem("granite.demo.v1")).toContain("테스트 노트");
   fireEvent.change(screen.getByLabelText("노트 검색"), {
     target: { value: "테스트" },
