@@ -4,7 +4,7 @@ Granite is a local-first, flat-namespace Markdown knowledge tool. The product ow
 
 ## Working agreement
 
-- Start with `docs/superpowers/specs/2026-10-23-granite-mvp-design.md` and `docs/verification.md`.
+- Start with `docs/superpowers/specs/2026-10-23-granite-mvp-design.md`, `docs/superpowers/specs/2026-10-24-writing-focus.md`, and `docs/verification.md`.
 - Classify dogfooding feedback as a spec violation, missing specification, or change of direction. For missing requirements or direction changes, update the specification and acceptance criteria alongside implementation. Preserve the original user intent.
 - The orchestrator owns scope, decisions, delegation, and integration. Delegate implementation and independent review when agent tools are available. A delegated worker should not spawn additional workers or reviewers unless its assignment explicitly asks for that.
 - Keep behavioral expectations understandable without reading code. Link meaningful tests and review findings to the S01–S12 acceptance criteria; extend the spec with new IDs when needed.

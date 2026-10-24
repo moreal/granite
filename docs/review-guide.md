@@ -1,5 +1,7 @@
 # Granite 리뷰 가이드
 
+2026-10-24 글쓰기 화면 변경: 링크는 **일반 클릭으로 원문 편집**, **Cmd/Ctrl+클릭으로 이동**합니다. 커서가 같은 줄에 있어도 해당 링크 밖에 있으면 레이블만 보입니다. 집중 모드에서 ‘연결 패널 열기’를 누르면 집중 모드를 끝내고 연결 패널을 보여줍니다. [변경 스펙](superpowers/specs/2026-10-24-writing-focus.md)
+
 `npm ci`와 `npm run dev -- --port 4173 --strictPort`를 실행하고 `http://127.0.0.1:4173`을 Chrome에서 연다. 첫 화면의 **데모 둘러보기**를 누르면 아래 투어를 시작할 수 있다. 자동 검증 결과와 직접 확인이 필요한 항목은 [검증 기록](verification.md)에 구분한다.
 
 대상은 데스크톱 Chrome이다. [MVP 스펙](superpowers/specs/2026-10-23-granite-mvp-design.md)의 S01–S12를 기준으로 확인하고, 세부 실패 조건은 [수용 검증표](acceptance-matrix.md)를 참고한다.

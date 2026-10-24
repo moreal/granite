@@ -166,8 +166,9 @@ test("S06 wiki keyboard completion, cancellation and missing-note creation", asy
     .getByRole("button", { name: "라이브 프리뷰", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "새로운 연결 노트 열기", exact: true })
-    .click();
+    .locator(".cm-note-link")
+    .filter({ hasText: "새로운 연결" })
+    .click({ modifiers: ["ControlOrMeta"] });
   await expect(
     page.getByRole("dialog", { name: "아직 없는 노트예요" }),
   ).toBeVisible();
@@ -290,7 +291,9 @@ test("S08 title fetch success/failure and late response cannot replace edited te
   await expect(
     page.getByText("제목을 가져오는 중… 계속 써도 괜찮아요."),
   ).toBeVisible();
-  await editor(page).click();
+  // Click the visible source line; the textbox center can be under the paste menu.
+  await editor(page).locator(".cm-line").first().click();
+  await editor(page).press("ControlOrMeta+End");
   await page.keyboard.insertText(" 새 문장");
   release();
   await expect(editor(page)).toContainText("https://source.test/slow 새 문장");
@@ -317,9 +320,7 @@ test("S04 S09 source/live preview and code links are literal, HTML remains inert
     .getByRole("button", { name: "라이브 프리뷰", exact: true })
     .click();
   await expect(page.locator(".cm-strong")).toContainText("강조");
-  await expect(
-    page.getByRole("button", { name: "덤프 노트 열기", exact: true }),
-  ).toHaveCount(0);
+  await expect(editor(page).locator(".cm-note-link")).toHaveCount(0);
   expect(await page.evaluate(() => "evil" in window)).toBe(false);
   await source(page);
   await expect(editor(page)).toContainText("<img src=x");
@@ -421,4 +422,191 @@ test("S04 multiline Markdown links remain editable without crashing live preview
   await expect(editor(page)).toContainText("https://example.com");
   await saved(page);
   expect(errors).toEqual([]);
+});
+
+test("S04 S06 writing-focus labels edit locally and modifier clicks navigate", async ({
+  page,
+}) => {
+  await demo(page);
+  await create(page, "링크 맥락");
+  await source(page);
+  await body(page, "앞 [[덤프]] 중간 [출처](https://example.com) 끝\n\n아래");
+  await editor(page).press("ControlOrMeta+End");
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  const links = editor(page).locator(".cm-note-link");
+  await expect(links).toHaveCount(2);
+  await links.filter({ hasText: "덤프" }).click();
+  await expect(
+    page.getByRole("heading", { name: "링크 맥락", exact: true }),
+  ).toBeVisible();
+  await expect(editor(page)).toContainText("[[덤프]]");
+  await expect(links).toHaveCount(1);
+  await page.keyboard.insertText("수정");
+  await editor(page).press("ControlOrMeta+End");
+  await expect(links).toHaveCount(2);
+  await page.getByRole("button", { name: "원문 보기", exact: true }).click();
+  await expect(editor(page)).toContainText("수정");
+  await body(page, "앞 [[덤프]] 중간 [출처](https://example.com) 끝\n\n아래");
+  await editor(page).press("ControlOrMeta+End");
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  await page
+    .context()
+    .route("https://example.com/", (route) =>
+      route.fulfill({ body: "source", contentType: "text/plain" }),
+    );
+  const popup = page.waitForEvent("popup");
+  await links
+    .filter({ hasText: "출처" })
+    .click({ modifiers: ["ControlOrMeta"] });
+  const external = await popup;
+  await expect(external).toHaveURL("https://example.com/");
+  await external.close();
+  await links
+    .filter({ hasText: "덤프" })
+    .click({ modifiers: ["ControlOrMeta"] });
+  await expect(
+    page.getByRole("heading", { name: "덤프", exact: true }),
+  ).toBeVisible();
+});
+
+test("S09 S12 writing-focus opening connections exits focus with coherent controls", async ({
+  page,
+}) => {
+  await demo(page);
+  await page.getByRole("button", { name: "집중 모드", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "집중 모드 끝내기", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", { name: "연결된 생각", exact: true }),
+  ).toBeHidden();
+  const panel = page.getByRole("button", {
+    name: "연결 패널 열기",
+    exact: true,
+  });
+  await expect(panel).toHaveAttribute("aria-expanded", "false");
+  await panel.click();
+  await expect(
+    page.getByRole("heading", { name: "연결된 생각", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "노트 검색" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "집중 모드", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    page.getByRole("button", { name: "연결 패널 접기", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
+});
+
+test("S04 writing-focus composition keeps Korean text, undo, and code links intact", async ({
+  page,
+}) => {
+  await demo(page);
+  await create(page, "한글 조합");
+  await source(page);
+  const original = "앞 [[덤프]] 중간 `[[코드]]` 끝\n\n입력 ";
+  await body(page, original);
+  await editor(page).press("ControlOrMeta+End");
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  await editor(page).press("ControlOrMeta+End");
+  const cdp = await page.context().newCDPSession(page);
+  for (const text of ["ㅎ", "하", "한"]) {
+    await cdp.send("Input.imeSetComposition", {
+      text,
+      selectionStart: text.length,
+      selectionEnd: text.length,
+    });
+    await expect(editor(page).locator(".cm-note-link")).toHaveCount(1);
+  }
+  await cdp.send("Input.insertText", { text: "한" });
+  await editor(page).press("ArrowLeft");
+  await saved(page);
+  await source(page);
+  await expect(editor(page)).toContainText("입력 한");
+  await expect(editor(page)).toContainText("`[[코드]]`");
+  await editor(page).press("ControlOrMeta+z");
+  await expect(editor(page)).not.toContainText("입력 한");
+  await editor(page).press("ControlOrMeta+Shift+z");
+  await expect(editor(page)).toContainText("입력 한");
+});
+
+test("S12 writing-focus actual editor text inherits readable typography at every width", async ({
+  page,
+}, testInfo) => {
+  await demo(page);
+  const textStyle = () =>
+    editor(page).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        font: style.fontFamily,
+        size: parseFloat(style.fontSize),
+        line: parseFloat(style.lineHeight),
+        width: element.getBoundingClientRect().width,
+      };
+    });
+  expect(await textStyle()).toMatchObject({ size: 17, line: 30.6 });
+  expect((await textStyle()).font).not.toContain("monospace");
+  await page.getByRole("button", { name: "집중 모드", exact: true }).click();
+  expect((await textStyle()).width).toBeLessThanOrEqual(700);
+  await page.screenshot({
+    path: testInfo.outputPath("focus.png"),
+    fullPage: true,
+  });
+  await source(page);
+  expect((await textStyle()).font).toContain("monospace");
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await textStyle()).toMatchObject({ size: 16, line: 28.8, width: 354 });
+  expect((await textStyle()).font).not.toContain("monospace");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.screenshot({
+    path: testInfo.outputPath("phone-focus.png"),
+    fullPage: true,
+  });
+});
+
+test("S04 S06 writing-focus escaped labels edit as source and open decoded targets", async ({
+  page,
+}) => {
+  await demo(page);
+  await create(page, "대괄호[제목]");
+  await create(page, "이스케이프 연결");
+  await source(page);
+  const original =
+    "앞 [[대괄호\\[제목\\]]] [별칭\\]](https://example.com) 뒤\n\n끝";
+  await body(page, original);
+  await saved(page);
+  await editor(page).press("ControlOrMeta+End");
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  const labels = editor(page).locator(".cm-note-link");
+  await expect(labels).toHaveText(["대괄호[제목]", "별칭]"]);
+  await labels.first().hover();
+  await expect(labels).toHaveCount(2);
+  await labels.first().click();
+  await expect(editor(page)).toContainText("[[대괄호\\[제목\\]]]");
+  await expect(
+    page.getByRole("heading", { name: "이스케이프 연결", exact: true }),
+  ).toBeVisible();
+  await editor(page).press("ControlOrMeta+End");
+  expect(
+    Object.values(await rawNotes(page)).some((note) =>
+      note.raw.endsWith(original),
+    ),
+  ).toBe(true);
+  await labels.first().click({ modifiers: ["ControlOrMeta"] });
+  await expect(
+    page.getByRole("heading", { name: "대괄호[제목]", exact: true }),
+  ).toBeVisible();
 });

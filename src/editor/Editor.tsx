@@ -5,15 +5,15 @@ import {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import { EditorState, Compartment, Prec } from "@codemirror/state";
+import { EditorState, Compartment, Prec, StateEffect } from "@codemirror/state";
 import {
   EditorView,
   Decoration,
-  WidgetType,
   ViewPlugin,
   keymap,
   placeholder,
   type DecorationSet,
+  type ViewUpdate,
 } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import {
@@ -49,74 +49,89 @@ interface Props {
   onSelection: (size: number) => void;
   onOpen: (title: string) => void;
 }
-class LinkWidget extends WidgetType {
-  constructor(
-    readonly text: string,
-    readonly title: string,
-    readonly open: (title: string) => void,
-    readonly external = false,
-  ) {
-    super();
-  }
-  eq(other: LinkWidget) {
-    return this.text === other.text && this.title === other.title;
-  }
-  toDOM() {
-    const el = document.createElement("button");
-    el.type = "button";
-    el.className = "cm-note-link";
-    el.textContent = this.text;
-    el.setAttribute(
-      "aria-label",
-      `${this.text} ${this.external ? "외부 링크" : "노트 열기"}`,
-    );
-    el.onclick = (e) => {
-      e.preventDefault();
-      if (this.external) {
-        const url = safeWebUrl(this.title);
-        if (url) window.open(url, "_blank", "noopener,noreferrer");
-      } else this.open(this.title);
-    };
-    return el;
-  }
-  ignoreEvent() {
-    return true;
-  }
+interface PreviewLink {
+  from: number;
+  to: number;
+  labelFrom: number;
+  labelTo: number;
+  target: string;
+  external: boolean;
 }
-function preview(open: (title: string) => void) {
+function previewLinks(state: EditorState): PreviewLink[] {
+  const links: PreviewLink[] = parseWikiLinks(state.doc.toString()).map(
+    (link) => ({
+      ...link,
+      labelFrom: link.from + 2,
+      labelTo: link.to - 2,
+      target: link.title,
+      external: false,
+    }),
+  );
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (["FencedCode", "CodeBlock", "InlineCode"].includes(node.name))
+        return false;
+      if (node.name !== "Link") return;
+      const raw = state.doc.sliceString(node.from, node.to);
+      const match = /^\[((?:\\.|[^\]])*)\]\(([^\s]+)\)$/.exec(raw);
+      if (match && !raw.includes("\n") && safeWebUrl(match[2])) {
+        links.push({
+          from: node.from,
+          to: node.to,
+          labelFrom: node.from + 1,
+          labelTo: node.from + 1 + match[1].length,
+          target: match[2],
+          external: true,
+        });
+      }
+      return false;
+    },
+  });
+  return links;
+}
+const refreshPreview = StateEffect.define<null>();
+function preview() {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
       constructor(view: EditorView) {
         this.decorations = this.build(view);
       }
-      update(u: {
-        view: EditorView;
-        docChanged: boolean;
-        selectionSet: boolean;
-        viewportChanged: boolean;
-      }) {
-        if (u.docChanged || u.selectionSet || u.viewportChanged)
-          this.decorations = this.build(u.view);
+      update(update: ViewUpdate) {
+        // Keep the composing DOM stable, while tracking positions through edits.
+        if (update.view.composing) {
+          this.decorations = this.decorations.map(update.changes);
+          return;
+        }
+        if (
+          update.docChanged ||
+          update.selectionSet ||
+          update.viewportChanged ||
+          update.transactions.some((transaction) =>
+            transaction.effects.some((effect) => effect.is(refreshPreview)),
+          )
+        ) {
+          this.decorations = this.build(update.view);
+        }
       }
       build(view: EditorView) {
         const ranges: ReturnType<
           ReturnType<typeof Decoration.mark>["range"]
         >[] = [];
         const doc = view.state.doc;
-        const active = new Set(
-          view.state.selection.ranges.flatMap((r) => {
+        const selection = view.state.selection.ranges;
+        const activeLines = new Set(
+          selection.flatMap((range) => {
             const lines: number[] = [];
             for (
-              let n = doc.lineAt(r.from).number;
-              n <= doc.lineAt(r.to).number;
+              let n = doc.lineAt(range.from).number;
+              n <= doc.lineAt(range.to).number;
               n++
             )
               lines.push(n);
             return lines;
           }),
         );
-        const inactive = (from: number) => !active.has(doc.lineAt(from).number);
         syntaxTree(view.state).iterate({
           enter(node) {
             const line = doc.lineAt(node.from);
@@ -127,59 +142,66 @@ function preview(open: (title: string) => void) {
                 }).range(line.from),
               );
             }
-            if (!inactive(node.from)) return;
-            if (["HeaderMark", "EmphasisMark", "CodeMark"].includes(node.name))
+            if (activeLines.has(line.number)) return;
+            if (
+              ["HeaderMark", "EmphasisMark", "CodeMark"].includes(node.name)
+            ) {
               ranges.push(Decoration.replace({}).range(node.from, node.to));
-            if (node.name === "StrongEmphasis")
-              ranges.push(
-                Decoration.mark({ class: "cm-strong" }).range(
-                  node.from,
-                  node.to,
-                ),
-              );
-            if (node.name === "Emphasis")
-              ranges.push(
-                Decoration.mark({ class: "cm-emphasis" }).range(
-                  node.from,
-                  node.to,
-                ),
-              );
-            if (node.name === "InlineCode")
-              ranges.push(
-                Decoration.mark({ class: "cm-inline-code" }).range(
-                  node.from,
-                  node.to,
-                ),
-              );
-            if (node.name === "Link") {
-              const raw = doc.sliceString(node.from, node.to),
-                m = /^\[((?:\\.|[^\]])*)\]\(([^\s]+)\)$/.exec(raw);
-              if (m && !raw.includes("\n") && safeWebUrl(m[2]))
-                ranges.push(
-                  Decoration.replace({
-                    widget: new LinkWidget(
-                      m[1].replace(/\\(.)/g, "$1"),
-                      m[2],
-                      open,
-                      true,
-                    ),
-                  }).range(node.from, node.to),
-                );
-              return false;
             }
+            const classes: Record<string, string> = {
+              StrongEmphasis: "cm-strong",
+              Emphasis: "cm-emphasis",
+              InlineCode: "cm-inline-code",
+            };
+            const className = classes[node.name];
+            if (className)
+              ranges.push(
+                Decoration.mark({ class: className }).range(node.from, node.to),
+              );
           },
         });
-        for (const l of parseWikiLinks(doc.toString()))
-          if (inactive(l.from))
-            ranges.push(
-              Decoration.replace({
-                widget: new LinkWidget(l.title, l.title, open),
-              }).range(l.from, l.to),
-            );
+        for (const link of previewLinks(view.state)) {
+          if (
+            selection.some(
+              (range) => range.from <= link.to && range.to >= link.from,
+            )
+          )
+            continue;
+          // Empty labels and multiline syntax stay editable as ordinary source.
+          if (link.labelFrom === link.labelTo) continue;
+          ranges.push(Decoration.replace({}).range(link.from, link.labelFrom));
+          ranges.push(
+            Decoration.mark({
+              class: "cm-note-link",
+              attributes: {
+                "data-link-target": link.target,
+                "data-link-external": String(link.external),
+              },
+            }).range(link.labelFrom, link.labelTo),
+          );
+          ranges.push(Decoration.replace({}).range(link.labelTo, link.to));
+          const label = doc.sliceString(link.labelFrom, link.labelTo);
+          const escapes = link.external ? /\\(.)/g : /\\([\\[\]])/g;
+          for (const match of label.matchAll(escapes)) {
+            const from = link.labelFrom + match.index;
+            ranges.push(Decoration.replace({}).range(from, from + 1));
+          }
+        }
         return Decoration.set(ranges, true);
       }
     },
-    { decorations: (v) => v.decorations },
+    {
+      decorations: (plugin) => plugin.decorations,
+      eventHandlers: {
+        compositionend(_event, view) {
+          // CodeMirror finishes its composition handler before the queued refresh.
+          queueMicrotask(() => {
+            if (view.dom.isConnected)
+              view.dispatch({ effects: refreshPreview.of(null) });
+          });
+        },
+      },
+    },
   );
 }
 interface Paste {
@@ -279,9 +301,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
             markdown(),
             history(),
             EditorView.lineWrapping,
-            placeholder(
-              "떠오른 생각을 적어 보세요.  [[ 로 연결하고, @ 로 날짜를 넣어요.",
-            ),
+            placeholder("본문을 입력하세요."),
             EditorView.contentAttributes.of({
               "aria-label": "노트 본문",
               role: "textbox",
@@ -292,8 +312,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 { tag: tags.strong, fontWeight: "650" },
                 { tag: tags.emphasis, fontStyle: "italic" },
                 { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
-                { tag: tags.link, color: "#557463" },
-                { tag: tags.url, color: "#77756b" },
+                { tag: tags.link, color: "#344f6a" },
+                { tag: tags.url, color: "#595959" },
               ]),
             ),
             keymap.of([
@@ -306,11 +326,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
               activateOnTyping: true,
               defaultKeymap: false,
             }),
-            previewConfig.current.of(
-              latest.current.source
-                ? []
-                : preview((title) => latest.current.onOpen(title)),
-            ),
+            previewConfig.current.of(latest.current.source ? [] : preview()),
             lockConfig.current.of([
               EditorState.readOnly.of(latest.current.locked),
               EditorView.editable.of(!latest.current.locked),
@@ -358,26 +374,39 @@ export const Editor = forwardRef<EditorHandle, Props>(
                   }
                   return false;
                 },
+                mousedown(event) {
+                  // A navigation gesture must not first move the caret and reveal syntax.
+                  return (
+                    (event.metaKey || event.ctrlKey) &&
+                    !!(event.target as HTMLElement).closest(".cm-note-link")
+                  );
+                },
                 click(event, v) {
-                  const target = event.target as HTMLElement;
-                  if (target.closest("button")) return false;
-                  if (event.metaKey || event.ctrlKey) {
-                    const p = v.posAtCoords({
-                      x: event.clientX,
-                      y: event.clientY,
-                    });
-                    const link =
-                      p === null
-                        ? undefined
-                        : parseWikiLinks(v.state.doc.toString()).find(
-                            (l) => p >= l.from && p <= l.to,
-                          );
-                    if (link) {
-                      latest.current.onOpen(link.title);
-                      return true;
-                    }
-                  }
-                  return false;
+                  if (!(event.metaKey || event.ctrlKey)) return false;
+                  const label = (
+                    event.target as HTMLElement
+                  ).closest<HTMLElement>(".cm-note-link");
+                  const position = label
+                    ? null
+                    : v.posAtCoords({ x: event.clientX, y: event.clientY });
+                  const link = label
+                    ? {
+                        target: label.dataset.linkTarget!,
+                        external: label.dataset.linkExternal === "true",
+                      }
+                    : previewLinks(v.state).find(
+                        (candidate) =>
+                          position !== null &&
+                          position >= candidate.from &&
+                          position <= candidate.to,
+                      );
+                  if (!link) return false;
+                  event.preventDefault();
+                  if (link.external) {
+                    const url = safeWebUrl(link.target);
+                    if (url) window.open(url, "_blank", "noopener,noreferrer");
+                  } else latest.current.onOpen(link.target);
+                  return true;
                 },
               }),
             ),
@@ -401,7 +430,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
     useEffect(() => {
       view.current?.dispatch({
         effects: previewConfig.current.reconfigure(
-          props.source ? [] : preview((title) => latest.current.onOpen(title)),
+          props.source ? [] : preview(),
         ),
       });
     }, [props.source]);

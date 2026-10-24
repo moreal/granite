@@ -8,17 +8,17 @@ import {
   Code2,
   Compass,
   Download,
-  Feather,
   FolderOpen,
   Inbox,
   Link2,
   LoaderCircle,
   PanelLeftClose,
+  PanelLeftOpen,
   PanelRightClose,
+  PanelRightOpen,
   Plus,
   Search,
   Shuffle,
-  Sprout,
   X,
   TriangleAlert,
   RefreshCw,
@@ -343,28 +343,12 @@ export default function App() {
   return !workspace ? (
     <div className="welcome">
       <header className="welcome-header">
-        <div className="brand">
-          <span className="brand-mark">g.</span>granite
-          <span className="brand-caption">작은 기록, 단단한 생각</span>
-        </div>
-        <span className="local-badge">
-          <span />
-          나의 기기에 머무는 노트
-        </span>
+        <div className="brand">granite</div>
       </header>
       <main className="welcome-main">
         <div className="welcome-copy">
-          <div className="eyebrow">A QUIET PLACE FOR YOUR THOUGHTS</div>
-          <h1>
-            흩어진 생각에
-            <br />
-            머무를 곳을.
-          </h1>
-          <p>
-            한 줄의 메모에서 서로 연결되는 생각까지.
-            <br />
-            당신의 언어로, 당신의 공간에 쌓아 가세요.
-          </p>
+          <h1>나의 노트</h1>
+          <p>로컬 폴더의 Markdown 노트를 읽고 씁니다.</p>
           <button
             className="primary start-button"
             onClick={() => void runStart("folder")}
@@ -381,9 +365,7 @@ export default function App() {
             데모 둘러보기 <ChevronRight size={16} />
           </button>
           <p className="start-hint">
-            가입 없이, Markdown 그대로.
-            <br />
-            폴더의 최상위 .md 파일을 읽고 씁니다.
+            폴더의 최상위 .md 파일만 엽니다. 노트는 이 기기에 저장됩니다.
           </p>
           {folders.map((f) => (
             <button
@@ -408,42 +390,7 @@ export default function App() {
             </p>
           )}
         </div>
-        <div className="welcome-paper" aria-label="연결된 생각의 예시">
-          <div className="paper-label">
-            <Feather size={16} />
-            나의 작은 정원 <span>NOTE 001</span>
-          </div>
-          <h2>
-            생각은 연결될 때<br />
-            조금 더 선명해진다.
-          </h2>
-          <p>
-            오늘 발견한 작은 조각을 남겨 둔다.
-            <br />
-            언젠가 다른 생각의 시작이 될 수 있도록.
-          </p>
-          <div className="paper-rule" />
-          <div className="paper-note">
-            <span>01</span>
-            <div>
-              수집하고, 연결하고, 다시 발견하기.
-              <small>완벽하게 정리하지 않아도 괜찮아요.</small>
-            </div>
-          </div>
-          <span className="paper-link">
-            <Link2 size={15} />
-            생각을 연결하는 작은 습관
-          </span>
-          <div className="paper-bottom">
-            <Sprout size={28} />
-            <span>A little, every day.</span>
-          </div>
-        </div>
       </main>
-      <footer className="welcome-footer">
-        <span>평문으로 남겨 오래 이어지는 기록.</span>
-        <span>PRIVATE BY NATURE · GRANITE</span>
-      </footer>
     </div>
   ) : (
     <div
@@ -454,9 +401,7 @@ export default function App() {
       }
     >
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">g.</span>granite
-        </div>
+        <div className="brand">granite</div>
         <button
           className="workspace-switch"
           onClick={() => void leave()}
@@ -549,9 +494,14 @@ export default function App() {
               className="icon-button focus-toggle"
               title={focus ? "집중 모드 끝내기" : "집중 모드"}
               aria-label={focus ? "집중 모드 끝내기" : "집중 모드"}
+              aria-pressed={focus}
               onClick={() => setFocus(!focus)}
             >
-              <PanelLeftClose size={18} />
+              {focus ? (
+                <PanelLeftOpen size={18} />
+              ) : (
+                <PanelLeftClose size={18} />
+              )}
             </button>
             <span>나의 노트</span>
             <ChevronRight size={13} />
@@ -573,11 +523,25 @@ export default function App() {
             </button>
             <button
               className="icon-button"
-              onClick={() => setConnections(!connections)}
-              aria-label={connections ? "연결 패널 접기" : "연결 패널 열기"}
-              title={connections ? "연결 패널 접기" : "연결 패널 열기"}
+              onClick={() => {
+                if (focus || !connections) {
+                  setFocus(false);
+                  setConnections(true);
+                } else setConnections(false);
+              }}
+              aria-expanded={connections && !focus}
+              aria-label={
+                connections && !focus ? "연결 패널 접기" : "연결 패널 열기"
+              }
+              title={
+                connections && !focus ? "연결 패널 접기" : "연결 패널 열기"
+              }
             >
-              <PanelRightClose size={18} />
+              {connections && !focus ? (
+                <PanelRightClose size={18} />
+              ) : (
+                <PanelRightOpen size={18} />
+              )}
             </button>
           </div>
         </header>
@@ -603,7 +567,6 @@ export default function App() {
               <>
                 <div className="note-header">
                   <div className="note-kicker">
-                    <span>MY NOTE</span>
                     <div className={"save-state " + entry.status} role="status">
                       {entry.status === "saved" ? (
                         <Check size={13} />
@@ -719,10 +682,6 @@ export default function App() {
                   onOpen={openTitle}
                 />
                 <div className="writing-footer">
-                  <span>
-                    <Feather size={13} />
-                    생각이 자라는 중
-                  </span>
                   <button
                     className={
                       selection ? "extract-button ready" : "extract-button"
@@ -736,14 +695,13 @@ export default function App() {
                 </div>
                 <div className="editor-hint">
                   [[ 로 노트 연결 <span>·</span> @ 로 날짜와 노트 찾기{" "}
-                  <span>·</span> ⌘ 클릭으로 원문 링크 열기
+                  <span>·</span> 링크 클릭으로 편집 · ⌘/Ctrl+클릭으로 열기
                 </div>
               </>
             ) : (
               <div className="empty-state">
-                <Sprout size={36} />
-                <h1>새로운 생각이 시작되는 자리</h1>
-                <p>첫 노트를 쓰거나 오늘의 기록을 남겨 보세요.</p>
+                <h1>노트가 없습니다</h1>
+                <p>새 노트를 만들거나 오늘의 노트를 여세요.</p>
                 <button className="primary" onClick={beginCreate}>
                   <Plus size={17} />새 노트
                 </button>
@@ -783,9 +741,7 @@ export default function App() {
                 ))
               ) : (
                 <p className="connection-empty">
-                  다른 노트에서 이 생각을 연결하면
-                  <br />
-                  이곳에 작은 길이 생깁니다.
+                  이 노트를 언급한 노트가 없습니다.
                 </p>
               )}
               <div className="rediscover">
@@ -807,32 +763,16 @@ export default function App() {
                     onClick={() => void openNote(rediscovered)}
                     disabled={busy}
                   >
-                    <span className="eyebrow">오래된 생각에 새 눈길을</span>
                     <h3>{rediscovered.title}</h3>
                     <p>
                       {rediscovered.body
                         .replace(/[#*`>\[\]]/g, "")
                         .slice(0, 110)}
                     </p>
-                    <span className="rediscovery-open">
-                      다시 읽어 보기 <ArrowUpRight size={15} />
-                    </span>
                   </button>
                 ) : (
-                  <p className="connection-empty">
-                    노트가 하나 더 쌓이면
-                    <br />
-                    다시 만날 생각을 꺼내 드릴게요.
-                  </p>
+                  <p className="connection-empty">다른 노트가 없습니다.</p>
                 )}
-              </div>
-              <div className="aside-bottom">
-                <Sprout size={23} />
-                <p>
-                  연결은 서두르지 않아도 돼요.
-                  <br />
-                  오늘은 한 줄이면 충분해요.
-                </p>
               </div>
             </aside>
           )}
