@@ -24,7 +24,7 @@ test("S15 new demo persists editable examples and deduplicates the bundled asset
       bytes: blob.size,
     };
   });
-  expect(first.count).toBe(5);
+  expect(first.count).toBe(8);
   expect(first.body).toContain("```javascript");
   expect(first.body).toContain("```python");
   expect(first.body).toContain("```mermaid");
@@ -45,7 +45,7 @@ test("S15 new demo persists editable examples and deduplicates the bundled asset
       bytes: (await s.readImage(image)).size,
     };
   }, first.image);
-  expect(restored.count).toBe(5);
+  expect(restored.count).toBe(8);
   expect(restored.body).toContain("내가 남긴 문장");
   expect(restored.bytes).toBe(first.bytes);
 });
@@ -92,7 +92,7 @@ test("S15 existing notes and colliding titles survive upgrades and marker failur
     };
   });
   expect(result.failed).toBe(true);
-  expect(result.count).toBe(2);
+  expect(result.count).toBe(5);
   expect(result.original).toBe("내 원래 글");
   expect(result.edited).toBe("실패 직후에도 사용자가 편집한 예시");
   expect(result.marker.complete).toBe(true);
@@ -144,7 +144,7 @@ test("S15 two tabs seed one example and image failure remains retryable", async 
     const { openDemo } = await import(demoPath);
     return (await (await openDemo()).list()).length;
   });
-  expect(count).toBe(2);
+  expect(count).toBe(5);
 });
 
 test("S15 example previews render on desktop and narrow screens and math edits persist", async ({

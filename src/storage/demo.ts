@@ -104,6 +104,88 @@ async function seedRichExample(s: DemoStorage) {
   );
 }
 
+export const typedDemoSeedKey = "granite.demo.seed.typed-notes.v1";
+export const typedDemoTitles = {
+  person: "윤여울 — 가상의 작가",
+  book: "느린 질문의 숲 — 가상의 책",
+  article: "질문을 산책시키는 독서 — 예시 글",
+};
+type TypedExample = keyof typeof typedDemoTitles;
+type TypedJournal = Partial<
+  Record<TypedExample, { title: string; complete: boolean }>
+>;
+
+function typedBody(kind: TypedExample, titles: Record<TypedExample, string>) {
+  const fixture =
+    "이 노트의 인물·책·글은 속성과 연결을 연습하기 위한 가상의 예시입니다. 실제 인물이나 출판물에 관한 정보가 아닙니다.";
+  if (kind === "person")
+    return `---
+type: Person
+---
+${fixture}
+
+윤여울은 산책 중 떠오른 질문을 짧은 글로 모으는 가상의 작가입니다.
+
+**노트 그래프**를 펼쳐 이 작가를 author로 연결한 책과 글을 찾아보세요.
+`;
+  if (kind === "book")
+    return `---
+type: Book
+author: "[[${titles.person}]]"
+---
+${fixture}
+
+『느린 질문의 숲』은 답을 서둘러 정리하지 않고 질문을 돌보는 습관을 다룬 가상의 책입니다.
+
+**속성**과 **노트 그래프**를 펼친 다음 author의 대괄호 두 쌍은 유지하고 안쪽 제목을 다른 노트 제목으로 바꿔 보세요. 입력하는 즉시 연결 대상이 바뀌고 저장한 내용은 다시 열어도 남습니다.
+`;
+  return `---
+type: Article
+author: "[[${titles.person}]]"
+about: "[[${titles.book}]]"
+---
+${fixture}
+
+이 예시 글은 『느린 질문의 숲』의 독서법을 상상하며 썼습니다. 한 문장을 읽고, 잠시 걷고, 떠오른 질문을 적어 봅니다.
+
+**속성**과 **노트 그래프**를 함께 펼쳐 보세요. author는 글쓴이, about은 글의 주제를 연결합니다. about을 \`"[[덤프]]"\`로 고치면 주제 연결이 즉시 바뀝니다. 원래 제목으로 되돌려도 됩니다.
+`;
+}
+
+async function seedTypedExamples(s: DemoStorage) {
+  const journal: TypedJournal = JSON.parse(
+    localStorage.getItem(typedDemoSeedKey) ?? "{}",
+  );
+  const titles = { ...typedDemoTitles };
+  // Dependencies are seeded first so relationships use their collision-safe titles.
+  for (const kind of ["person", "book", "article"] as const) {
+    const entry = journal[kind];
+    if (entry) titles[kind] = entry.title;
+    if (entry?.complete) continue;
+    const notes = await s.list();
+    // A committed pending filename may already contain edits. Never replace it.
+    if (!entry || !notes.some((n) => n.filename === filenameFor(entry.title))) {
+      let title = entry?.title ?? typedDemoTitles[kind];
+      let suffix = 2;
+      while (
+        notes.some(
+          (n) =>
+            fold(n.title) === fold(title) ||
+            fold(n.filename) === fold(filenameFor(title)),
+        )
+      ) {
+        title = `${typedDemoTitles[kind]} (${suffix++})`;
+      }
+      titles[kind] = title;
+      journal[kind] = { title, complete: false };
+      localStorage.setItem(typedDemoSeedKey, JSON.stringify(journal));
+      await s.create(title, typedBody(kind, titles));
+    }
+    journal[kind] = { title: titles[kind], complete: true };
+    localStorage.setItem(typedDemoSeedKey, JSON.stringify(journal));
+  }
+}
+
 let opening: Promise<unknown> = Promise.resolve();
 export async function openDemo() {
   const open = () => openSeededDemo();
@@ -134,5 +216,6 @@ async function openSeededDemo() {
     );
   }
   await seedRichExample(s);
+  await seedTypedExamples(s);
   return s;
 }
