@@ -109,6 +109,14 @@ export default function App() {
     }
   }, []);
   useEffect(() => {
+    if (!workspace || !current) return;
+    try {
+      localStorage.setItem("granite.active." + workspace.storage.id, current);
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }, [workspace, current]);
+  useEffect(() => {
     if (!workspace || !current || !entry || entry.status !== "dirty") return;
     const timer = setTimeout(
       () =>
@@ -168,10 +176,6 @@ export default function App() {
       workspace.load(latest);
       setCurrent(note.filename);
       setSelection(0);
-      localStorage.setItem(
-        "granite.active." + workspace.storage.id,
-        note.filename,
-      );
       await refresh();
     } catch (e) {
       setError(errorText(e));

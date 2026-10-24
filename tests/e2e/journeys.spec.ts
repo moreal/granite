@@ -35,10 +35,75 @@ test("S01 S02 demo create/edit/search/reload preserves the saved Markdown", asyn
   );
   expect(persisted?.raw).toContain("한글 / 질문?: 100% 🪨");
   await page.reload();
-  await openListed(page, "한글 / 질문?: 100% 🪨");
+  await expect(
+    page.getByRole("heading", {
+      name: "한글 / 질문?: 100% 🪨",
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
   await source(page);
-  await expect(editor(page)).toContainText("고유본문 단풍잎");
+  await expect(editor(page).locator(".cm-line")).toHaveText([
+    "고유본문 단풍잎",
+    "",
+    "**남길 생각**",
+  ]);
   expect(requests).toEqual([]);
+});
+
+test("S02 missing remembered note falls back to an existing demo note", async ({
+  page,
+}) => {
+  await demo(page);
+  await page.evaluate(() =>
+    localStorage.setItem("granite.active.demo-v1", "missing-note.md"),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "생각을 연결하는 작은 습관",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(editor(page)).toContainText("메모는 완성된 생각의 기록");
+});
+
+test("S02 S05 Korean extraction and further editing reopen the active note after reload", async ({
+  page,
+}) => {
+  await demo(page);
+  await create(page, "오늘의 한글 메모");
+  await source(page);
+  await body(page, "생각은 쓰면서 또렷해진다.");
+  await saved(page);
+  await editor(page).press("ControlOrMeta+a");
+  await page.getByRole("button", { name: /새 노트로 옮기기/ }).click();
+  await page.getByLabel("새 노트 제목").fill("내 말로 정리한 생각");
+  await page.getByRole("button", { name: "옮기기", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "내 말로 정리한 생각",
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await editor(page).press("ControlOrMeta+End");
+  await page.keyboard.insertText("\n\n다시 읽고 한 문장을 덧붙인다.");
+  await saved(page);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "내 말로 정리한 생각",
+      exact: true,
+      level: 1,
+    }),
+  ).toBeVisible();
+  await source(page);
+  await expect(editor(page).locator(".cm-line")).toHaveText([
+    "생각은 쓰면서 또렷해진다.",
+    "",
+    "다시 읽고 한 문장을 덧붙인다.",
+  ]);
 });
 
 test("S02 duplicate and empty titles preserve the existing note", async ({
