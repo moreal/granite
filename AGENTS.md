@@ -20,17 +20,19 @@ Granite is a local-first, flat-namespace Markdown knowledge tool. The product ow
 
 ## Development and verification
 
+Use Node.js 24 and the exact Yarn version in `package.json` (`corepack enable` when Corepack is available). Yarn uses `nodeLinker: pnpm`; use Yarn commands and immutable installs. See `docs/yarn-migration.md` for a direct official-release bootstrap without npm.
+
 ```sh
-npm ci
-npm run dev -- --port 4173 --strictPort
-npm test
-npm run typecheck
-npm run build
-npx playwright install chromium
-npm run test:e2e
+yarn install --immutable
+yarn dev --port 4173 --strictPort
+yarn test
+yarn typecheck
+yarn build
+yarn playwright install chromium
+yarn test:e2e
 ```
 
-Use focused regressions for behavior changes and failures, then run the relevant suite before claiming completion. The Playwright report is available through `npm run test:report`; the interactive runner is `npm run test:e2e:ui`.
+Use focused regressions for behavior changes and failures, then run the relevant suite before claiming completion. The Playwright report is available through `yarn test:report`; the interactive runner is `yarn test:e2e:ui`.
 
 Keep production code, unit tests, and browser tests readable and formatted. Avoid overwriting unrelated local development servers. Review the real rendered screen for UI changes, including a narrow viewport.
 

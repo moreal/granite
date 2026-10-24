@@ -1,5 +1,7 @@
 # Granite MVP 검증 기록
 
+현재 설치·검증 절차는 [Yarn 전환 기록](yarn-migration.md)이 대체한다. 아래 npm 실행 결과는 당시 증거로 보존한다.
+
 PR 자동 검증 추가(2026-10-24): [CI 구성·로컬 증거·호스팅 검증 한계](ci-verification.md).
 
 최신 입력 집중 검증(2026-10-24): [주변 UI 흐림 결과](typing-chrome-implementation.md). 최종 단위 44개, 브라우저·디스크 41개(32.6초), 타입 검사·빌드 통과. 실제 Chrome DevTools에서 입력·Tab·마우스 이동·날짜 명령·재입력·reduced-motion과 중요한 상태의 opacity를 확인했고 독립 재검토 승인을 받았다.
@@ -24,13 +26,13 @@ macOS arm64, Node.js 26.12.0, Playwright가 설치한 Chromium 156.0.8078.4(revi
 ## 재현 명령
 
 ```sh
-npm ci
-npx playwright install chromium
-npm test
-npm run typecheck
-npm run build
-npm run test:e2e
-npm run test:report
+yarn install --immutable
+yarn playwright install chromium
+yarn test
+yarn typecheck
+yarn build
+yarn test:e2e
+yarn test:report
 ```
 
 E2E는 `http://127.0.0.1:4173`에서 실행한다. 이미 실행 중인 Granite가 없으면 개발 서버를 직접 시작한다. UI 여정은 매 테스트마다 독립된 브라우저 저장소로 시작하며, 두 탭 검증만 같은 브라우저 컨텍스트를 공유한다. 임시 디스크 표본은 테스트가 만든 뒤 정리한다.
@@ -63,7 +65,7 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 
 ## 증거 파일
 
-`playwright-report/index.html`에 테스트 결과·첨부 화면·trace가 생성된다. `test-results/`는 다음 실행에서 교체되므로 필요한 증거는 별도로 보관한다. HTML 보고서는 `npm run test:report`, trace는 `npx playwright show-trace <trace.zip 경로>`로 연다.
+`playwright-report/index.html`에 테스트 결과·첨부 화면·trace가 생성된다. `test-results/`는 다음 실행에서 교체되므로 필요한 증거는 별도로 보관한다. HTML 보고서는 `yarn test:report`, trace는 `yarn playwright show-trace <trace.zip 경로>`로 연다.
 
 다음 화면은 최종 테스트에서 캡처한 뒤 실행 결과 폴더 밖에 보존했고 실제로 열어 확인했다. 데스크톱은 1440×900, 좁은 창은 760×900이다. 주요 글쓰기 영역·저장 상태·버튼이 보이고 가로 넘침이 없었다. 좁은 화면에서는 연결 패널이 본문 아래로 이어진다.
 

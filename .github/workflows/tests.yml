@@ -23,15 +23,23 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          yarn --version
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run typecheck
-      - run: npm run build
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - run: yarn install --immutable
+      - run: yarn test
+      - run: yarn typecheck
+      - run: yarn build
 
   browser:
     name: Chromium browser and disk tests
@@ -41,14 +49,22 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+      - name: Enable pinned Yarn
+        run: |
+          corepack enable
+          yarn --version
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - run: yarn install --immutable
+      - run: yarn playwright install --with-deps chromium
+      - run: yarn test:e2e
       - name: Upload browser report and traces
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

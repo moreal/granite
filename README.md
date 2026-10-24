@@ -4,11 +4,11 @@
 
 ## 실행
 
-Node.js 22.12 이상과 npm이 필요하며 Node.js 24 이상을 권장합니다. 검증 환경은 Node.js 26.12.0입니다.
+Node.js 24와 Yarn 4.18.1을 사용합니다. `package.json`이 Yarn 버전을 고정하고 `.yarnrc.yml`의 `nodeLinker: pnpm`이 `node_modules` 설치를 구성합니다. Corepack이 있는 Node.js 24에서는 `corepack enable` 후 아래 명령을 실행합니다. Corepack이 없는 환경의 공식 Yarn 직접 설치 방법과 검증 결과는 [Yarn 전환 기록](docs/yarn-migration.md)을 참고하세요.
 
 ```sh
-npm ci
-npm run dev -- --port 4173 --strictPort
+yarn install --immutable
+yarn dev --port 4173 --strictPort
 ```
 
 로컬 주소 [http://127.0.0.1:4173](http://127.0.0.1:4173)를 데스크톱 Chrome에서 엽니다. **데모 둘러보기**로 시작하면 샘플 노트가 열립니다. **내 폴더 열기**를 선택하면 Chrome 선택창에서 직접 폴더를 고르고 읽기/쓰기 권한을 승인합니다.
@@ -35,19 +35,19 @@ npm run dev -- --port 4173 --strictPort
 ## 검증
 
 ```sh
-npm test
-npm run typecheck
-npm run build
-npx playwright install chromium
-npm run test:e2e
-npm run test:report
+yarn test
+yarn typecheck
+yarn build
+yarn playwright install chromium
+yarn test:e2e
+yarn test:report
 ```
 
 E2E는 로컬 개발 서버를 시작하거나 이미 실행 중인 4173 포트의 Granite 서버를 사용합니다. CI에서는 기존 서버를 재사용하지 않고 직접 시작합니다. 각 브라우저 테스트는 독립된 저장소로 실행됩니다. 실패 화면과 trace 및 HTML 보고서는 `test-results/`, `playwright-report/`에 생성됩니다.
 
 실제 파일 smoke test는 운영 폴더 어댑터를 실제 임시 디스크 파일에 연결한 handle 대역으로 검사합니다. Chrome의 네이티브 폴더 선택창과 권한 승인은 별도의 수동 검증입니다. 자동 통과만으로 권한 UI를 확인했다고 주장하지 않습니다. [검증 결과와 한계](docs/verification.md)를 참고하세요.
 
-이 변경을 GitHub에 반영하면 모든 PR에서 [Tests 워크플로](.github/workflows/tests.yml)가 Ubuntu와 Node.js 24로 단위·타입·빌드 검사 및 Chromium 브라우저·디스크 검사를 실행합니다. 두 작업은 독립 실행하므로 단위 검사 실패로 브라우저 증거 수집이 생략되지 않습니다. GitHub의 PR **Checks → Tests → 실행 요약 → Artifacts**에서 `playwright-chromium-<run_id>-<run_attempt>`를 내려받을 수 있습니다. 생성된 HTML 보고서와 성공·실패 trace는 14일 보관합니다. 압축을 푼 폴더에서 `npx playwright show-report playwright-report` 또는 `npx playwright show-trace test-results/<테스트>/trace.zip`으로 확인합니다. [CI 검증 기록과 한계](docs/ci-verification.md)를 참고하세요.
+이 변경을 GitHub에 반영하면 모든 PR에서 [Tests 워크플로](.github/workflows/tests.yml)가 Ubuntu와 Node.js 24로 단위·타입·빌드 검사 및 Chromium 브라우저·디스크 검사를 실행합니다. 두 작업은 독립 실행하므로 단위 검사 실패로 브라우저 증거 수집이 생략되지 않습니다. GitHub의 PR **Checks → Tests → 실행 요약 → Artifacts**에서 `playwright-chromium-<run_id>-<run_attempt>`를 내려받을 수 있습니다. 생성된 HTML 보고서와 성공·실패 trace는 14일 보관합니다. 압축을 푼 폴더에서 `yarn playwright show-report playwright-report` 또는 `yarn playwright show-trace test-results/<테스트>/trace.zip`으로 확인합니다. [CI 검증 기록과 한계](docs/ci-verification.md)를 참고하세요.
 
 ## 피드백과 구현 기준
 
