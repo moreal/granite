@@ -16,6 +16,8 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { languages } from "@codemirror/language-data";
+import { richPreview, imagePath, refreshRichPreview } from "./rich-preview";
 import {
   syntaxTree,
   syntaxHighlighting,
@@ -41,6 +43,10 @@ export interface EditorHandle {
   focus(): void;
 }
 interface Props {
+  documentKey?: string;
+  onPasteImage?: (blob: Blob) => Promise<string>;
+  readImage?: (path: string) => Promise<Blob>;
+  onImageStatus?: (status: { message: string; error: boolean } | null) => void;
   value: string;
   source: boolean;
   locked: boolean;
@@ -138,6 +144,19 @@ function preview() {
         syntaxTree(view.state).iterate({
           enter(node) {
             const line = doc.lineAt(node.from);
+            if (node.name === "FencedCode") {
+              for (
+                let number = line.number;
+                number <= doc.lineAt(node.to).number;
+                number++
+              ) {
+                ranges.push(
+                  Decoration.line({ class: "cm-fenced-code" }).range(
+                    doc.line(number).from,
+                  ),
+                );
+              }
+            }
             if (/^ATXHeading[1-6]$/.test(node.name)) {
               ranges.push(
                 Decoration.line({
@@ -200,7 +219,9 @@ function preview() {
           // CodeMirror finishes its composition handler before the queued refresh.
           queueMicrotask(() => {
             if (view.dom.isConnected)
-              view.dispatch({ effects: refreshPreview.of(null) });
+              view.dispatch({
+                effects: [refreshPreview.of(null), refreshRichPreview.of(null)],
+              });
           });
         },
       },
@@ -221,8 +242,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       view = useRef<EditorView | null>(null),
       latest = useRef(props),
       revision = useRef(0),
+      imageJob = useRef<{
+        from: number;
+        to: number;
+        key: string | undefined;
+      } | null>(null),
       pasteRef = useRef<Paste | null>(null),
       [paste, setPaste] = useState<Paste | null>(null);
+    if (latest.current.documentKey !== props.documentKey || props.locked)
+      imageJob.current = null;
     latest.current = props;
     const previewConfig = useRef(new Compartment()),
       lockConfig = useRef(new Compartment());
@@ -303,7 +331,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         state: EditorState.create({
           doc: latest.current.value,
           extensions: [
-            markdown(),
+            markdown({ codeLanguages: languages }),
             history(),
             EditorView.lineWrapping,
             placeholder("본문을 입력하세요."),
@@ -319,6 +347,14 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
                 { tag: tags.link, color: "#344f6a" },
                 { tag: tags.url, color: "#595959" },
+                { tag: tags.keyword, color: "#87529a" },
+                { tag: tags.string, color: "#386949" },
+                { tag: [tags.number, tags.bool], color: "#976029" },
+                { tag: tags.comment, color: "#687078", fontStyle: "italic" },
+                {
+                  tag: [tags.function(tags.variableName), tags.typeName],
+                  color: "#2f6387",
+                },
               ]),
             ),
             keymap.of([
@@ -334,13 +370,31 @@ export const Editor = forwardRef<EditorHandle, Props>(
               // Enter must accept the selection, even immediately after opening.
               interactionDelay: 0,
             }),
-            previewConfig.current.of(latest.current.source ? [] : preview()),
+            previewConfig.current.of(
+              latest.current.source
+                ? []
+                : [preview(), richPreview(latest.current.readImage)],
+            ),
             lockConfig.current.of([
               EditorState.readOnly.of(latest.current.locked),
               EditorView.editable.of(!latest.current.locked),
             ]),
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
+                const job = imageJob.current;
+                if (job) {
+                  let touched = false;
+                  update.changes.iterChangedRanges((from, to) => {
+                    if (from <= job.to && to >= job.from) touched = true;
+                  });
+                  if (touched) {
+                    imageJob.current = null;
+                    latest.current.onImageStatus?.(null);
+                  } else {
+                    job.from = update.changes.mapPos(job.from, 1);
+                    job.to = update.changes.mapPos(job.to, -1);
+                  }
+                }
                 revision.current++;
                 changePaste(null);
                 latest.current.onChange(update.state.doc.toString());
@@ -370,6 +424,76 @@ export const Editor = forwardRef<EditorHandle, Props>(
               EditorView.domEventHandlers({
                 paste(event, v) {
                   if (latest.current.locked) return true;
+                  const images = Array.from(event.clipboardData?.items ?? [])
+                    .filter(
+                      (item) =>
+                        item.kind === "file" && item.type.startsWith("image/"),
+                    )
+                    .map((item) => item.getAsFile())
+                    .filter((file): file is File => file !== null);
+                  if (images.length) {
+                    event.preventDefault();
+                    changePaste(null);
+                    const save = latest.current.onPasteImage;
+                    if (!save) {
+                      latest.current.onImageStatus?.({
+                        message: "이미지를 저장할 수 없습니다.",
+                        error: true,
+                      });
+                      return true;
+                    }
+                    const selection = v.state.selection.main;
+                    const job = {
+                      from: selection.from,
+                      to: selection.to,
+                      key: latest.current.documentKey,
+                    };
+                    imageJob.current = job;
+                    latest.current.onImageStatus?.({
+                      message: "이미지 저장 중…",
+                      error: false,
+                    });
+                    void (async () => {
+                      try {
+                        const paths: string[] = [];
+                        for (const image of images) {
+                          if (imageJob.current !== job) return;
+                          const path = await save(image);
+                          if (!imagePath(path))
+                            throw new Error("안전하지 않은 이미지 경로입니다.");
+                          paths.push(path);
+                        }
+                        if (
+                          imageJob.current !== job ||
+                          view.current !== v ||
+                          latest.current.locked ||
+                          latest.current.documentKey !== job.key
+                        )
+                          return;
+                        imageJob.current = null;
+                        const insert = paths
+                          .map((path) => `![이미지](${path})`)
+                          .join("\n");
+                        v.dispatch({
+                          changes: { from: job.from, to: job.to, insert },
+                          selection: { anchor: job.from + insert.length },
+                          userEvent: "input.paste",
+                        });
+                        latest.current.onImageStatus?.(null);
+                      } catch (error) {
+                        if (imageJob.current !== job) return;
+                        imageJob.current = null;
+                        latest.current.onImageStatus?.({
+                          message:
+                            error instanceof Error
+                              ? error.message
+                              : "이미지 저장에 실패했습니다.",
+                          error: true,
+                        });
+                      }
+                    })();
+                    return true;
+                  }
                   const text = event.clipboardData
                     ?.getData("text/plain")
                     .trim();
@@ -440,10 +564,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
       });
       view.current = v;
       return () => {
+        imageJob.current = null;
         v.destroy();
         view.current = null;
       };
     }, []);
+    useEffect(() => {
+      imageJob.current = null;
+      latest.current.onImageStatus?.(null);
+    }, [props.documentKey, props.locked]);
     useEffect(() => {
       const v = view.current;
       if (v && v.state.doc.toString() !== props.value) {
@@ -455,10 +584,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
     useEffect(() => {
       view.current?.dispatch({
         effects: previewConfig.current.reconfigure(
-          props.source ? [] : preview(),
+          props.source ? [] : [preview(), richPreview(props.readImage)],
         ),
       });
-    }, [props.source]);
+    }, [props.source, props.readImage, props.documentKey]);
     useEffect(() => {
       view.current?.dispatch({
         effects: lockConfig.current.reconfigure([

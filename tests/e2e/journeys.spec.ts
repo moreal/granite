@@ -68,44 +68,6 @@ test("S02 missing remembered note falls back to an existing demo note", async ({
   await expect(editor(page)).toContainText("메모는 완성된 생각의 기록");
 });
 
-test("S02 S05 Korean extraction and further editing reopen the active note after reload", async ({
-  page,
-}) => {
-  await demo(page);
-  await create(page, "오늘의 한글 메모");
-  await source(page);
-  await body(page, "생각은 쓰면서 또렷해진다.");
-  await saved(page);
-  await editor(page).press("ControlOrMeta+a");
-  await page.getByRole("button", { name: /새 노트로 옮기기/ }).click();
-  await page.getByLabel("새 노트 제목").fill("내 말로 정리한 생각");
-  await page.getByRole("button", { name: "옮기기", exact: true }).click();
-  await expect(
-    page.getByRole("heading", {
-      name: "내 말로 정리한 생각",
-      exact: true,
-      level: 1,
-    }),
-  ).toBeVisible();
-  await editor(page).press("ControlOrMeta+End");
-  await page.keyboard.insertText("\n\n다시 읽고 한 문장을 덧붙인다.");
-  await saved(page);
-  await page.reload();
-  await expect(
-    page.getByRole("heading", {
-      name: "내 말로 정리한 생각",
-      exact: true,
-      level: 1,
-    }),
-  ).toBeVisible();
-  await source(page);
-  await expect(editor(page).locator(".cm-line")).toHaveText([
-    "생각은 쓰면서 또렷해진다.",
-    "",
-    "다시 읽고 한 문장을 덧붙인다.",
-  ]);
-});
-
 test("S02 duplicate and empty titles preserve the existing note", async ({
   page,
 }) => {
@@ -120,27 +82,23 @@ test("S02 duplicate and empty titles preserve the existing note", async ({
   expect(await rawNotes(page)).toEqual(before);
 });
 
-test("S05 S09 extract selected text, leave link and return through backlink", async ({
+test("S05 retired: selection preserves text and S09 backlinks remain available", async ({
   page,
 }) => {
   await demo(page);
   await create(page, "수집함");
   await source(page);
-  await body(page, "분리할 생각 한 문장");
+  await body(page, "남겨 둘 문장 [[독립된 생각]]");
   await saved(page);
+  const before = await rawNotes(page);
   await editor(page).press("ControlOrMeta+a");
-  await page.getByRole("button", { name: /새 노트로 옮기기/ }).click();
-  await page.getByLabel("새 노트 제목").fill("독립된 생각");
-  await page.getByRole("button", { name: "옮기기", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "독립된 생각", exact: true }),
-  ).toBeVisible();
-  await expect(editor(page)).toContainText("분리할 생각 한 문장");
+    page.getByRole("button", { name: /새 노트로 옮기기/ }),
+  ).toHaveCount(0);
+  expect(await rawNotes(page)).toEqual(before);
+  await create(page, "독립된 생각");
   await page.locator(".backlink-card").filter({ hasText: "수집함" }).click();
-  await expect(editor(page)).toContainText("[[독립된 생각]]");
-  const persisted = Object.values(await rawNotes(page)).map((n) => n.raw);
-  expect(persisted.some((n) => n.endsWith("[[독립된 생각]]"))).toBe(true);
-  expect(persisted.some((n) => n.endsWith("분리할 생각 한 문장"))).toBe(true);
+  await expect(editor(page)).toContainText("남겨 둘 문장 [[독립된 생각]]");
 });
 
 test("S06 wiki keyboard completion, cancellation and missing-note creation", async ({

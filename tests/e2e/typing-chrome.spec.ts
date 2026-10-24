@@ -22,7 +22,6 @@ test("S04/S10/S12: writing subdues only chrome and restores keyboard/pointer acc
     ".topbar",
     ".connections",
     ".note-meta",
-    ".writing-footer",
     ".editor-hint",
   ])
     await expect(page.locator(selector)).toHaveCSS("opacity", "0.3");

@@ -26,7 +26,6 @@ import {
 import { Editor, type EditorHandle } from "./editor/Editor";
 import { Dialog } from "./components/Dialog";
 import { backlinks, localDate } from "./domain/links";
-import { extractSelection } from "./domain/extract";
 import type { Note } from "./domain/notes";
 import { Workspace, type Entry } from "./storage/workspace";
 import type { NoteStorage } from "./storage/storage";
@@ -38,7 +37,6 @@ const errorText = (e: unknown) =>
     : "작업을 마치지 못했습니다. 다시 시도해 주세요.";
 type Modal =
   | { kind: "create"; title: string; missing?: boolean }
-  | { kind: "extract"; title: string; from: number; to: number; body: string }
   | { kind: "reload"; title: string };
 export default function App() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null),
@@ -60,6 +58,10 @@ export default function App() {
     [modalError, setModalError] = useState(""),
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
+    [imageStatus, setImageStatus] = useState<{
+      message: string;
+      error: boolean;
+    } | null>(null),
     [folders, setFolders] = useState<Awaited<ReturnType<typeof savedFolders>>>(
       [],
     ),
@@ -74,6 +76,24 @@ export default function App() {
   const notify = useCallback(() => render((x) => x + 1), []);
   const entry: Entry | undefined =
     workspace && current ? workspace.entries.get(current) : undefined;
+  const storage = workspace?.storage;
+  const putImage = useCallback(
+    (blob: Blob) => {
+      if (!storage) return Promise.reject(new Error("저장소가 없습니다."));
+      return storage.putImage(blob);
+    },
+    [storage],
+  );
+  const readImage = useCallback(
+    (path: string) => {
+      if (!storage) return Promise.reject(new Error("저장소가 없습니다."));
+      return storage.readImage(path);
+    },
+    [storage],
+  );
+  useEffect(() => {
+    setImageStatus(null);
+  }, [current, workspace]);
   const revealChrome = useCallback(() => setChromeIntent("clear"), []);
   useEffect(() => {
     setChromeIntent("clear");
@@ -245,22 +265,6 @@ export default function App() {
     setModalError("");
     setModal({ kind: "create", title: "" });
   }
-  function beginExtract() {
-    if (!entry || busy) return;
-    const s = editor.current?.selection();
-    if (!s || s.from === s.to) {
-      setMessage("먼저 본문에서 옮길 내용을 선택해 주세요.");
-      return;
-    }
-    setModalError("");
-    setModal({
-      kind: "extract",
-      title: "",
-      body: entry.body,
-      from: s.from,
-      to: s.to,
-    });
-  }
   async function submitModal() {
     if (!modal || !workspace || busy) return;
     setBusy(true);
@@ -274,39 +278,11 @@ export default function App() {
       }
       const title = modal.title.trim();
       if (!title) throw Error("제목을 입력해 주세요.");
-      if (modal.kind === "extract") {
-        if (!entry || !current || entry.body !== modal.body)
-          throw Error("선택 후 본문이 바뀌었습니다. 다시 선택해 주세요.");
-        if (!(await workspace.flush(current)))
-          throw Error("원본을 먼저 저장해 주세요. 초안은 보관되어 있습니다.");
-        const original = workspace.get(current);
-        const result = await extractSelection(
-          workspace.storage,
-          original.note,
-          original.body,
-          modal.from,
-          modal.to,
-          title,
-        );
-        if (result.kind === "copy-only") {
-          setMessage(
-            `‘${title}’ 사본은 만들어졌지만 원본 저장에 실패했습니다. 원문을 그대로 유지합니다. 두 파일은 각각 저장됩니다.`,
-          );
-          setModal(null);
-          await refresh();
-          return;
-        }
-        workspace.replaceSaved(result.source);
-        workspace.load(result.target);
-        setCurrent(result.target.filename);
-        setMessage("선택한 내용을 옮기고 원래 자리에 연결을 남겼습니다.");
-      } else {
-        if (current) await workspace.flush(current);
-        const note = await workspace.storage.create(title, "");
-        workspace.load(note);
-        setCurrent(note.filename);
-        setMessage("새 노트를 만들었습니다.");
-      }
+      if (current) await workspace.flush(current);
+      const note = await workspace.storage.create(title, "");
+      workspace.load(note);
+      setCurrent(note.filename);
+      setMessage("새 노트를 만들었습니다.");
       await refresh();
       setSelection(0);
       setModal(null);
@@ -724,11 +700,15 @@ export default function App() {
                   </div>
                 )}
                 <Editor
-                  key={current}
+                  key={workspace.storage.id + ":" + current}
+                  documentKey={workspace.storage.id + ":" + current}
+                  onPasteImage={putImage}
+                  readImage={readImage}
+                  onImageStatus={setImageStatus}
                   ref={editor}
                   value={entry.body}
                   source={source}
-                  locked={busy || modal?.kind === "extract"}
+                  locked={busy}
                   titles={notes.map((n) => n.title)}
                   onChange={(body) => workspace.edit(current!, body)}
                   onUserEdit={() => setChromeIntent("typing")}
@@ -743,18 +723,16 @@ export default function App() {
                   }}
                   onOpen={openTitle}
                 />
-                <div className="writing-footer">
-                  <button
+                {imageStatus && (
+                  <p
                     className={
-                      selection ? "extract-button ready" : "extract-button"
+                      imageStatus.error ? "image-status error" : "image-status"
                     }
-                    onClick={beginExtract}
-                    disabled={busy || !selection}
+                    role={imageStatus.error ? "alert" : "status"}
                   >
-                    <ArrowUpRight size={15} />새 노트로 옮기기
-                    {selection > 0 && <span>{selection}자 선택</span>}
-                  </button>
-                </div>
+                    {imageStatus.message}
+                  </p>
+                )}
                 <div className="editor-hint">
                   [[ 로 노트 연결 <span>·</span> @ 로 날짜와 노트 찾기{" "}
                   <span>·</span> 링크 클릭으로 편집 · ⌘/Ctrl+클릭으로 열기
@@ -843,13 +821,11 @@ export default function App() {
       {modal && (
         <Dialog
           title={
-            modal.kind === "extract"
-              ? "선택한 생각을 새 노트로"
-              : modal.kind === "reload"
-                ? "디스크 내용을 다시 읽을까요?"
-                : modal.missing
-                  ? "아직 없는 노트예요"
-                  : "새 노트"
+            modal.kind === "reload"
+              ? "디스크 내용을 다시 읽을까요?"
+              : modal.missing
+                ? "아직 없는 노트예요"
+                : "새 노트"
           }
           onClose={() => {
             if (!busy) setModal(null);
@@ -882,17 +858,10 @@ export default function App() {
               }}
             >
               <p>
-                {modal.kind === "extract"
-                  ? "선택한 내용을 옮기고, 원래 자리에는 연결을 남깁니다."
-                  : modal.missing
-                    ? "이 제목으로 노트를 만들어 연결을 이어 가세요."
-                    : "이름을 붙이고 생각을 시작해 보세요."}
+                {modal.missing
+                  ? "이 제목으로 노트를 만들어 연결을 이어 가세요."
+                  : "이름을 붙이고 생각을 시작해 보세요."}
               </p>
-              {modal.kind === "extract" && (
-                <blockquote className="selection-preview">
-                  {modal.body.slice(modal.from, modal.to).slice(0, 300)}
-                </blockquote>
-              )}
               <label htmlFor="note-title">새 노트 제목</label>
               <input
                 id="note-title"
@@ -916,11 +885,7 @@ export default function App() {
                   취소
                 </button>
                 <button className="primary" type="submit" disabled={busy}>
-                  {busy
-                    ? "저장 중…"
-                    : modal.kind === "extract"
-                      ? "옮기기"
-                      : "만들기"}
+                  {busy ? "저장 중…" : "만들기"}
                 </button>
               </div>
             </form>

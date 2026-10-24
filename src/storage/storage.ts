@@ -1,4 +1,10 @@
 import {
+  demoImage,
+  prepareImage,
+  validateImageAssetPath,
+  verifyImage,
+} from "./assets";
+import {
   assertAvailable,
   decodeNote,
   encodeNote,
@@ -31,6 +37,8 @@ export interface NoteStorage {
   id: string;
   label: string;
   kind: "demo" | "folder";
+  putImage(blob: Blob): Promise<string>;
+  readImage(path: string): Promise<Blob>;
   list(): Promise<Note[]>;
   read(filename: string): Promise<Note>;
   create(title: string, body: string): Promise<Note>;
@@ -41,6 +49,19 @@ export class DemoStorage implements NoteStorage {
   label = "데모 노트";
   kind = "demo" as const;
   static key = "granite.demo.v1";
+  async putImage(blob: Blob) {
+    const image = await prepareImage(blob);
+    return serialize(this.id + ":" + image.path, async () => {
+      await verifyImage(
+        image.path,
+        await demoImage(this.id, image.path, image.blob),
+      );
+      return image.path;
+    });
+  }
+  async readImage(path: string) {
+    return verifyImage(path, await demoImage(this.id, path));
+  }
   private data(): Record<string, { raw: string; updated: number }> {
     return JSON.parse(localStorage.getItem(DemoStorage.key) || "{}");
   }
@@ -223,9 +244,13 @@ export class Drafts {
 export interface FileHandle {
   kind: "file";
   name: string;
-  getFile(): Promise<{ text(): Promise<string>; lastModified: number }>;
+  getFile(): Promise<{
+    text(): Promise<string>;
+    arrayBuffer?(): Promise<ArrayBuffer>;
+    lastModified: number;
+  }>;
   createWritable(): Promise<{
-    write(data: string): Promise<void>;
+    write(data: string | Blob): Promise<void>;
     close(): Promise<void>;
     abort?(): Promise<void>;
   }>;
@@ -238,6 +263,10 @@ export interface DirectoryHandle {
     name: string,
     options?: { create?: boolean },
   ): Promise<FileHandle>;
+  getDirectoryHandle?(
+    name: string,
+    options?: { create?: boolean },
+  ): Promise<DirectoryHandle>;
   isSameEntry(other: DirectoryHandle): Promise<boolean>;
   queryPermission?(options: { mode: "readwrite" }): Promise<string>;
   requestPermission?(options: { mode: "readwrite" }): Promise<string>;
@@ -250,6 +279,67 @@ export class DirectoryStorage implements NoteStorage {
     public id: string,
   ) {
     this.label = handle.name;
+  }
+  private async assets(create = false) {
+    if (!this.handle.getDirectoryHandle)
+      throw Error("이 폴더에서 이미지 저장을 지원하지 않습니다.");
+    return this.handle.getDirectoryHandle("assets", { create });
+  }
+  private async imageBlob(handle: FileHandle) {
+    const file = await handle.getFile();
+    if (!file.arrayBuffer) throw Error("이미지 파일을 읽을 수 없습니다.");
+    return new Blob([await file.arrayBuffer()]);
+  }
+  async readImage(path: string) {
+    const filename = validateImageAssetPath(path);
+    const handle = await (await this.assets()).getFileHandle(filename);
+    return verifyImage(path, await this.imageBlob(handle));
+  }
+  async putImage(blob: Blob) {
+    const image = await prepareImage(blob);
+    return serialize(this.id + ":" + image.path, async () => {
+      const directory = await this.assets(true);
+      const filename = validateImageAssetPath(image.path);
+      let existing: FileHandle | undefined;
+      try {
+        existing = await directory.getFileHandle(filename);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "NotFoundError"))
+          throw error;
+      }
+      if (existing) {
+        await verifyImage(image.path, await this.imageBlob(existing));
+        return image.path;
+      }
+      const handle = await directory.getFileHandle(filename, { create: true });
+      // create:true can return an entry another application created after our
+      // missing-file check. Never assume the returned file is our placeholder.
+      const assertEmpty = async (candidate: FileHandle) => {
+        if ((await this.imageBlob(candidate)).size !== 0)
+          throw Error(
+            "이미지 파일이 다른 곳에서 변경되었습니다. 기존 파일은 덮어쓰지 않습니다.",
+          );
+      };
+      await assertEmpty(handle);
+      const stream = await handle.createWritable();
+      try {
+        await assertEmpty(await directory.getFileHandle(filename));
+        await stream.write(image.blob);
+        // The browser stages writes until close. Check the visible entry again
+        // before committing; this is a best-effort check, not atomic CAS.
+        await assertEmpty(await directory.getFileHandle(filename));
+        await stream.close();
+      } catch (error) {
+        try {
+          await stream.abort?.();
+        } catch {
+          /* Preserve original write error. */
+        }
+        throw error;
+      }
+      await verifyImage(image.path, await this.imageBlob(handle));
+      return image.path;
+    });
   }
   private async filenames() {
     const names: string[] = [];

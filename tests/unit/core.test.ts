@@ -13,7 +13,6 @@ import {
   menuTrigger,
 } from "../../src/domain/links";
 import { DemoStorage, Drafts, ConflictError } from "../../src/storage/storage";
-import { extractSelection } from "../../src/domain/extract";
 
 const data = new Map<string, string>();
 vi.stubGlobal("localStorage", {
@@ -120,46 +119,6 @@ describe("storage and recovery", () => {
       baseline: "old",
     });
     expect(new Drafts("two").get("A.md")).toBeNull();
-  });
-});
-describe("two-write extraction", () => {
-  beforeEach(() => localStorage.clear());
-  it("creates target, replaces exact source selection, and returns target", async () => {
-    const s = new DemoStorage();
-    const n = await s.create("Source", "a selected z");
-    const result = await extractSelection(s, n, n.body, 2, 10, "Target");
-    expect(result.kind).toBe("success");
-    expect((await s.read(n.filename)).body).toBe("a [[Target]] z");
-    expect((await s.read("Target.md")).body).toBe("selected");
-  });
-  it("keeps source when target title conflicts", async () => {
-    const s = new DemoStorage();
-    const n = await s.create("Source", "selected");
-    await s.create("Target", "old");
-    await expect(
-      extractSelection(s, n, n.body, 0, 8, "Target"),
-    ).rejects.toThrow();
-    expect((await s.read(n.filename)).body).toBe("selected");
-  });
-  it("reports generated copy and preserves source after source-write failure", async () => {
-    const s = new DemoStorage();
-    const n = await s.create("Source", "selected");
-    const failing = {
-      ...s,
-      list: () => s.list(),
-      read: (f: string) => s.read(f),
-      create: (t: string, b: string) => s.create(t, b),
-      write: async () => {
-        throw Error("disk full");
-      },
-      id: s.id,
-      label: s.label,
-      kind: s.kind,
-    };
-    const r = await extractSelection(failing, n, n.body, 0, 8, "Target");
-    expect(r.kind).toBe("copy-only");
-    expect((await s.read(n.filename)).body).toBe("selected");
-    expect((await s.read("Target.md")).body).toBe("selected");
   });
 });
 describe("overlapping mutations", () => {

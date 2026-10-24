@@ -357,7 +357,6 @@ svg {
 }
 .note-header,
 .editor-wrap,
-.writing-footer,
 .editor-hint,
 .draft-notice,
 .save-error {
@@ -583,29 +582,6 @@ svg {
   color: var(--muted);
   font-size: 12px;
 }
-.writing-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  align-items: center;
-  border-top: 1px solid var(--line);
-  margin-top: 32px;
-  padding-top: 16px;
-}
-.extract-button {
-  font-size: 12px;
-  color: var(--muted);
-}
-.extract-button:disabled {
-  color: var(--muted);
-}
-.extract-button.ready {
-  border-color: #b8b8b8;
-  color: var(--text);
-}
-.extract-button span {
-  font-size: 11px;
-}
 .editor-hint {
   font-size: 12px;
   color: var(--muted);
@@ -811,17 +787,6 @@ svg {
   border-color: var(--line);
   min-width: 70px;
 }
-.selection-preview {
-  margin: 0 0 20px;
-  padding: 12px 15px;
-  font-size: 13px;
-  line-height: 1.8;
-  background: var(--surface);
-  border-left: 2px solid #aaa;
-  max-height: 130px;
-  overflow: auto;
-  white-space: pre-wrap;
-}
 .spin {
   animation: spin 1.3s linear infinite;
 }
@@ -974,14 +939,6 @@ svg {
   .connections {
     padding: 22px 18px;
   }
-  .writing-footer {
-    justify-content: flex-start;
-  }
-  .extract-button {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    padding-inline: 0;
-  }
   .dialog {
     padding: 22px;
   }
@@ -1005,51 +962,35 @@ svg {
 
 /* Only peripheral chrome fades; save/recovery state and editor overlays have
    no subdued ancestor. Only pointer reveal animates; commands restore immediately. */
-.app-shell
-  :is(
-    .sidebar,
-    .topbar,
-    .connections,
-    .note-meta,
-    .writing-footer,
-    .editor-hint
-  ) {
+.app-shell :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
   opacity: 1;
   transition: none;
 }
 .app-shell.pointer-reveal
-  :is(
-    .sidebar,
-    .topbar,
-    .connections,
-    .note-meta,
-    .writing-footer,
-    .editor-hint
-  ) {
+  :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
   transition: opacity 120ms ease-out;
 }
 .app-shell.typing
-  :is(
-    .sidebar,
-    .topbar,
-    .connections,
-    .note-meta,
-    .writing-footer,
-    .editor-hint
-  ) {
+  :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
   opacity: 0.3;
   transition: opacity 250ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
   .app-shell:is(.typing, .pointer-reveal)
-    :is(
-      .sidebar,
-      .topbar,
-      .connections,
-      .note-meta,
-      .writing-footer,
-      .editor-hint
-    ) {
+    :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
     transition: none;
   }
 }
+
+/* Rich content stays within the writing column, including narrow viewports. */
+.cm-rich-preview { cursor: text; max-width: 100%; }
+.cm-rich-image { display: inline-block; vertical-align: middle; }
+.cm-rich-image img { display: block; max-width: 100%; max-height: 540px; object-fit: contain; }
+.cm-rich-math, .cm-rich-mermaid { overflow-x: auto; }
+.cm-rich-math .katex { font-size: 1.1em; }
+.cm-rich-mermaid { padding: 16px 0; }
+.cm-rich-mermaid svg { display: block; max-width: 100%; height: auto; }
+.cm-rich-error { white-space: pre-wrap; overflow-wrap: anywhere; color: #9b3333; border-bottom: 1px dotted currentColor; }
+.image-status { margin: 10px 0; font-size: 14px; }
+span.cm-rich-math { display: inline-block; vertical-align: middle; }
+.cm-fenced-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; background: #f7f7f7; }
