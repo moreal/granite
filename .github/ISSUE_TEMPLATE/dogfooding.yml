@@ -1,0 +1,94 @@
+name: Granite 도그푸딩
+description: 실제 글쓰기 경험, 스펙 위반 또는 개선 방향을 기록합니다.
+title: "[Dogfooding] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        한 이슈에는 한 가지 경험을 적어 주세요. 개인 노트·실제 폴더 경로·인증 정보 대신 공개 가능한 예시를 사용해 주세요.
+        기준: docs/superpowers/specs/2026-10-23-granite-mvp-design.md
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 분류
+      options:
+        - 스펙 위반 — 약속된 동작이 안 됨
+        - 스펙 부족 — 판단 기준이 빠짐
+        - 방향 변경 — 다른 경험을 원함
+    validations:
+      required: true
+  - type: dropdown
+    id: spec
+    attributes:
+      label: 관련 수용 기준
+      multiple: true
+      options:
+        - S01 시작/저장
+        - S02 노트
+        - S03 파일명
+        - S04 편집
+        - S05 옮기기
+        - S06 연결
+        - S07 @ 메뉴
+        - S08 외부 출처
+        - S09 발견
+        - S10 데이터 보호
+        - S11 리뷰
+        - S12 사용성
+        - 아직 해당 기준 없음
+    validations:
+      required: true
+  - type: dropdown
+    id: storage
+    attributes:
+      label: 사용한 저장소
+      options:
+        - 데모
+        - 실제 로컬 폴더
+        - 시작 화면 / 해당 없음
+    validations:
+      required: true
+  - type: textarea
+    id: intent
+    attributes:
+      label: 하려던 일
+      placeholder: 덤프에서 한 문장을 새 노트로 옮긴 뒤 바로 다듬으려 했습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 최소 재현 순서
+      placeholder: |
+        1. 데모에서 덤프를 연다.
+        2. 공개 가능한 예시 문장을 적는다.
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 기대한 결과와 실제 결과
+      value: |
+        기대:
+
+        실제:
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 확인 환경
+      description: Chrome 버전, OS, 앱 주소/코드 버전, 창 크기, 사용한 입력기 등을 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: preservation
+    attributes:
+      label: 저장과 복구 상황
+      description: 저장 문제라면 직전 상태 표시, 새로고침·노트 이동·외부 편집·권한 변경 여부와 초안 복구 결과를 적어 주세요.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 화면 / 재현용 Markdown / 추가 의견
+      description: 민감한 문장과 경로를 가린 화면 또는 짧은 재현용 글을 첨부할 수 있습니다.
