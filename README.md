@@ -43,9 +43,11 @@ npm run test:e2e
 npm run test:report
 ```
 
-E2E는 로컬 개발 서버를 시작하거나 이미 실행 중인 4173 포트의 Granite 서버를 사용합니다. 각 브라우저 테스트는 독립된 저장소로 실행됩니다. 실패 화면과 trace 및 HTML 보고서는 `test-results/`, `playwright-report/`에 생성됩니다.
+E2E는 로컬 개발 서버를 시작하거나 이미 실행 중인 4173 포트의 Granite 서버를 사용합니다. CI에서는 기존 서버를 재사용하지 않고 직접 시작합니다. 각 브라우저 테스트는 독립된 저장소로 실행됩니다. 실패 화면과 trace 및 HTML 보고서는 `test-results/`, `playwright-report/`에 생성됩니다.
 
 실제 파일 smoke test는 운영 폴더 어댑터를 실제 임시 디스크 파일에 연결한 handle 대역으로 검사합니다. Chrome의 네이티브 폴더 선택창과 권한 승인은 별도의 수동 검증입니다. 자동 통과만으로 권한 UI를 확인했다고 주장하지 않습니다. [검증 결과와 한계](docs/verification.md)를 참고하세요.
+
+이 변경을 GitHub에 반영하면 모든 PR에서 [Tests 워크플로](.github/workflows/tests.yml)가 Ubuntu와 Node.js 24로 단위·타입·빌드 검사 및 Chromium 브라우저·디스크 검사를 실행합니다. 두 작업은 독립 실행하므로 단위 검사 실패로 브라우저 증거 수집이 생략되지 않습니다. GitHub의 PR **Checks → Tests → 실행 요약 → Artifacts**에서 `playwright-chromium-<run_id>-<run_attempt>`를 내려받을 수 있습니다. 생성된 HTML 보고서와 성공·실패 trace는 14일 보관합니다. 압축을 푼 폴더에서 `npx playwright show-report playwright-report` 또는 `npx playwright show-trace test-results/<테스트>/trace.zip`으로 확인합니다. [CI 검증 기록과 한계](docs/ci-verification.md)를 참고하세요.
 
 ## 피드백과 구현 기준
 
