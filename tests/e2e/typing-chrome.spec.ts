@@ -227,3 +227,78 @@ test("S06/S12: a visible explicit completion accepts immediate Enter", async ({
   await expect(page.getByRole("listbox")).toBeHidden();
   await expect(page.locator(".topbar")).toHaveCSS("opacity", "1");
 });
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`S04/S12: pointer reveal renders a short interruptible fade (${reducedMotion})`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await demo(page);
+    await body(page, "포인터 복원 전환 검증");
+    const chrome = page.locator(".topbar");
+    await expect(chrome).toHaveCSS("opacity", "0.3");
+    // Capture the browser's real transition before automation latency can finish it.
+    await chrome.evaluate((element) => {
+      element.addEventListener(
+        "transitionrun",
+        () => {
+          const animation = element.getAnimations()[0];
+          animation.pause();
+          animation.currentTime = 60;
+        },
+        { once: true },
+      );
+    });
+    await page.mouse.move(12, 12);
+    if (reducedMotion === "reduce") {
+      await expect(chrome).toHaveCSS("opacity", "1");
+      expect(
+        await chrome.evaluate((element) => element.getAnimations().length),
+      ).toBe(0);
+    } else {
+      await expect
+        .poll(() =>
+          chrome.evaluate((element) => element.getAnimations().length),
+        )
+        .toBe(1);
+      const frame = await chrome.evaluate((element) => ({
+        opacity: Number(getComputedStyle(element).opacity),
+        duration: element.getAnimations()[0].effect!.getTiming().duration,
+      }));
+      expect(frame.duration).toBe(120);
+      expect(frame.opacity).toBeGreaterThan(0.3);
+      expect(frame.opacity).toBeLessThan(1);
+      await page.mouse.move(16, 16);
+      expect(
+        await chrome.evaluate((element) =>
+          Number(getComputedStyle(element).opacity),
+        ),
+      ).toBe(frame.opacity);
+      expect(await effectiveOpacity(page.locator(".save-state"))).toBe(1);
+      await page.screenshot({
+        path: testInfo.outputPath("pointer-midpoint.png"),
+      });
+      // Re-typing reverses from the rendered frame rather than snapping to an endpoint.
+      await page.keyboard.insertText(" 계속");
+      const reversed = await chrome.evaluate((element) =>
+        Number(getComputedStyle(element).opacity),
+      );
+      expect(reversed).toBeGreaterThan(0.3);
+      expect(reversed).toBeLessThan(1);
+      await expect(chrome).toHaveCSS("opacity", "0.3");
+      await page.mouse.move(20, 20);
+      await expect(chrome).toHaveCSS("opacity", "1");
+    }
+    await page.setViewportSize({ width: 760, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath("pointer-narrow-revealed.png"),
+    });
+    await page.keyboard.insertText(" 다시");
+    await expect(chrome).toHaveCSS("opacity", "0.3");
+    await page.keyboard.press("Tab");
+    await expect(chrome).toHaveCSS("opacity", "1");
+    expect(
+      await chrome.evaluate((element) => element.getAnimations().length),
+    ).toBe(0);
+  });
+}

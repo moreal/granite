@@ -1004,7 +1004,7 @@ svg {
 }
 
 /* Only peripheral chrome fades; save/recovery state and editor overlays have
-   no subdued ancestor. Removing .typing restores access without a transition. */
+   no subdued ancestor. Only pointer reveal animates; commands restore immediately. */
 .app-shell
   :is(
     .sidebar,
@@ -1016,6 +1016,17 @@ svg {
   ) {
   opacity: 1;
   transition: none;
+}
+.app-shell.pointer-reveal
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .writing-footer,
+    .editor-hint
+  ) {
+  transition: opacity 120ms ease-out;
 }
 .app-shell.typing
   :is(
@@ -1030,7 +1041,7 @@ svg {
   transition: opacity 250ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {
-  .app-shell.typing
+  .app-shell:is(.typing, .pointer-reveal)
     :is(
       .sidebar,
       .topbar,

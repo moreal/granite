@@ -49,7 +49,9 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [query, setQuery] = useState(""),
     [source, setSource] = useState(false),
-    [typing, setTyping] = useState(false),
+    [chromeIntent, setChromeIntent] = useState<"clear" | "typing" | "pointer">(
+      "clear",
+    ),
     [editorMenu, setEditorMenu] = useState(false),
     [focus, setFocus] = useState(false),
     [connections, setConnections] = useState(true),
@@ -72,9 +74,9 @@ export default function App() {
   const notify = useCallback(() => render((x) => x + 1), []);
   const entry: Entry | undefined =
     workspace && current ? workspace.entries.get(current) : undefined;
-  const revealChrome = useCallback(() => setTyping(false), []);
+  const revealChrome = useCallback(() => setChromeIntent("clear"), []);
   useEffect(() => {
-    setTyping(false);
+    setChromeIntent("clear");
     setEditorMenu(false);
   }, [current, workspace, focus]);
   useEffect(() => {
@@ -100,16 +102,18 @@ export default function App() {
       )
         revealChrome();
     };
-    window.addEventListener("pointermove", revealChrome);
-    window.addEventListener("pointerdown", revealChrome);
-    window.addEventListener("touchstart", revealChrome, { passive: true });
+    const revealFromPointer = () =>
+      setChromeIntent((intent) => (intent === "typing" ? "pointer" : intent));
+    window.addEventListener("pointermove", revealFromPointer);
+    window.addEventListener("pointerdown", revealFromPointer);
+    window.addEventListener("touchstart", revealFromPointer, { passive: true });
     window.addEventListener("keydown", keys, true);
     window.addEventListener("focusin", focusOutside);
     window.addEventListener("click", command, true);
     return () => {
-      window.removeEventListener("pointermove", revealChrome);
-      window.removeEventListener("pointerdown", revealChrome);
-      window.removeEventListener("touchstart", revealChrome);
+      window.removeEventListener("pointermove", revealFromPointer);
+      window.removeEventListener("pointerdown", revealFromPointer);
+      window.removeEventListener("touchstart", revealFromPointer);
       window.removeEventListener("keydown", keys, true);
       window.removeEventListener("focusin", focusOutside);
       window.removeEventListener("click", command, true);
@@ -441,7 +445,10 @@ export default function App() {
     <div
       className={
         "app-shell" +
-        (typing && !selection && !modal && !editorMenu ? " typing" : "") +
+        (chromeIntent === "typing" && !selection && !modal && !editorMenu
+          ? " typing"
+          : "") +
+        (chromeIntent === "pointer" ? " pointer-reveal" : "") +
         (focus ? " focus-mode" : "") +
         (connections ? "" : " no-connections")
       }
@@ -724,7 +731,7 @@ export default function App() {
                   locked={busy || modal?.kind === "extract"}
                   titles={notes.map((n) => n.title)}
                   onChange={(body) => workspace.edit(current!, body)}
-                  onUserEdit={() => setTyping(true)}
+                  onUserEdit={() => setChromeIntent("typing")}
                   onCommand={revealChrome}
                   onMenuChange={(open) => {
                     setEditorMenu(open);
