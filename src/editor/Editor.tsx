@@ -46,6 +46,9 @@ interface Props {
   locked: boolean;
   titles: string[];
   onChange: (body: string) => void;
+  onUserEdit?: () => void;
+  onCommand?: () => void;
+  onMenuChange?: (open: boolean) => void;
   onSelection: (size: number) => void;
   onOpen: (title: string) => void;
 }
@@ -226,6 +229,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
     function changePaste(p: Paste | null) {
       pasteRef.current = p;
       setPaste(p);
+      latest.current.onMenuChange?.(p !== null);
     }
     useImperativeHandle(
       ref,
@@ -270,6 +274,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
               v.dispatch({
                 changes: { from, to, insert: text },
                 selection: { anchor: from + text.length },
+                userEvent: "input.complete",
               });
             },
           })),
@@ -336,6 +341,22 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 revision.current++;
                 changePaste(null);
                 latest.current.onChange(update.state.doc.toString());
+                if (
+                  update.transactions.some((transaction) =>
+                    transaction.isUserEvent("input.complete"),
+                  )
+                ) {
+                  latest.current.onCommand?.();
+                } else if (
+                  update.transactions.some(
+                    (transaction) =>
+                      transaction.docChanged &&
+                      ["input", "delete", "undo", "redo"].some((event) =>
+                        transaction.isUserEvent(event),
+                      ),
+                  )
+                )
+                  latest.current.onUserEdit?.();
               }
               if (update.selectionSet || update.docChanged) {
                 const s = update.state.selection.main;
@@ -356,6 +377,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
                   v.dispatch({
                     changes: { from: s.from, to: s.to, insert: text },
                     selection: { anchor: s.from + text.length },
+                    userEvent: "input.paste",
                   });
                   changePaste({
                     from: s.from,

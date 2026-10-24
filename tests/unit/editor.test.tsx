@@ -147,3 +147,71 @@ it("shows escaped link labels without changing their persisted source", () => {
   expect(labels).toEqual(["대괄호[제목]", "별칭]"]);
   expect(view.state.doc.toString()).toBe(text);
 });
+
+it("S04/S12: reports user document edits but not value synchronization or selection", () => {
+  const onUserEdit = vi.fn();
+  const props = {
+    value: "initial",
+    source: true,
+    locked: false,
+    titles: [],
+    onChange: vi.fn(),
+    onOpen: vi.fn(),
+    onSelection: vi.fn(),
+    onUserEdit,
+  };
+  const rendered = render(<Editor {...props} />);
+  const view = EditorView.findFromDOM(
+    screen.getByRole("textbox", { name: "노트 본문" }),
+  )!;
+  rendered.rerender(<Editor {...props} value="loaded externally" />);
+  act(() => view.dispatch({ selection: { anchor: 2 } }));
+  expect(onUserEdit).not.toHaveBeenCalled();
+  for (const userEvent of [
+    "input.type",
+    "input.type.compose",
+    "delete.backward",
+    "undo",
+    "redo",
+    "input.paste",
+  ]) {
+    act(() => view.dispatch({ changes: { from: 0, insert: "가" }, userEvent }));
+  }
+  expect(onUserEdit).toHaveBeenCalledTimes(6);
+});
+
+it("S06/S07/S12: completion is an explicit command rather than ordinary typing", () => {
+  const onUserEdit = vi.fn();
+  const onCommand = vi.fn();
+  render(
+    <Editor
+      value="[[덤"
+      source={true}
+      locked={false}
+      titles={[]}
+      onChange={() => {}}
+      onSelection={() => {}}
+      onOpen={() => {}}
+      onUserEdit={onUserEdit}
+      onCommand={onCommand}
+    />,
+  );
+  const view = EditorView.findFromDOM(
+    screen.getByRole("textbox", { name: "노트 본문" }),
+  )!;
+  act(() =>
+    view.dispatch({
+      changes: { from: 0, to: 3, insert: "[[덤프]]" },
+      userEvent: "input.complete",
+    }),
+  );
+  expect(onCommand).toHaveBeenCalledTimes(1);
+  expect(onUserEdit).not.toHaveBeenCalled();
+  act(() =>
+    view.dispatch({
+      changes: { from: 6, insert: " 계속" },
+      userEvent: "input.type",
+    }),
+  );
+  expect(onUserEdit).toHaveBeenCalledTimes(1);
+});

@@ -1002,3 +1002,43 @@ svg {
     scroll-behavior: auto !important;
   }
 }
+
+/* Only peripheral chrome fades; save/recovery state and editor overlays have
+   no subdued ancestor. Removing .typing restores access without a transition. */
+.app-shell
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .writing-footer,
+    .editor-hint
+  ) {
+  opacity: 1;
+  transition: none;
+}
+.app-shell.typing
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .writing-footer,
+    .editor-hint
+  ) {
+  opacity: 0.3;
+  transition: opacity 250ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.typing
+    :is(
+      .sidebar,
+      .topbar,
+      .connections,
+      .note-meta,
+      .writing-footer,
+      .editor-hint
+    ) {
+    transition: none;
+  }
+}

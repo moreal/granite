@@ -49,6 +49,8 @@ export default function App() {
     [busy, setBusy] = useState(false),
     [query, setQuery] = useState(""),
     [source, setSource] = useState(false),
+    [typing, setTyping] = useState(false),
+    [editorMenu, setEditorMenu] = useState(false),
     [focus, setFocus] = useState(false),
     [connections, setConnections] = useState(true),
     [selection, setSelection] = useState(0),
@@ -70,6 +72,49 @@ export default function App() {
   const notify = useCallback(() => render((x) => x + 1), []);
   const entry: Entry | undefined =
     workspace && current ? workspace.entries.get(current) : undefined;
+  const revealChrome = useCallback(() => setTyping(false), []);
+  useEffect(() => {
+    setTyping(false);
+    setEditorMenu(false);
+  }, [current, workspace, focus]);
+  useEffect(() => {
+    const keys = (event: KeyboardEvent) => {
+      if (
+        ["Tab", "Escape"].includes(event.key) ||
+        ((event.metaKey || event.ctrlKey) &&
+          ["s", "k"].includes(event.key.toLowerCase()))
+      )
+        revealChrome();
+    };
+    const focusOutside = (event: FocusEvent) => {
+      if (
+        !(event.target instanceof Element) ||
+        !event.target.closest(".cm-content")
+      )
+        revealChrome();
+    };
+    const command = (event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("button, a, select")
+      )
+        revealChrome();
+    };
+    window.addEventListener("pointermove", revealChrome);
+    window.addEventListener("pointerdown", revealChrome);
+    window.addEventListener("touchstart", revealChrome, { passive: true });
+    window.addEventListener("keydown", keys, true);
+    window.addEventListener("focusin", focusOutside);
+    window.addEventListener("click", command, true);
+    return () => {
+      window.removeEventListener("pointermove", revealChrome);
+      window.removeEventListener("pointerdown", revealChrome);
+      window.removeEventListener("touchstart", revealChrome);
+      window.removeEventListener("keydown", keys, true);
+      window.removeEventListener("focusin", focusOutside);
+      window.removeEventListener("click", command, true);
+    };
+  }, [revealChrome]);
   async function refresh(w = workspace) {
     if (w) setNotes(await w.storage.list());
   }
@@ -396,6 +441,7 @@ export default function App() {
     <div
       className={
         "app-shell" +
+        (typing && !selection && !modal && !editorMenu ? " typing" : "") +
         (focus ? " focus-mode" : "") +
         (connections ? "" : " no-connections")
       }
@@ -678,7 +724,16 @@ export default function App() {
                   locked={busy || modal?.kind === "extract"}
                   titles={notes.map((n) => n.title)}
                   onChange={(body) => workspace.edit(current!, body)}
-                  onSelection={setSelection}
+                  onUserEdit={() => setTyping(true)}
+                  onCommand={revealChrome}
+                  onMenuChange={(open) => {
+                    setEditorMenu(open);
+                    if (open) revealChrome();
+                  }}
+                  onSelection={(size) => {
+                    setSelection(size);
+                    if (size) revealChrome();
+                  }}
                   onOpen={openTitle}
                 />
                 <div className="writing-footer">
