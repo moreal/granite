@@ -1,5 +1,5 @@
 import { expect, takeSnapshot, test } from "@chromatic-com/playwright";
-import type { Page } from "@playwright/test";
+import type { Page, TestInfo } from "@playwright/test";
 import { openListed } from "../helpers/ui";
 
 async function openRichDemo(page: Page) {
@@ -14,14 +14,18 @@ async function openRichDemo(page: Page) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-async function captureRich(page: Page, theme: "light" | "dark") {
+async function captureRich(
+  page: Page,
+  theme: "light" | "dark",
+  testInfo: TestInfo,
+) {
   await page.screenshot({
-    path: `/private/tmp/granite-review-${theme}-rich-image.png`,
+    path: testInfo.outputPath(`granite-review-${theme}-rich-image.png`),
   });
   await page.locator(".cm-rich-math").last().scrollIntoViewIfNeeded();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
-    path: `/private/tmp/granite-review-${theme}-rich-code.png`,
+    path: testInfo.outputPath(`granite-review-${theme}-rich-code.png`),
   });
   await page
     .getByRole("textbox", { name: "노트 본문" })
@@ -30,7 +34,7 @@ async function captureRich(page: Page, theme: "light" | "dark") {
   await expect(page.locator(".cm-rich-mermaid svg")).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
-    path: `/private/tmp/granite-review-${theme}-rich-mermaid.png`,
+    path: testInfo.outputPath(`granite-review-${theme}-rich-mermaid.png`),
   });
 }
 
@@ -41,11 +45,11 @@ test.beforeEach(async ({ page }) => {
 test("S19 light settings and rich content", async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: "light" });
   await openRichDemo(page);
-  await captureRich(page, "light");
+  await captureRich(page, "light", testInfo);
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
-    path: "/private/tmp/granite-review-light-settings.png",
+    path: testInfo.outputPath("granite-review-light-settings.png"),
   });
   await takeSnapshot(page, "Light appearance settings", testInfo);
 });
@@ -56,7 +60,7 @@ test("S19 dark rich content and narrow link settings", async ({
   await page.emulateMedia({ colorScheme: "dark" });
   await openRichDemo(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await captureRich(page, "dark");
+  await captureRich(page, "dark", testInfo);
   await takeSnapshot(page, "Dark rich content and diagram", testInfo);
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await page
@@ -73,7 +77,7 @@ test("S19 dark rich content and narrow link settings", async ({
   ).toBeInViewport();
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({
-    path: "/private/tmp/granite-review-dark-settings-narrow.png",
+    path: testInfo.outputPath("granite-review-dark-settings-narrow.png"),
   });
   await takeSnapshot(page, "Dark narrow link settings", testInfo);
 });
