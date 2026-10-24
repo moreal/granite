@@ -532,7 +532,7 @@ test("S04 writing-focus composition keeps Korean text, undo, and code links inta
   await expect(editor(page)).toContainText("`[[코드]]`");
   await editor(page).press("ControlOrMeta+z");
   await expect(editor(page)).not.toContainText("입력 한");
-  await editor(page).press("ControlOrMeta+Shift+z");
+  await editor(page).press("ControlOrMeta+Shift+KeyZ");
   await expect(editor(page)).toContainText("입력 한");
 });
 

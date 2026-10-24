@@ -330,6 +330,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
               override: [complete],
               activateOnTyping: true,
               defaultKeymap: false,
+              // These menus require an explicit [[ or @ trigger. Once visible,
+              // Enter must accept the selection, even immediately after opening.
+              interactionDelay: 0,
             }),
             previewConfig.current.of(latest.current.source ? [] : preview()),
             lockConfig.current.of([

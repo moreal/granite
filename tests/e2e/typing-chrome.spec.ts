@@ -211,3 +211,19 @@ for (const { label, input, option, mouse } of [
     await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.3");
   });
 }
+
+// Keep Date.now fixed while timers still run: Enter is guaranteed to arrive
+// inside CodeMirror's default interaction delay, independent of machine speed.
+test("S06/S12: a visible explicit completion accepts immediate Enter", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-10-24T12:00:00+09:00"));
+  await demo(page);
+  await body(page, "");
+  await editor(page).pressSequentially("[[덤");
+  await expect(page.getByRole("option", { name: /덤프/ })).toBeVisible();
+  await editor(page).press("Enter");
+  await expect(editor(page)).toHaveText("[[덤프]]");
+  await expect(page.getByRole("listbox")).toBeHidden();
+  await expect(page.locator(".topbar")).toHaveCSS("opacity", "1");
+});
