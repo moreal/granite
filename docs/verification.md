@@ -1,5 +1,11 @@
 # Granite MVP 검증 기록
 
+## 2026-10-24 이미지·본문 표현 및 옮기기 제거
+
+통합 검증: Node.js 24.18.0, Yarn 4.18.1 immutable 설치, 단위 71개·E2E 48개 통과, 타입 검사·빌드 통과. 이미지 저장/외부 변경·IndexedDB 영속성·붙여넣기 취소·KaTeX/Mermaid/코드 표현과 기존 여정을 포함한다. [본문 표현 보고서](rich-editor.md), [이미지 저장소](image-assets.md), [기능 제거](extraction-removal.md), [스펙](superpowers/specs/2026-10-24-rich-note-content.md)을 참조한다. OS 클립보드·네이티브 폴더 권한·실제 IME 검증을 추가로 주장하지 않는다.
+
+2026-10-24 방향 변경: S05 옮기기는 폐기되었다. 아래 추출·옮기기 결과는 당시 기능의 역사적 증거이며 현재 기능 범위를 뜻하지 않는다. [제거 변경 기록](extraction-removal.md).
+
 현재 설치·검증 절차는 [Yarn 전환 기록](yarn-migration.md)이 대체한다. 아래 npm 실행 결과는 당시 증거로 보존한다.
 
 PR 자동 검증 추가(2026-10-24): [CI 구성·로컬 증거·호스팅 검증 한계](ci-verification.md).

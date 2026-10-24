@@ -37,27 +37,49 @@ export class DiskDirectory implements DirectoryHandle {
     }
     return this.file(name);
   }
+  async getDirectoryHandle(name: string, options?: { create?: boolean }) {
+    if (path.basename(name) !== name || name === "." || name === "..")
+      throw new DOMException("Invalid name", "TypeMismatchError");
+    const target = path.join(this.directory, name);
+    if (options?.create) await mkdir(target, { recursive: true });
+    try {
+      if (!(await stat(target)).isDirectory())
+        throw new DOMException("Not a directory", "TypeMismatchError");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT")
+        throw new DOMException("Missing directory", "NotFoundError");
+      throw error;
+    }
+    const child = new DiskDirectory(target);
+    child.failAt = this.failAt;
+    child.beforeClose = this.beforeClose;
+    return child;
+  }
   private file(name: string): FileHandle {
     const filename = path.join(this.directory, name);
     return {
       kind: "file",
       name,
       getFile: async () => {
-        const raw = await readFile(filename, "utf8");
+        const raw = await readFile(filename);
         return {
-          text: async () => raw,
+          text: async () => raw.toString("utf8"),
+          arrayBuffer: async () => Uint8Array.from(raw).buffer,
           lastModified: (await stat(filename)).mtimeMs,
         };
       },
       createWritable: async () => {
         if (this.failAt === "createWritable")
           throw new DOMException("Permission denied", "NotAllowedError");
-        let pending = "";
+        let pending: string | Uint8Array = "";
         return {
           write: async (data) => {
             if (this.failAt === "write")
               throw new DOMException("Write failed", "UnknownError");
-            pending = data;
+            pending =
+              typeof data === "string"
+                ? data
+                : new Uint8Array(await data.arrayBuffer());
           },
           close: async () => {
             await this.beforeClose?.();
