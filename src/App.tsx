@@ -766,6 +766,7 @@ export default function App() {
                 <Editor
                   key={workspace.storage.id + ":" + current}
                   linkTemplates={settings.linkTemplates}
+                  autoFormat={settings.autoFormat}
                   documentKey={workspace.storage.id + ":" + current}
                   onPasteImage={putImage}
                   readImage={readImage}

@@ -1,3 +1,4 @@
+import { disableAutomaticFormatting } from "../helpers/ui";
 import { test, expect } from "@playwright/test";
 import { body, create, demo, editor, source } from "../helpers/ui";
 test("S20 real worker previews, cancels, applies and undoes safely", async ({
@@ -42,4 +43,9 @@ test("S20 real worker previews, cancels, applies and undoes safely", async ({
   await expect(editor(page)).toContainText("[site]: https://example.com");
   await editor(page).press("ControlOrMeta+z");
   await expect(editor(page)).toContainText("[site](https://example.com)");
+});
+
+// Visual/manual fixtures intentionally keep their literal Markdown unchanged.
+test.beforeEach(async ({ page }) => {
+  await disableAutomaticFormatting(page);
 });

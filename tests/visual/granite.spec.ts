@@ -1,3 +1,4 @@
+import { disableAutomaticFormatting } from "../helpers/ui";
 import { expect, takeSnapshot, test } from "@chromatic-com/playwright";
 import { openListed } from "../helpers/ui";
 import type { Page } from "@playwright/test";
@@ -71,4 +72,9 @@ test("S18 S15 rich demo expressions", async ({ page }, testInfo) => {
   await page.locator(".cm-rich-mermaid").scrollIntoViewIfNeeded();
   await expect(page.locator(".cm-rich-mermaid svg")).toBeVisible();
   await takeSnapshot(page, "Mermaid diagram", testInfo);
+});
+
+// Visual/manual fixtures intentionally keep their literal Markdown unchanged.
+test.beforeEach(async ({ page }) => {
+  await disableAutomaticFormatting(page);
 });

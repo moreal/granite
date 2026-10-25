@@ -70,3 +70,5 @@ S17: frontmatter 원문·알 수 없는 속성 보존, 오류/alias/tag/크기 �
 ## 편집기 플러그인과 문서 정리
 
 S20 — [설계](superpowers/specs/2026-10-25-editor-plugins-design.md), [API와 범위](editor-plugins.md). `tests/unit/editor-plugins.test.ts`는 중복 ID 거절과 추가 명령/포매터 등록, `tests/unit/formatting.test.tsx`는 취소·오래된 결과·잠금·합성 IME·undo·오류·무변경·시간 제한·원문/의미 보호·reference 링크를 검증한다. `tests/unit/hongdown-wasm.test.ts`는 실제 고정 WASM API를, `tests/e2e/formatting.spec.ts`는 실제 worker의 미리보기/취소/적용/undo와 라이트/다크 1440/390 화면을 검증한다. `tests/visual/formatting.spec.ts`는 `/granite/` production worker/WASM 요청이 동일 출처 내부 경로에 머무는 것을 확인한다. 네이티브 IME나 폴더 권한창 증거가 아니다.
+
+S20 자동 문서 정리 — [승인 기준](superpowers/specs/2026-10-25-auto-formatting.md). `tests/unit/formatting.test.tsx`는 1500ms debounce, 지연 결과 무효화, 선택/조합/완성/붙여넣기 대기, 재개, undo 억제, 외부 동기화·설정 켜기 비실행, 실패 시 편집 전달과 포커스 보존을 검증한다. `tests/unit/settings.test.ts`는 기존 설정 기본 활성화와 명시적 false 보존, `tests/e2e/auto-formatting.spec.ts`는 실제 기본 활성화 WASM·저장·재열기·undo/redo 및 설정 적용/취소/탭 동기화를 검증한다.

@@ -84,3 +84,7 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 ## 2026-10-25 편집기 플러그인 / 문서 정리 (S04/S17/S20)
 
 고정 Hongdown 0.5.3 실제 Node WASM과 Chromium worker를 사용한다. 원문/결과 검토, 취소, 적용과 단일 undo, 리비전/키/잠금/조합 이벤트 무효화, 유효 CRLF frontmatter 보존과 오류 거절, 위키/이미지/수식/Mermaid 보호를 검증한다. `/granite/` production build에서 worker 및 2.49 MB WASM의 같은 출처 요청을 확인한다. 화면 증거는 `docs/screenshots/formatting-{light,dark}-{1440,390}.png` 및 `editor-plugins-*`다. 전체 실행 결과는 `.superpowers/hongdown/task-2-report.md` 작업 보고에 기록한다. 테스트 저장소는 데모이며, 실제 사용자 폴더 picker/권한 또는 OS 네이티브 IME는 검증하지 않았다.
+
+## 2026-10-25 기본 자동 문서 정리 (S20)
+
+[승인 기준](superpowers/specs/2026-10-25-auto-formatting.md)에 따라 기본 활성화, 설정 → 글쓰기의 비활성화, 입력 후 1500ms 대기, 선택·조합·메뉴 대기, 오래된 결과 취소, undo 억제와 수동 정리 공존을 추가했다. 최종 단위 158개, 기존·자동 정리 브라우저 74개, 프로덕션 `/granite/` 시각 검증 9개, 타입 검사와 빌드가 통과했다. 라이트/다크 1440/390 설정 화면을 `docs/screenshots/auto-format-*.png`에 보존했다. 합성 IME·데모 저장과 디스크 어댑터 검증이며 실제 폴더 권한창·네이티브 IME 검증은 아니다. 추가한 실제 worker 요청 실패·정상 저장·재열기 회귀를 포함한 자동 정리 3개도 별도로 통과했다(전체 브라우저 검사 항목은 75개). 상세 실행 기록은 `.superpowers/auto-format/report.md`에 있다.

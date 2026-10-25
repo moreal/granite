@@ -1,3 +1,4 @@
+import { disableAutomaticFormatting } from "../helpers/ui";
 import { expect, takeSnapshot, test } from "@chromatic-com/playwright";
 import type { Page, TestInfo } from "@playwright/test";
 import { openListed } from "../helpers/ui";
@@ -80,4 +81,9 @@ test("S19 dark rich content and narrow link settings", async ({
     path: testInfo.outputPath("granite-review-dark-settings-narrow.png"),
   });
   await takeSnapshot(page, "Dark narrow link settings", testInfo);
+});
+
+// Visual/manual fixtures intentionally keep their literal Markdown unchanged.
+test.beforeEach(async ({ page }) => {
+  await disableAutomaticFormatting(page);
 });

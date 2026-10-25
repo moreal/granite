@@ -222,3 +222,239 @@ it("S20 preview traps Tab, Escape cancels, and restores invoking focus", async (
   expect(document.activeElement).toBe(trigger);
   trigger.remove();
 });
+
+it("S20 auto formats only real edits after 1500ms and undo stays undone", async () => {
+  vi.useFakeTimers();
+  const s = setup(async (text) => text + " formatted");
+  await act(async () => vi.advanceTimersByTimeAsync(2000));
+  expect(s.view.state.sliceDoc()).toBe("original");
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 8, insert: "!" },
+      userEvent: "input.paste",
+    }),
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(1400));
+  expect(s.view.state.sliceDoc()).toBe("original!");
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 9, insert: "?" },
+      userEvent: "input.paste",
+    }),
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(1499));
+  expect(s.view.state.sliceDoc()).toBe("original!?");
+  await act(async () => vi.advanceTimersByTimeAsync(1));
+  expect(s.view.state.sliceDoc()).toBe("original!? formatted");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  act(() => {
+    undo(s.view);
+  });
+  await act(async () => vi.advanceTimersByTimeAsync(4000));
+  expect(s.view.state.sliceDoc()).toBe("original!?");
+});
+
+it.each(["cursor", "selection", "edit", "off", "key", "lock", "unmount"])(
+  "S20 running auto job cancels on %s and preserves pending edits when appropriate",
+  async (action) => {
+    vi.useFakeTimers();
+    const jobs: {
+      resolve: (text: string) => void;
+      signal: AbortSignal;
+      text: string;
+    }[] = [];
+    const s = setup(
+      (text, { signal }) =>
+        new Promise((resolve) => jobs.push({ resolve, signal, text })),
+    );
+    act(() =>
+      s.view.dispatch({
+        changes: { from: 8, insert: "!" },
+        userEvent: "input.paste",
+      }),
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(1500));
+    expect(jobs).toHaveLength(1);
+    if (action === "cursor" || action === "selection")
+      act(() =>
+        s.view.dispatch({
+          selection: { anchor: 1, head: action === "selection" ? 4 : 1 },
+        }),
+      );
+    if (action === "edit")
+      act(() =>
+        s.view.dispatch({
+          changes: { from: 9, insert: "?" },
+          userEvent: "input.paste",
+        }),
+      );
+    if (["off", "key", "lock"].includes(action))
+      s.rendered.rerender(
+        <Editor
+          {...s.props}
+          autoFormat={action !== "off"}
+          documentKey={action === "key" ? "two" : "one"}
+          locked={action === "lock"}
+        />,
+      );
+    if (action === "unmount") s.rendered.unmount();
+    expect(jobs[0].signal.aborted).toBe(true);
+    await act(async () => jobs[0].resolve("stale"));
+    if (action !== "unmount") expect(s.view.state.sliceDoc()).not.toBe("stale");
+    await act(async () => vi.advanceTimersByTimeAsync(1500));
+    expect(jobs).toHaveLength(["cursor", "edit"].includes(action) ? 2 : 1);
+    if (action === "selection") {
+      act(() => s.view.dispatch({ selection: { anchor: 4 } }));
+      await act(async () => vi.advanceTimersByTimeAsync(1500));
+      expect(jobs).toHaveLength(2);
+    }
+    if (["cursor", "selection", "edit"].includes(action)) {
+      await act(async () => jobs[1].resolve(jobs[1].text + " formatted"));
+      expect(s.view.state.sliceDoc()).toBe(jobs[1].text + " formatted");
+      if (action === "cursor")
+        expect(s.view.state.selection.main.anchor).toBe(1);
+    }
+  },
+);
+it("S20 automatic failure preserves normal changes, does not retry, and clears on next edit", async () => {
+  vi.useFakeTimers();
+  let attempts = 0;
+  const s = setup(async (text) => {
+    if (++attempts === 1) throw Error("format failed");
+    return text + " formatted";
+  });
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 8, insert: "!" },
+      userEvent: "input.paste",
+    }),
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(1500));
+  expect(s.onChange).toHaveBeenLastCalledWith("original!");
+  expect(screen.getByRole("status").textContent).toContain("format failed");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  await act(async () => vi.advanceTimersByTimeAsync(6000));
+  expect(attempts).toBe(1);
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 9, insert: "?" },
+      userEvent: "input.paste",
+    }),
+  );
+  expect(screen.queryByRole("status")).toBeNull();
+  await act(async () => vi.advanceTimersByTimeAsync(1500));
+  expect(s.view.state.sliceDoc()).toBe("original!? formatted");
+});
+it("S20 synthetic composition waits until composition ends and automatic formatting keeps external focus", async () => {
+  vi.useFakeTimers();
+  const s = setup(async (text) => text + " formatted");
+  fireEvent.compositionStart(s.box);
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 8, insert: "한" },
+      userEvent: "input.paste",
+    }),
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(s.view.state.sliceDoc()).toBe("original한");
+  fireEvent.compositionEnd(s.box);
+  const button = document.createElement("button");
+  document.body.append(button);
+  button.focus();
+  await act(async () => vi.advanceTimersByTimeAsync(1600));
+  expect(s.view.state.sliceDoc()).toBe("original한 formatted");
+  expect(document.activeElement).toBe(button);
+  button.remove();
+});
+
+it("S20 source changes, synchronized values, and enabling never create eligible edits", async () => {
+  vi.useFakeTimers();
+  const s = setup(async () => "unexpected");
+  s.rendered.rerender(
+    <Editor {...s.props} autoFormat={false} source={false} value="external" />,
+  );
+  s.rendered.rerender(
+    <Editor {...s.props} autoFormat source value="external" />,
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(4000));
+  expect(s.view.state.sliceDoc()).toBe("external");
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 8, insert: "!" },
+      userEvent: "input.paste",
+    }),
+  );
+  s.rendered.rerender(
+    <Editor {...s.props} autoFormat={false} value="external!" />,
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(4000));
+  expect(s.view.state.sliceDoc()).toBe("external!");
+});
+
+it("S20 completion menu defers automatic work until dismissal", async () => {
+  vi.useFakeTimers();
+  const { startCompletion, closeCompletion, completionStatus } =
+    await import("@codemirror/autocomplete");
+  const s = setup(async (text) => text + " formatted");
+  s.rendered.rerender(
+    <Editor
+      {...s.props}
+      plugins={[
+        ...s.props.plugins,
+        {
+          id: "menu",
+          completions: [{ id: "choice", complete: () => [{ label: "today" }] }],
+        },
+      ]}
+    />,
+  );
+  act(() => {
+    s.view.dispatch({
+      changes: { from: 8, insert: " @" },
+      selection: { anchor: 10 },
+      userEvent: "input.paste",
+    });
+    startCompletion(s.view);
+  });
+  await act(async () => vi.advanceTimersByTimeAsync(200));
+  expect(completionStatus(s.view.state)).toBe("active");
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(s.view.state.sliceDoc()).toBe("original @");
+  act(() => {
+    closeCompletion(s.view);
+  });
+  await act(async () => vi.advanceTimersByTimeAsync(1499));
+  expect(s.view.state.sliceDoc()).toBe("original @");
+  await act(async () => vi.advanceTimersByTimeAsync(1));
+  expect(s.view.state.sliceDoc()).toBe("original @ formatted");
+});
+it("S20 paste choices defer automatic work until dismissal", async () => {
+  vi.useFakeTimers();
+  const s = setup(async (text) => text + " formatted");
+  fireEvent.paste(s.box, {
+    clipboardData: { items: [], getData: () => "https://example.com" },
+  });
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(screen.getByRole("group", { name: "붙여넣은 링크" })).toBeTruthy();
+  expect(s.view.state.sliceDoc()).not.toContain("formatted");
+  fireEvent.click(screen.getByRole("button", { name: "닫기 · Esc" }));
+  await act(async () => vi.advanceTimersByTimeAsync(1500));
+  expect(s.view.state.sliceDoc()).toContain("formatted");
+});
+
+it("S20 manual review pauses eligible automatic work and cancel resumes the quiet wait", async () => {
+  vi.useFakeTimers();
+  const s = setup(async (text) => text + " formatted");
+  act(() =>
+    s.view.dispatch({
+      changes: { from: 8, insert: "!" },
+      userEvent: "input.paste",
+    }),
+  );
+  await act(async () => s.ref.current!.requestFormatting());
+  await act(async () => vi.advanceTimersByTimeAsync(3000));
+  expect(s.view.state.sliceDoc()).toBe("original!");
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  await act(async () => vi.advanceTimersByTimeAsync(1500));
+  expect(s.view.state.sliceDoc()).toBe("original! formatted");
+});

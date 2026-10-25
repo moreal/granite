@@ -66,3 +66,19 @@ describe("S19 settings and theme", () => {
     vi.unstubAllGlobals();
   });
 });
+
+it("S20 enables automatic formatting for old settings and preserves explicit false", () => {
+  const old = {
+    version: 1,
+    theme: "dark",
+    linkTemplates: [{ id: "a", name: "출처", template: "{{url}}" }],
+  };
+  expect(defaultSettings()).toHaveProperty("autoFormat", true);
+  for (const autoFormat of [undefined, false, true]) {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...old, autoFormat }));
+    expect(readSettings()).toEqual({
+      ...old,
+      autoFormat: autoFormat !== false,
+    });
+  }
+});

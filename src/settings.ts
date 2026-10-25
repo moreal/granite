@@ -4,12 +4,14 @@ export type LinkTemplate = { id: string; name: string; template: string };
 export type AppSettings = {
   version: 1;
   theme: ThemePreference;
+  autoFormat: boolean;
   linkTemplates: LinkTemplate[];
 };
 export const SETTINGS_KEY = "granite.settings.v1";
 export const defaultSettings = (): AppSettings => ({
   version: 1,
   theme: "system",
+  autoFormat: true,
   linkTemplates: [],
 });
 export function readSettings(): AppSettings {
@@ -45,6 +47,7 @@ export function readSettings(): AppSettings {
     return {
       version: 1,
       theme: data.theme!,
+      autoFormat: data.autoFormat !== false,
       linkTemplates: data.linkTemplates,
     };
   } catch {

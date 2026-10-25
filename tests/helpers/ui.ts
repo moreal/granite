@@ -69,3 +69,18 @@ export async function openListed(page: Page, title: string) {
   ).toBeVisible();
   await page.getByRole("textbox", { name: "노트 검색" }).fill("");
 }
+
+/** Isolate raw Markdown/manual formatting fixtures from automatic rewriting. */
+export async function disableAutomaticFormatting(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "granite.settings.v1",
+      JSON.stringify({
+        version: 1,
+        theme: "system",
+        linkTemplates: [],
+        autoFormat: false,
+      }),
+    );
+  });
+}

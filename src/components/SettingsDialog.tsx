@@ -23,7 +23,9 @@ export function SettingsDialog({
   const [draft, setDraft] = useState<AppSettings>(() =>
     structuredClone(settings),
   );
-  const [section, setSection] = useState<"appearance" | "links">("appearance");
+  const [section, setSection] = useState<"appearance" | "writing" | "links">(
+    "appearance",
+  );
   const [error, setError] = useState("");
   const templateErrors = draft.linkTemplates.map((t) =>
     !t.name.trim() ? "이름을 입력해 주세요." : validateLinkTemplate(t.template),
@@ -76,6 +78,13 @@ export function SettingsDialog({
           </button>
           <button
             type="button"
+            aria-pressed={section === "writing"}
+            onClick={() => setSection("writing")}
+          >
+            글쓰기
+          </button>
+          <button
+            type="button"
             aria-pressed={section === "links"}
             onClick={() => setSection("links")}
           >
@@ -110,6 +119,24 @@ export function SettingsDialog({
                 </label>
               ))}
             </fieldset>
+          </section>
+        ) : section === "writing" ? (
+          <section aria-label="글쓰기 설정">
+            <h3>자동 문서 정리</h3>
+            <p>
+              입력을 잠시 멈추면 Markdown 문서의 형식을 정리합니다. 정리한
+              내용은 실행 취소할 수 있습니다.
+            </p>
+            <label className="auto-format-option">
+              <input
+                type="checkbox"
+                checked={draft.autoFormat}
+                onChange={(event) =>
+                  setDraft({ ...draft, autoFormat: event.target.checked })
+                }
+              />{" "}
+              자동 문서 정리 사용
+            </label>
           </section>
         ) : (
           <section aria-label="링크 붙여넣기 설정">

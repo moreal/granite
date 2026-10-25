@@ -24,7 +24,11 @@ import {
   historyKeymap,
   isolateHistory,
 } from "@codemirror/commands";
-import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import {
+  autocompletion,
+  completionKeymap,
+  completionStatus,
+} from "@codemirror/autocomplete";
 import { tags } from "@lezer/highlight";
 import { pasteStillCurrent, safeWebUrl } from "./helpers";
 import type { LinkTemplate } from "../settings";
@@ -35,6 +39,7 @@ export interface EditorHandle {
   requestFormatting(id?: string): void;
 }
 interface Props {
+  autoFormat?: boolean;
   plugins?: readonly EditorPlugin[];
   linkTemplates?: readonly LinkTemplate[];
   documentKey?: string;
@@ -65,6 +70,7 @@ interface Paste {
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
     const formattingJob = useRef<{
+      automatic: boolean;
       controller: AbortController;
       key: string | undefined;
       revision: number;
@@ -79,10 +85,50 @@ export const Editor = forwardRef<EditorHandle, Props>(
       output?: string;
       message?: string;
     } | null>(null);
+    const autoPending = useRef(false);
+    const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const composing = useRef(false);
+    const [autoError, setAutoError] = useState("");
+    function pauseAutomatic() {
+      if (autoTimer.current !== null) clearTimeout(autoTimer.current);
+      autoTimer.current = null;
+      if (formattingJob.current?.automatic) cancelFormatting();
+    }
+    function automaticBlocked(ignoreJob = false) {
+      const v = view.current;
+      return (
+        !v ||
+        latest.current.autoFormat === false ||
+        latest.current.locked ||
+        composing.current ||
+        v.composing ||
+        v.state.selection.ranges.some((s) => !s.empty) ||
+        completionStatus(v.state) !== null ||
+        !!pasteRef.current ||
+        (!ignoreJob && !!formattingJob.current)
+      );
+    }
+    function scheduleAutomatic() {
+      if (
+        !autoPending.current ||
+        autoTimer.current !== null ||
+        automaticBlocked()
+      )
+        return;
+      autoTimer.current = setTimeout(() => {
+        autoTimer.current = null;
+        if (!autoPending.current || automaticBlocked()) return;
+        void requestFormatting(undefined, true);
+      }, 1500);
+    }
     function cancelFormatting() {
       formattingJob.current?.controller.abort();
       formattingJob.current = null;
       setFormatting(null);
+    }
+    function closeFormatting() {
+      cancelFormatting();
+      scheduleAutomatic();
     }
     function formattingCurrent(job: NonNullable<typeof formattingJob.current>) {
       return (
@@ -93,10 +139,19 @@ export const Editor = forwardRef<EditorHandle, Props>(
         !latest.current.locked &&
         !!view.current &&
         !view.current.composing &&
+        !composing.current &&
+        (!job.automatic ||
+          (latest.current.autoFormat !== false &&
+            view.current.state.selection.main.anchor === job.anchor &&
+            view.current.state.selection.main.head === job.head &&
+            view.current.state.selection.ranges.every((s) => s.empty) &&
+            completionStatus(view.current.state) === null &&
+            !pasteRef.current)) &&
         view.current.state.sliceDoc() === job.original
       );
     }
-    async function requestFormatting(id?: string) {
+    async function requestFormatting(id?: string, automatic = false) {
+      pauseAutomatic();
       cancelFormatting();
       const v = view.current;
       if (!v || latest.current.locked || v.composing) return;
@@ -108,6 +163,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
       if (!formatter) return;
       const selection = v.state.selection.main;
       const job = {
+        automatic,
         controller: new AbortController(),
         key: latest.current.documentKey,
         revision: revision.current,
@@ -117,12 +173,23 @@ export const Editor = forwardRef<EditorHandle, Props>(
         output: undefined as string | undefined,
       };
       formattingJob.current = job;
-      setFormatting({ label: formatter.label, message: "문서를 정리하는 중…" });
+      if (!automatic)
+        setFormatting({
+          label: formatter.label,
+          message: "문서를 정리하는 중…",
+        });
       try {
         const output = await formatter.format(job.original, {
           signal: job.controller.signal,
         });
         if (!formattingCurrent(job)) return;
+        if (automatic) {
+          autoPending.current = false;
+          job.output = output;
+          if (output !== job.original) applyFormatting();
+          else cancelFormatting();
+          return;
+        }
         if (output === job.original) {
           setFormatting({
             label: formatter.label,
@@ -137,7 +204,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
           output,
         });
       } catch (error) {
-        if (formattingCurrent(job))
+        if (formattingCurrent(job) && automatic) {
+          autoPending.current = false;
+          cancelFormatting();
+          setAutoError(
+            error instanceof Error
+              ? error.message
+              : "문서 정리에 실패했습니다.",
+          );
+        } else if (formattingCurrent(job))
           setFormatting({
             label: formatter.label,
             message:
@@ -185,7 +260,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
         annotations: isolateHistory.of("full"),
         userEvent: "input.format",
       });
-      v.focus();
+      if (!job.automatic) v.focus();
     }
     resolveEditorPlugins(props.plugins ?? builtinPlugins);
     const mount = useRef<HTMLDivElement>(null),
@@ -211,7 +286,9 @@ export const Editor = forwardRef<EditorHandle, Props>(
         fetchJob.current?.abort();
         fetchJob.current = null;
       }
+      pauseAutomatic();
       pasteRef.current = p;
+      scheduleAutomatic();
       setPaste(p);
       latest.current.onMenuChange?.(p !== null);
     }
@@ -315,7 +392,18 @@ export const Editor = forwardRef<EditorHandle, Props>(
             ]),
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
+                pauseAutomatic();
                 cancelFormatting();
+                autoPending.current =
+                  latest.current.autoFormat !== false &&
+                  update.transactions.some(
+                    (t) =>
+                      t.docChanged &&
+                      !t.annotation(synchronizeDocument) &&
+                      !t.isUserEvent("input.format") &&
+                      (t.isUserEvent("input") || t.isUserEvent("delete")),
+                  );
+                if (autoPending.current) setAutoError("");
                 const job = imageJob.current;
                 if (job) {
                   let touched = false;
@@ -350,7 +438,12 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 )
                   latest.current.onUserEdit?.();
               }
-              if (update.selectionSet && !update.docChanged) changePaste(null);
+              if (update.selectionSet && !update.docChanged) {
+                pauseAutomatic();
+                changePaste(null);
+              }
+              if (automaticBlocked(true)) pauseAutomatic();
+              scheduleAutomatic();
               if (update.selectionSet || update.docChanged) {
                 const s = update.state.selection.main;
                 latest.current.onSelection(s.to - s.from);
@@ -359,7 +452,15 @@ export const Editor = forwardRef<EditorHandle, Props>(
             Prec.highest(
               EditorView.domEventHandlers({
                 compositionstart() {
+                  composing.current = true;
+                  pauseAutomatic();
                   cancelFormatting();
+                  return false;
+                },
+                compositionend() {
+                  composing.current = false;
+                  // CodeMirror completes its composition bookkeeping after DOM handlers.
+                  queueMicrotask(() => scheduleAutomatic());
                   return false;
                 },
                 paste(event, v) {
@@ -508,6 +609,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
       });
       view.current = v;
       return () => {
+        autoPending.current = false;
+        if (autoTimer.current !== null) clearTimeout(autoTimer.current);
         formattingJob.current?.controller.abort();
         formattingJob.current = null;
         imageJob.current = null;
@@ -518,11 +621,21 @@ export const Editor = forwardRef<EditorHandle, Props>(
       };
     }, []);
     useEffect(() => {
+      autoPending.current = false;
+      pauseAutomatic();
+      setAutoError("");
       cancelFormatting();
       imageJob.current = null;
       changePaste(null);
       latest.current.onImageStatus?.(null);
     }, [props.documentKey, props.locked]);
+    useEffect(() => {
+      if (props.autoFormat === false) {
+        autoPending.current = false;
+        pauseAutomatic();
+        setAutoError("");
+      }
+    }, [props.autoFormat]);
     useEffect(() => {
       const v = view.current;
       if (v && v.state.sliceDoc() !== props.value) {
@@ -778,8 +891,13 @@ export const Editor = forwardRef<EditorHandle, Props>(
     return (
       <div className={"editor-wrap" + (props.source ? " source-mode" : "")}>
         <div ref={mount} />
+        {autoError && (
+          <p className="auto-format-status" role="status">
+            자동 문서 정리: {autoError} 글은 계속 저장됩니다.
+          </p>
+        )}
         {formatting && (
-          <Dialog title={formatting.label} onClose={cancelFormatting}>
+          <Dialog title={formatting.label} onClose={closeFormatting}>
             <p>
               변경 내용을 확인한 뒤 적용하세요. 적용 후 실행 취소할 수 있습니다.
             </p>
@@ -805,7 +923,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
               </div>
             )}
             <div className="dialog-actions">
-              <button onClick={cancelFormatting}>취소</button>
+              <button onClick={closeFormatting}>취소</button>
               {formatting.output !== undefined && (
                 <button className="primary" onClick={applyFormatting}>
                   적용

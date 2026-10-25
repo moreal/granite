@@ -1447,3 +1447,20 @@ textarea:focus-visible {
   border-radius: 6px;
   padding: 12px;
 }
+
+.dialog .auto-format-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-block: 0.75rem;
+}
+.auto-format-option input {
+  width: auto;
+  accent-color: var(--link);
+}
+.auto-format-status {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0.75rem 0;
+}

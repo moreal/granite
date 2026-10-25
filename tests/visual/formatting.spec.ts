@@ -1,3 +1,4 @@
+import { disableAutomaticFormatting } from "../helpers/ui";
 import { test, expect } from "@playwright/test";
 test("S20 production subpath serves the local formatter worker and WASM", async ({
   page,
@@ -31,4 +32,9 @@ test("S20 production subpath serves the local formatter worker and WASM", async 
     requests.every((url) => url.startsWith("http://127.0.0.1:4175/granite/")),
   ).toBe(true);
   expect(errors).toEqual([]);
+});
+
+// Visual/manual fixtures intentionally keep their literal Markdown unchanged.
+test.beforeEach(async ({ page }) => {
+  await disableAutomaticFormatting(page);
 });
