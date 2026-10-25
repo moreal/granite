@@ -333,3 +333,69 @@ test("S24 initial type query survives setting and source round trips before meta
     page.getByRole("button", { name: "type 값 편집", exact: true }),
   ).toHaveText("CustomType");
 });
+
+test("S24d first-line YAML typing keeps focus, selection, history and position across warnings", async ({
+  page,
+}) => {
+  await disableAutomaticFormatting(page);
+  await demo(page);
+  await create(page, "YAML 첫 줄 입력");
+  await source(page);
+  await body(page, "---\nauthor: old # keep\n---\n본문 보존");
+  await saved(page);
+  await live(page);
+  await propertyMode(page, "yaml");
+  await page.getByText("속성", { exact: true }).click();
+  const yaml = page.getByLabel("속성 YAML 원문");
+  const original = await yaml.elementHandle();
+  await yaml.focus();
+  await yaml.evaluate((element: HTMLTextAreaElement) =>
+    element.setSelectionRange(0, 0),
+  );
+  const top = (await yaml.boundingBox())!.y;
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowLeft");
+  let prefix = "";
+  for (const character of "type: Book") {
+    await page.keyboard.type(character);
+    prefix += character;
+    await expect(yaml).toHaveValue(`${prefix}\nauthor: old # keep`);
+    expect((await yaml.boundingBox())!.y).toBe(top);
+    expect(
+      await yaml.evaluate(
+        (element: HTMLTextAreaElement, initial) => ({
+          same: element === initial,
+          focused: document.activeElement === element,
+          start: element.selectionStart,
+          end: element.selectionEnd,
+        }),
+        original,
+      ),
+    ).toEqual({
+      same: true,
+      focused: true,
+      start: prefix.length,
+      end: prefix.length,
+    });
+    if (prefix === "t")
+      await expect(page.locator(".property-warning")).toBeVisible();
+  }
+  await expect(page.locator(".property-warning")).toHaveCount(0);
+  await yaml.evaluate((element: HTMLTextAreaElement) =>
+    element.setSelectionRange(6, 10),
+  );
+  await page.keyboard.insertText("Person");
+  await expect(yaml).toHaveValue("type: Person\nauthor: old # keep");
+  await yaml.press("ControlOrMeta+z");
+  await expect(yaml).toHaveValue("type: Book\nauthor: old # keep");
+  await yaml.press("ControlOrMeta+Shift+Z");
+  await expect(yaml).toHaveValue("type: Person\nauthor: old # keep");
+  await yaml.press("ControlOrMeta+s");
+  await saved(page);
+  expect((await rawNotes(page))[filenameFor("YAML 첫 줄 입력")].raw).toContain(
+    "---\ntype: Person\nauthor: old # keep\n---\n본문 보존",
+  );
+  await page.reload();
+  await page.getByText("속성", { exact: true }).click();
+  await expect(yaml).toHaveValue("type: Person\nauthor: old # keep");
+});

@@ -29,6 +29,15 @@ export function YamlEditor(props: YamlEditorProps) {
       setScope(null);
     },
   );
+  createEffect(
+    () => props.value,
+    (value) => {
+      // Echoes of native edits must not write value again: input interceptors
+      // can reset selection/undo even when the assigned text is identical.
+      const normalized = value.replace(/\r\n/g, "\n");
+      if (textarea.value !== normalized) textarea.value = normalized;
+    },
+  );
   const current = () =>
     !props.disabled &&
     scope()?.context.source === props.value.replace(/\r\n/g, "\n") &&
@@ -110,7 +119,6 @@ export function YamlEditor(props: YamlEditorProps) {
         id={id()}
         aria-label="속성 YAML 원문"
         spellcheck={false}
-        value={props.value}
         disabled={props.disabled}
         aria-autocomplete="list"
         aria-controls={`${id()}-options`}

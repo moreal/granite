@@ -310,3 +310,58 @@ it("S24 preserves initial type queries across mode/source round trips without cr
   fireEvent.click(screen.getByRole("button", { name: "속성 추가" }));
   expect(change).toHaveBeenCalledWith("---\ntype: CustomType\n---\n본문");
 });
+
+it("S24d YAML warning and source echoes keep the native textarea value and selection", () => {
+  let body = "---\r\nauthor: old # keep\r\nabout: untouched\r\n---\r\n본문";
+  const props = {
+    body,
+    documentKey: "typing",
+    locked: false,
+    mode: "yaml" as const,
+    onChange: (next: string) => {
+      body = next;
+      view.rerender({ ...props, body });
+    },
+  };
+  const view = render(NoteProperties, props);
+  view.container.querySelector("details")!.open = true;
+  const input = screen.getByLabelText("속성 YAML 원문") as HTMLTextAreaElement;
+  const value = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    "value",
+  )!;
+  const writes = vi.fn((next: string) => value.set!.call(input, next));
+  Object.defineProperty(input, "value", {
+    configurable: true,
+    get: () => value.get!.call(input),
+    set: writes,
+  });
+  input.focus();
+  for (const [next, start, end, warning] of [
+    ["t\nauthor: old # keep\nabout: untouched", 1, 1, true],
+    ["type:\nauthor: old # keep\nabout: untouched", 5, 5, false],
+    ["type: [\nauthor: old # keep\nabout: untouched", 7, 7, true],
+    ["type: Book\nauthor: old # keep\nabout: untouched", 6, 10, false],
+  ] as const) {
+    value.set!.call(input, next);
+    input.setSelectionRange(start, end);
+    fireEvent.input(input);
+    expect(screen.getByLabelText("속성 YAML 원문")).toBe(input);
+    expect(document.activeElement).toBe(input);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([start, end]);
+    expect(!!screen.queryByRole("alert")).toBe(warning);
+    expect(writes).not.toHaveBeenCalled();
+  }
+  expect(body).toBe(
+    "---\r\ntype: Book\r\nauthor: old # keep\r\nabout: untouched\r\n---\r\n본문",
+  );
+  view.rerender({ ...props, body: body + "\r\n本文追加" });
+  expect([input.selectionStart, input.selectionEnd]).toEqual([6, 10]);
+  expect(writes).not.toHaveBeenCalled();
+  view.rerender({
+    ...props,
+    documentKey: "other",
+    body: "---\ntype: Person\n---\n別の本文",
+  });
+  expect(input.value).toBe("type: Person");
+});

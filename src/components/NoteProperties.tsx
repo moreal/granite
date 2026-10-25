@@ -37,6 +37,8 @@ export function NoteProperties(props: {
     existing: boolean;
   } | null>(null);
   const [draftValue, setDraftValue] = createSignal("");
+  const editingYaml = () =>
+    props.mode === "yaml" && !props.source && !draft() && metadata().present;
   const begin = (name: string, existing = false) => {
     if (props.locked || !name.trim()) return;
     setError(null);
@@ -154,7 +156,7 @@ export function NoteProperties(props: {
         )}
       </summary>
       <div class="property-content">
-        {metadata().warning && (
+        {metadata().warning && !editingYaml() && (
           <p class="property-warning" role="alert">
             {metadata().warning}
           </p>
@@ -197,6 +199,11 @@ export function NoteProperties(props: {
                       props.onChange(replaceFrontmatter(props.body, yaml))
                     }
                   />
+                  {metadata().warning && (
+                    <p class="property-warning" role="alert">
+                      {metadata().warning}
+                    </p>
+                  )}
                   <p class="property-help">
                     입력한 원문은 자동 저장합니다. @ 또는 [[로 노트를
                     연결하세요.

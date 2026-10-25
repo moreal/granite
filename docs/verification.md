@@ -131,3 +131,11 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 최종 동작 소스에서 단위257개, 타입 검사, `/granite/` 앱·Storybook 빌드, 전체 브라우저100개가 통과했다. 이후 화면 검사에서 편집 행의 중복 label과 도움말 때문에 버튼이 어긋나던 문제를 추가로 고쳤다. 이 CSS/표시 순서 수정 후 타입 검사·두 빌드·관련 브라우저18개·전체 컴포넌트33개·프로덕션 시각24개가 통과했다. 변경하지 않은 전체100개는 다시 실행하지 않았다. 컴포넌트 검사는 읽기/편집의 실제 텍스트 위치와40px 입력/버튼, 도움말 아래 배치, 메뉴가 열린 상태의 취소 클릭, 새 속성 label 표시를 확인한다. 320px와960px 뷰포트의 라이트·다크 실제 운영 화면을 열어 확인했고 독립 리뷰도 승인했다.
 
 대표 화면은 [편집 행과 버튼 정렬](screenshots/property-editor-form-desktop.png), [좁은 YAML 노트 추천](screenshots/property-editor-yaml-320.png), [저장 가능한 부드러운 유형 안내](screenshots/property-editor-warning-320-dark.png)다. PropertiesDisplay/Type/Value/New/Yaml/Warning Storybook 예제는 운영 컴포넌트이며, 준비 완료 표시 후 `testInfo.outputPath`로 작은 캡처를 생성한다. 상세 로그와 경로는 `.superpowers/property-editor-modes/report.md`에 기록한다. 데모 저장소와 합성 composition 이벤트의 증거이며 실제 사용자 폴더 picker/권한창·OS IME 검증은 아니다. Chromium에서 native undo를 확인했고 다른 엔진의 textarea 대체 입력 undo는 보장하지 않는다.
+
+## 2026-10-25 YAML 첫 줄 입력 안정성 (S24d)
+
+사용자 재현은 S24d의 편집 가능·커서 보존 위반이다. 배포된 PropertiesYaml의 play가 끝난 후 실제 키보드 입력에서 같은 textarea와 초점은 유지되지만 첫 `t` 직후 커서가 1에서13으로 이동했다. Solid2의 동일 value 재대입이 Storybook userEvent의 입력 인터셉터를 거쳐 선택 범위를 끝으로 보내는 원인이었다. 동일한 정규화 원문을 다시 대입하지 않도록 바꾸고 실제 외부 원문 갱신은 유지했다. 운영 앱에서는 커서 이동은 재현되지 않았지만 경고가 입력 위에 나타나며 textarea가33.8px 이동하여 YAML 경고를 입력 아래로 옮겼다.
+
+실제 Storybook play 이후 첫 줄 연속 입력·경고 전환·DOM/초점/커서/위치·선택 교체·native undo/redo와 운영 앱 저장/재열기 회귀를 추가했다. 좁은320px 라이트/다크의 정상/오류 화면은 새로운 `testInfo.outputPath`에 생성한다. 상세 결과와 한계는 `.superpowers/yaml-caret-fix/report.md`에 기록한다. 데모 저장소·Chromium 검증이며 폴더 picker/권한·OS IME 검증을 뜻하지 않는다.
+
+최종 로컬 검증은 단위258개, S24 앱 브라우저6개, 전체 운영 컴포넌트34개 통과와 앱/E2E/Storybook 타입 검사·`/granite/` 앱 및 Storybook 빌드 성공이다. 첫 줄 Storybook 회귀는 수정 전 커서 기대1/실제13으로 실패한 뒤 같은 사용자 흐름으로 통과했다. 기존 전체 앱 브라우저와 시각 검사는 이 작은 수정에서 중복 실행하지 않았으며 관련 전체 S24와 전체 컴포넌트를 실행했다.
