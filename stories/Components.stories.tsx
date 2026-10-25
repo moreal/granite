@@ -1,7 +1,7 @@
 import { Button } from "../src/design-system/Button";
 import { Dialog } from "../src/components/Dialog";
 import { notePreview } from "../src/domain/note-preview";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { createSignal } from "solid-js";
 import { TodayShortcut } from "../src/components/TodayShortcut";
 import { SaveStatus } from "../src/components/SaveStatus";
@@ -363,9 +363,11 @@ const propertyModeStory = (kind: string) => ({
     } else if (kind === "mode-links") {
       const link = canvas.getByRole("button", { name: /^작가 노트 열기$/ });
       link.focus();
-      await expect(canvas.getByRole("tooltip")).toHaveTextContent(
-        "일상에서 읽고",
-      );
+      await waitFor(async () => {
+        await expect(canvas.getByRole("tooltip")).toHaveTextContent(
+          "일상에서 읽고",
+        );
+      });
       await expect(canvas.queryByRole("article")).toBeNull();
     } else if (kind.startsWith("mode-yaml")) {
       const input = canvas.getByRole("textbox", {

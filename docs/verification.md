@@ -180,3 +180,5 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 독립 화면 리뷰의 수정1회에서 production CSS가200ms/120ms를.2s/.12s로 줄였는데 숫자만 읽어 hover가 너무 빨리 열리고 링크/카드 사이에서 닫히는 원인을 확인했다. 같은 빌드의150ms hover intent 회귀가 먼저 실패했고 초/밀리초를 구분하도록 고친 뒤 통과했다. 실제 포인터를8px 간격에60ms 머무르게 하고 카드에160ms 들어간 다음 글을 드래그 선택하는 검사가 통과했다. 전체 컴포넌트/시각 검사도 수정한 앱→Storybook 재빌드에 대해 실행했다.
 
 작은320/960px·라이트/다크 preview·빈/없는 대상·긴 한글과 PropertiesLinks 원래 화면을 생성하고 직접 열어 확인했다. 기록/실패와 수정 후 로그·보존 화면은 `.superpowers/note-link-preview/implementation.md` 및 `evidence/`에 있다. 일반 텍스트·네이티브 Chromium popover/합성 데모 증거이며 실제 사용자 폴더 picker/권한창·OS IME·스크린리더 검증을 주장하지 않는다. Popover를 지원하지 않는 브라우저에서는 미리보기 없이 기존 직접 이동을 유지한다.
+
+공개 확인 뒤 수정2회에서는 PropertiesLinks의 Storybook play가 native focus 직후 Solid2 텍스트 갱신을 기다리지 않고 검사해, 최종 화면은 맞지만 초기 ‘없는 노트’ 문구로 play 오류를 남기는 경쟁을 재현했다. 새 브라우저의 관리 화면/직접 iframe에서 console·page 오류를 이동 전에 수집하는 회귀가 수정 전2개 모두 실패했다. 운영 코드는 바꾸지 않고 해당 story의 텍스트 기대만 Storybook `waitFor`로 실제 렌더링을 기다리게 했다. 타입 검사·Storybook 재빌드와 집중 컴포넌트11개가 통과했고, 관리 화면/직접 iframe을 각각 새로3회씩 연6개 검사도 오류 없이 통과했다. 앱·기존 전체 검증은 이 story 검사만의 수정에서 반복하지 않았다. 수정 전후 로그와 검토 범위는 `.superpowers/note-link-preview/round2-review.md`에 기록한다.

@@ -179,3 +179,44 @@ test("S28 real pointer can pause inside the hover gap, enter the card and select
   ).toBeGreaterThan(0);
   await expect(preview).toBeVisible();
 });
+
+for (const entry of ["iframe", "manager"] as const) {
+  test(`S28 ${entry} PropertiesLinks play completes without console errors before readiness`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(
+      entry === "manager"
+        ? "?path=/story/production-components--properties-links"
+        : "iframe.html?id=production-components--properties-links&viewMode=story",
+    );
+    const canvas =
+      entry === "manager"
+        ? page.frameLocator("#storybook-preview-iframe")
+        : page;
+    await expect(canvas.locator("#storybook-root")).toHaveAttribute(
+      "data-story-ready",
+      "true",
+    );
+    await expect(canvas.getByRole("tooltip")).toContainText("일상에서 읽고");
+    await expect(canvas.getByRole("article")).toHaveCount(0);
+    expect(
+      errors,
+      "Storybook play errors must fail even when the final DOM settles correctly",
+    ).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(
+      canvas.getByRole("button", { name: "작가 노트 열기", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(
+      canvas.getByRole("heading", { name: "작가", exact: true }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+}
