@@ -16,6 +16,10 @@ for (const state of [
     );
     const surface = page.getByTestId("component");
     await expect(surface).toBeVisible();
+    await expect(page.locator("#storybook-root")).toHaveAttribute(
+      "data-story-ready",
+      "true",
+    );
     if (state === "create" || state === "property") {
       await page.getByRole("combobox").focus();
       await page.keyboard.press("ArrowDown");

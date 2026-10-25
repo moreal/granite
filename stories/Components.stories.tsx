@@ -178,7 +178,7 @@ export const Type = {
     await userEvent.click(input);
     await userEvent.keyboard("{Enter}");
     await expect(canvas.getByLabelText("상호작용 결과")).toHaveTextContent(
-      "Book",
+      /^Book$/,
     );
   },
 };

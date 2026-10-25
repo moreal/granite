@@ -48,21 +48,27 @@ test("S19 theme persists, follows system, and template edits apply or cancel", a
 
 test("S19 settings visual checks in both themes and a narrow viewport", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/");
   await page.getByRole("button", { name: "데모 둘러보기" }).click();
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await page.getByRole("radio", { name: "어둡게", exact: true }).check();
   await page.getByRole("button", { name: "적용", exact: true }).click();
-  await page.screenshot({ path: "/tmp/granite-settings-dark-desktop.png" });
+  await page.screenshot({
+    path: testInfo.outputPath("granite-settings-dark-desktop.png"),
+  });
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await page
     .getByRole("button", { name: "링크 붙여넣기", exact: true })
     .click();
   await page.getByRole("button", { name: "양식 추가", exact: true }).click();
-  await page.screenshot({ path: "/tmp/granite-settings-dark-dialog.png" });
+  await page.screenshot({
+    path: testInfo.outputPath("granite-settings-dark-dialog.png"),
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "/tmp/granite-settings-dark-narrow.png" });
+  await page.screenshot({
+    path: testInfo.outputPath("granite-settings-dark-narrow.png"),
+  });
   await expect(
     page.getByRole("button", { name: "적용", exact: true }),
   ).toBeInViewport();
@@ -70,7 +76,9 @@ test("S19 settings visual checks in both themes and a narrow viewport", async ({
   await page.getByRole("radio", { name: "밝게", exact: true }).check();
   await page.getByRole("button", { name: "적용", exact: true }).click();
   await page.getByRole("button", { name: "설정", exact: true }).click();
-  await page.screenshot({ path: "/tmp/granite-settings-light-narrow.png" });
+  await page.screenshot({
+    path: testInfo.outputPath("granite-settings-light-narrow.png"),
+  });
 });
 
 test("S19 an open settings draft cannot overwrite changes from another tab", async ({

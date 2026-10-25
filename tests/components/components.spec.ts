@@ -36,6 +36,10 @@ for (const state of states)
     );
     const surface = page.getByTestId("component");
     await expect(surface).toBeVisible();
+    await expect(page.locator("#storybook-root")).toHaveAttribute(
+      "data-story-ready",
+      "true",
+    );
     if (["type", "property", "create"].includes(state)) {
       const input = page.getByRole("combobox").first();
       await input.focus();

@@ -110,7 +110,7 @@ for (const width of [320, 390])
   for (const colorScheme of ["light", "dark"] as const)
     test(`S22 property controls ${width} ${colorScheme} cropped`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width, height: 844 });
       await demo(page);
@@ -121,7 +121,9 @@ for (const width of [320, 390])
       await picker.focus();
       await picker.press("Escape");
       await panel.screenshot({
-        path: `/private/tmp/granite-property-create-${width}-${colorScheme}.png`,
+        path: testInfo.outputPath(
+          `granite-property-create-${width}-${colorScheme}.png`,
+        ),
       });
       await picker.fill("");
       await expect(page.getByRole("listbox")).toBeVisible();
@@ -134,7 +136,9 @@ for (const width of [320, 390])
       const popup = await page.getByRole("listbox").boundingBox();
       if (!bounds || !popup) throw Error("Missing component bounds");
       await page.screenshot({
-        path: `/private/tmp/granite-property-open-${width}-${colorScheme}.png`,
+        path: testInfo.outputPath(
+          `granite-property-open-${width}-${colorScheme}.png`,
+        ),
         clip: {
           x: bounds.x,
           y: bounds.y,
