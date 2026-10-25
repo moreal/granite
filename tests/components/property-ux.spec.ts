@@ -104,6 +104,34 @@ test("S25 quiet YAML validates on leave/save, keeps collapsed discovery and exac
   }
 });
 
+for (const width of [320, 390])
+  for (const action of ["취소", "추가 / 적용"])
+    test(`S25/S26 open type popup ${action} finishes at ${width}px before resizing`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await story(page, "properties-type");
+      const type = page.getByRole("combobox", { name: "type 값", exact: true });
+      await expect(type).toHaveValue("Per");
+      await expect(
+        page.getByRole("listbox", { name: "Schema.org 유형" }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: action, exact: true }).click();
+      await expect(type).toHaveCount(0);
+      const edit = page.getByRole("button", {
+        name: "type 값 편집",
+        exact: true,
+      });
+      await expect(edit).toHaveText(action === "취소" ? "Book" : "Per");
+      await expect(edit).toBeFocused();
+      await page
+        .getByRole("button", { name: "작가 노트 열기", exact: true })
+        .click();
+      await expect(
+        page.getByRole("heading", { name: "작가", exact: true }),
+      ).toBeVisible();
+    });
+
 test("S25 form retains rejected draft across mouse/key requests and restores apply/cancel focus", async ({
   page,
 }) => {

@@ -104,7 +104,7 @@ S24d 입력 안정성 회귀: `tests/components/yaml-caret.spec.ts`는 Storybook
 | 기준 | 기대 동작 | 검증 |
 | --- | --- | --- |
 | S26a/b | 문자열·직접 목록의 위키링크를 일반 클릭/Enter로 열고 편집은 분리한다. 여러·이스케이프 링크와 주변 텍스트를 유지하며 없는 대상은 생성 확인, HTML/URL 모양 제목은 안전한 로컬 텍스트로 처리한다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 실제 클릭/Enter·저장/재열기/연결·목록·미완성 링크·없는 대상·안전한 표시; C [components](../tests/components/components.spec.ts) 실제 대상 화면·돌아오기·편집 초점 복원·중첩 조작 없음 |
-| S26c | 어떤 폼 초안이든 이동 전에 적용/취소로 안내하고 값·오류·입력 초점을 보존한다. 열린 유형 후보가 포인터 클릭을 방해하지 않는다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 거부된 숫자·Per 유형 초안·실제 포인터/Enter 이동 보류; C [components](../tests/components/components.spec.ts) PropertiesType 준비 완료 후 native Enter·초점 보존 |
+| S26c | 어떤 폼 초안이든 이동 전에 적용/취소로 안내하고 값·오류·입력 초점을 보존한다. 열린 유형 후보가 포인터 클릭을 방해하지 않으며 적용/취소는 한 번 클릭으로 실행한다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 거부된 숫자·Per 유형 초안·실제 포인터/Enter 이동 보류·320/390px 열린 후보의 적용/취소·문자 그대로 확정/저장/재열기; C [components](../tests/components/components.spec.ts) PropertiesType 준비 완료 후 native Enter·초점 보존; C [property-ux](../tests/components/property-ux.spec.ts) 크기 변경 전 열린 후보의 실제 클릭·편집 초점 복원 |
 | S26d | 실제 앱320/390/960px와 운영 컴포넌트320/960px 라이트·다크에서 읽을 수 있는 링크 너비·첫 줄 정렬·별도 편집·초안 안내를 확인한다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 상대 너비·넘침·작은 캡처; C [components](../tests/components/components.spec.ts) 첫 텍스트 줄 위치·작은 캡처; 직접 화면 검토와 증거는 [검증 기록](verification.md#2026-10-25-읽는-속성에서-연결-노트-열기-s26) |
 
 C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다. 데모/합성 이벤트/Chromium 근거이며 실제 폴더 picker/권한·OS IME·스크린리더 세션 검증은 아니다.

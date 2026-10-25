@@ -148,6 +148,53 @@ test("S26 missing property targets use existing confirmation and HTML or URL-lik
   ).toBeUndefined();
 });
 
+for (const width of [320, 390])
+  for (const action of ["취소", "추가 / 적용"])
+    test(`S25/S26 open type popup button ${action} completes with one pointer click at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await setup(
+        page,
+        `---\ntype: Book\nauthor: ${JSON.stringify("[[작\\[가\\]\\\\이름]]")}\n---\n본문 보존`,
+      );
+      const typeButton = page.getByRole("button", {
+        name: "type 값 편집",
+        exact: true,
+      });
+      await typeButton.click();
+      const input = page.getByRole("combobox", {
+        name: "type 값",
+        exact: true,
+      });
+      await input.fill("Per");
+      await expect(
+        page.getByRole("listbox", { name: "Schema.org 유형" }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: action, exact: true }).click();
+      await expect(input).toHaveCount(0);
+      await expect(typeButton).toBeFocused();
+      await saved(page);
+      const persisted = (await rawNotes(page))[filenameFor(documentTitle)].raw;
+      expect(persisted).toContain(
+        action === "취소" ? "type: Book" : 'type: "Per"',
+      );
+      await page
+        .getByRole("button", { name: `${author} 노트 열기`, exact: true })
+        .click();
+      await expect(
+        page.getByRole("heading", { name: author, exact: true }),
+      ).toBeVisible();
+      await openListed(page, documentTitle);
+      await page.reload();
+      await expect(
+        page.getByRole("heading", { name: documentTitle, exact: true }),
+      ).toBeVisible();
+      expect((await rawNotes(page))[filenameFor(documentTitle)].raw).toBe(
+        persisted,
+      );
+    });
+
 for (const width of [320, 390, 960])
   for (const colorScheme of ["light", "dark"] as const)
     test(`S26 property links and pending type draft ${width} ${colorScheme} rendered`, async ({

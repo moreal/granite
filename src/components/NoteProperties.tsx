@@ -187,10 +187,20 @@ export function NoteProperties(props: {
         onCommit={commit}
         onCancel={finish}
       />
-      <button type="button" disabled={props.locked} onClick={commit}>
+      <button
+        type="button"
+        disabled={props.locked}
+        // Keep the menu from moving this button before its click completes.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={commit}
+      >
         추가 / 적용
       </button>
-      <button type="button" onClick={finish}>
+      <button
+        type="button"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={finish}
+      >
         취소
       </button>
       <PropertyAdvice
