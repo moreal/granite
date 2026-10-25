@@ -8,7 +8,9 @@ import {
   source,
   live,
   propertyMode,
+  rawNotes,
 } from "../helpers/ui";
+import { decodeNote, filenameFor } from "../../src/domain/notes";
 
 test("S17 schema metadata preserves source and shows typed draft connections", async ({
   page,
@@ -68,20 +70,41 @@ test("S17 invalid properties stay editable and safe on a narrow screen", async (
   await demo(page);
   await create(page, "잘못된 속성");
   await source(page);
-  await body(
-    page,
-    '---\ntype: [broken\ncustom: "<img src=x onerror=alert(1)>"\n---\n보존할 글',
-  );
+  const original =
+    '---\ntype: [broken\ncustom: "<img src=x onerror=alert(1)>"\n---\n보존할 글';
+  await body(page, original);
   await propertyMode(page, "yaml");
   await live(page);
   await page.getByText("속성", { exact: true }).click();
-  await expect(page.locator(".note-properties [role=alert]")).toBeVisible();
-  await page
-    .getByLabel("속성 YAML 원문")
-    .fill('type: Person\ncustom: "<img src=x onerror=alert(1)>"');
-  await expect(page.locator(".note-properties [role=alert]")).toHaveCount(0);
-  await expect(page.locator(".note-properties img")).toHaveCount(0);
+  const properties = page.locator(".note-properties");
+  const warning = properties.locator(".property-warning[role=status]");
+  const cue = properties.locator("summary .property-validation-cue");
+  const yaml = page.getByLabel("속성 YAML 원문");
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText("YAML 문법을 확인해 주세요");
+  await expect(cue).toHaveText("확인 필요");
+  await expect(yaml).toHaveAttribute("aria-invalid", "true");
+  await expect(properties.locator("[role=alert]")).toHaveCount(0);
+  await expect(editor(page)).toContainText("보존할 글");
   await saved(page);
+  const filename = filenameFor("잘못된 속성");
+  expect(decodeNote(filename, (await rawNotes(page))[filename].raw).body).toBe(
+    original,
+  );
+  const correctedYaml = 'type: Person\ncustom: "<img src=x onerror=alert(1)>"';
+  await yaml.fill(correctedYaml);
+  await expect(yaml).toHaveValue(correctedYaml);
+  await expect(warning).toHaveCount(0);
+  await expect(cue).toHaveCount(0);
+  await expect(yaml).not.toHaveAttribute("aria-invalid", "true");
+  await expect(properties.locator("[role=alert]")).toHaveCount(0);
+  await expect(page.locator(".note-properties img")).toHaveCount(0);
+  await expect(page.locator(".note-pane img")).toHaveCount(0);
+  await expect(editor(page)).toContainText("보존할 글");
+  await saved(page);
+  expect(decodeNote(filename, (await rawNotes(page))[filename].raw).body).toBe(
+    original.replace("type: [broken", "type: Person"),
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
