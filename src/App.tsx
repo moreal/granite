@@ -704,6 +704,7 @@ export default function App() {
                 {entry()! ? (
                   <>
                     <NoteHeader
+                      titles={notes().map((note) => note.title)}
                       documentKey={workspace()!.storage.id + ":" + current()!}
                       entry={entry()!}
                       locked={busy()}

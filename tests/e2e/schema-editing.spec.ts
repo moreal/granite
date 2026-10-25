@@ -17,7 +17,7 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
     .getByRole("option")
     .filter({ has: page.locator("strong", { hasText: /^author$/ }) })
     .click();
-  const value = page.getByRole("textbox", { name: "author 값", exact: true });
+  const value = page.getByRole("combobox", { name: "author 값", exact: true });
   await expect(value).toBeFocused();
   await expect(yaml).toHaveValue("type: Book");
   await value.fill("[[새 저자]]");
@@ -25,10 +25,10 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   await picker.fill("about");
   await picker.press("Enter");
   await page
-    .getByRole("textbox", { name: "about 값", exact: true })
+    .getByRole("combobox", { name: "about 값", exact: true })
     .fill("[[주제]]");
   await page
-    .getByRole("textbox", { name: "about 값", exact: true })
+    .getByRole("combobox", { name: "about 값", exact: true })
     .press("ControlOrMeta+s");
   await expect(yaml).toHaveValue(
     'type: Book\n"author": "[[새 저자]]"\n"about": "[[주제]]"',

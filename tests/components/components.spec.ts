@@ -6,6 +6,9 @@ const states = [
   "type-disabled",
   "property",
   "inline-properties",
+  "property-value-menu",
+  "property-value-no-results",
+  "property-value-long-korean",
   "property-disabled",
   "create",
   "create-disabled",
@@ -64,6 +67,49 @@ for (const state of states)
       await expect(field).toHaveValue(/isbn:/);
       await field.fill("type: Book\nisbn");
     }
+    if (state.startsWith("property-value-")) {
+      const input = page.getByRole("combobox", { name: "author 값" });
+      await expect(input).toBeFocused();
+      if (state === "property-value-no-results") {
+        await expect(
+          page
+            .getByRole("status")
+            .filter({ hasText: "일치하는 노트가 없습니다" }),
+        ).toBeVisible();
+        await expect(page.getByRole("option")).toHaveCount(0);
+      } else {
+        await expect(page.getByRole("listbox")).toBeVisible();
+        await input.press("ArrowDown");
+        await expect(page.getByRole("option").nth(1)).toHaveAttribute(
+          "aria-selected",
+          "true",
+        );
+        if (state === "property-value-menu") {
+          const before = await page.evaluate(() => window.scrollY);
+          for (let step = 0; step < 12; step++) await input.press("ArrowDown");
+          const list = (await page.getByRole("listbox").boundingBox())!;
+          const selected = (await page
+            .getByRole("option", { selected: true })
+            .boundingBox())!;
+          expect(selected.y).toBeGreaterThanOrEqual(list.y);
+          expect(selected.y + selected.height).toBeLessThanOrEqual(
+            list.y + list.height,
+          );
+          await expect(input).toBeFocused();
+          expect(await page.evaluate(() => window.scrollY)).toBe(before);
+          for (let step = 0; step < 12; step++) await input.press("ArrowUp");
+          const returned = (await page
+            .getByRole("option", { selected: true })
+            .boundingBox())!;
+          expect(returned.y).toBeGreaterThanOrEqual(list.y);
+          expect(returned.y + returned.height).toBeLessThanOrEqual(
+            list.y + list.height,
+          );
+          await expect(input).toBeFocused();
+          expect(await page.evaluate(() => window.scrollY)).toBe(before);
+        }
+      }
+    }
     if (state === "toolbar") {
       await page.getByRole("button", { name: "원문 보기" }).click();
       await expect(
@@ -97,8 +143,8 @@ for (const state of states)
     ).toBe(true);
     const capture = async (theme: string) => {
       const box = (await target.boundingBox())!;
-      const popup = (await page.getByRole("listbox").count())
-        ? await page.getByRole("listbox").boundingBox()
+      const popup = (await page.locator(".schema-options").count())
+        ? await page.locator(".schema-options").boundingBox()
         : null;
       const bottom =
         Math.max(box.y + box.height, popup ? popup.y + popup.height : 0) + 5;
@@ -127,6 +173,9 @@ for (const state of states)
         "format",
         "row-long",
         "inline-properties",
+        "property-value-menu",
+        "property-value-no-results",
+        "property-value-long-korean",
       ].includes(state)
     ) {
       await page.evaluate(

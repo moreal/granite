@@ -175,3 +175,64 @@ it("S21 a deleted property or removed frontmatter leaves its stale draft visible
   expect(screen.queryByLabelText("count 값")).toBeNull();
   expect(screen.queryByRole("alert")).toBeNull();
 });
+
+it("S23 selects local note links without committing and preserves the input across keystrokes", async () => {
+  let body = "---\ntype: Book\nauthor: old\n---\nprose";
+  const change = vi.fn((next: string) => {
+    body = next;
+  });
+  const view = render(NoteProperties, {
+    body,
+    documentKey: "one",
+    titles: ["작가", "작[가]"],
+    locked: false,
+    onChange: change,
+  });
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "author 값 편집" }));
+  await act(async () => await Promise.resolve());
+  const input = screen.getByLabelText("author 값") as HTMLInputElement;
+  fireEvent.input(input, {
+    target: { value: "앞 @작 뒤", selectionStart: 4, selectionEnd: 4 },
+  });
+  expect(screen.getByLabelText("author 값")).toBe(input);
+  expect(screen.getAllByRole("option").map((node) => node.textContent)).toEqual(
+    ["작가", "작[가]"],
+  );
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(input.value).toBe("앞 [[작\\[가\\]]] 뒤");
+  expect(change).not.toHaveBeenCalled();
+  expect(document.activeElement).toBe(input);
+  expect(input.selectionStart).toBe(12);
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(body).toContain('author: "앞 [[작\\\\[가\\\\]]] 뒤"');
+});
+
+it.each([
+  ["count", "2"],
+  ["enabled", "true"],
+  ["empty", "null"],
+])(
+  "S23 preserves %s scalar type and excludes note suggestions",
+  (name, original) => {
+    let body = `---\ntype: Book\n${name}: ${original}\n---\nprose`;
+    const view = render(NoteProperties, {
+      body,
+      documentKey: "one",
+      titles: ["작가"],
+      locked: false,
+      onChange: (value) => {
+        body = value;
+      },
+    });
+    view.container.querySelector("details")!.open = true;
+    fireEvent.click(screen.getByRole("button", { name: `${name} 값 편집` }));
+    const input = screen.getByLabelText(`${name} 값`);
+    fireEvent.input(input, { target: { value: "@작가" } });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(body).toContain(`${name}: ${original}`);
+    expect(screen.getByRole("alert")).toBeTruthy();
+  },
+);

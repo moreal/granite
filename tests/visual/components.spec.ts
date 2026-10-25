@@ -8,6 +8,9 @@ for (const state of [
   "yaml",
   "recovery",
   "paste-failed",
+  "property-value-menu",
+  "property-value-no-results",
+  "property-value-long-korean",
 ]) {
   test(`S22 isolated Storybook ${state}`, async ({ page }, info) => {
     await page.setViewportSize({ width: 320, height: 900 });
@@ -34,7 +37,7 @@ for (const state of [
           Math.max(
             box!.height,
             await page
-              .getByRole("listbox")
+              .locator(".schema-options")
               .evaluateAll((nodes) =>
                 Math.max(
                   0,

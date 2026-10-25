@@ -11,6 +11,7 @@ import { TypePicker } from "../src/components/properties/TypePicker";
 import { PropertyPicker } from "../src/components/properties/PropertyPicker";
 import { PropertyCreateForm } from "../src/components/properties/PropertyCreateForm";
 import { NoteProperties } from "../src/components/NoteProperties";
+import { PropertyValueInput } from "../src/components/properties/PropertyValueInput";
 import { PropertyRow } from "../src/components/properties/PropertyRow";
 import { YamlEditor } from "../src/components/properties/YamlEditor";
 import { UrlPasteMenu } from "../src/editor/UrlPasteMenu";
@@ -31,6 +32,33 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
   return (
     <section class="story-surface" data-testid="component">
+      {props.kind.startsWith("value-") && (
+        <PropertyValueInput
+          label="author 값"
+          value={value()}
+          titles={
+            props.kind === "value-long"
+              ? [
+                  long,
+                  "아주긴한글어절이반복되어도너비밖으로나가지않고계속읽을수있어야하는제목",
+                ]
+              : [
+                  "작가",
+                  "작[가]",
+                  ...Array.from(
+                    { length: 18 },
+                    (_, index) => `작가의 기록 ${index + 1}`,
+                  ),
+                  "다른 노트",
+                ]
+          }
+          linkable={true}
+          contextKey="synthetic-story"
+          onChange={setValue}
+          onCommit={() => setResult(value())}
+          onCancel={() => setResult("취소")}
+        />
+      )}
       {props.kind === "inline-properties" && (
         <NoteProperties
           body={noteBody()}
@@ -223,7 +251,34 @@ export const InlineProperties = {
       canvas.getByRole("button", { name: "author 값 편집" }),
     );
     await expect(
-      canvas.getByRole("textbox", { name: "author 값" }),
+      canvas.getByRole("combobox", { name: "author 값" }),
     ).toHaveValue("[[작가]]");
   },
 };
+
+const propertyValueStory = (kind: string, query: string) => ({
+  ...story(kind),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("combobox", { name: "author 값" });
+    // userEvent's keyboard syntax escapes a literal [ as [[.
+    await userEvent.type(input, query.replace(/\[/g, "[["));
+    await expect(input).toHaveValue(query);
+    if (kind === "value-empty")
+      await expect(
+        canvas.getByText(
+          "일치하는 노트가 없습니다. 값을 직접 입력할 수 있습니다.",
+        ),
+      ).toHaveAttribute("role", "status");
+    else await expect(canvas.getByRole("listbox")).toBeVisible();
+  },
+});
+export const PropertyValueMenu = propertyValueStory("value-menu", "@작");
+export const PropertyValueNoResults = propertyValueStory(
+  "value-empty",
+  "[[없는 노트",
+);
+export const PropertyValueLongKorean = propertyValueStory(
+  "value-long",
+  "[[아주",
+);

@@ -1591,3 +1591,31 @@ textarea:focus-visible {
 .property-advanced {
   margin-top: 12px;
 }
+
+.property-value-input {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.property-value-input .property-help {
+  font-size: 0.75rem;
+}
+.property-value-input .property-note-options {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  z-index: 12;
+  box-shadow: 0 4px 16px #0002;
+}
+.property-value-input input:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .property-list > .property-row:has(.property-value-editor) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

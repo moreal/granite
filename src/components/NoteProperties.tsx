@@ -9,11 +9,13 @@ import {
 import { planPropertyInsertion } from "../schema";
 import { PropertyCreateForm } from "./properties/PropertyCreateForm";
 import { PropertyPicker } from "./properties/PropertyPicker";
+import { PropertyValueInput } from "./properties/PropertyValueInput";
 import { PropertyRow } from "./properties/PropertyRow";
 import { YamlEditor } from "./properties/YamlEditor";
 export function NoteProperties(props: {
   body: string;
   documentKey?: string;
+  titles?: readonly string[];
   onChange: (body: string) => void;
   locked: boolean;
 }) {
@@ -21,22 +23,26 @@ export function NoteProperties(props: {
   const [key, setKey] = createSignal("");
   const [error, setError] = createSignal<string | null>(null);
   let editor: HTMLTextAreaElement | undefined;
-  let composing = false;
   let valueInput: HTMLInputElement | undefined;
   const [advanced, setAdvanced] = createSignal(false);
   const [draft, setDraft] = createSignal<{
     name: string;
-    value: string;
+    linkable: boolean;
+    numeric: boolean;
     source: string;
     identity: string | undefined;
     existing: boolean;
   } | null>(null);
+  const [draftValue, setDraftValue] = createSignal("");
   const begin = (name: string, existing = false) => {
     if (props.locked || !name.trim()) return;
     setError(null);
+    const value = metadata().properties.get(name);
+    setDraftValue(existing ? propertyText(value) : "");
     setDraft({
       name,
-      value: existing ? propertyText(metadata().properties.get(name)) : "",
+      linkable: !existing || typeof value === "string",
+      numeric: existing && typeof value === "number",
       source: props.body,
       identity: props.documentKey,
       existing,
@@ -59,7 +65,7 @@ export function NoteProperties(props: {
       const result = patchPropertyScalar(
         props.body,
         pending.name,
-        pending.value,
+        draftValue(),
       );
       setError(result.error);
       if (result.body === undefined) return;
@@ -68,7 +74,7 @@ export function NoteProperties(props: {
       const result = planPropertyInsertion(
         props.body,
         pending.name,
-        pending.value,
+        draftValue(),
         "frontmatter",
       );
       setError(result.error);
@@ -85,54 +91,28 @@ export function NoteProperties(props: {
   };
   const valueField = () => (
     <div class="property-value-editor">
-      <label>
-        {draft()?.name} 값
-        <input
-          ref={(element) => {
-            valueInput = element;
-          }}
-          aria-label={`${draft()?.name} 값`}
-          inputmode={
-            draft()?.existing &&
-            typeof metadata().properties.get(draft()!.name) === "number"
-              ? "decimal"
-              : "text"
-          }
-          onCompositionStart={() => {
-            composing = true;
-          }}
-          onCompositionEnd={() => {
-            composing = false;
-          }}
-          value={draft()?.value ?? ""}
-          disabled={props.locked}
-          onInput={(event) =>
-            setDraft((previous) =>
-              previous
-                ? { ...previous, value: event.currentTarget.value }
-                : null,
-            )
-          }
-          onKeyDown={(event) => {
-            if (event.isComposing || composing) return;
-            if (
-              (event.metaKey || event.ctrlKey) &&
-              event.key.toLowerCase() === "s"
-            ) {
-              commit();
-            }
-            if (event.key === "Enter") {
-              event.preventDefault();
-              commit();
-            }
-            if (event.key === "Escape") {
-              event.preventDefault();
-              setDraft(null);
-              setError(null);
-            }
-          }}
-        />
-      </label>
+      <PropertyValueInput
+        label={`${draft()?.name} 값`}
+        value={draftValue()}
+        titles={props.titles ?? []}
+        linkable={
+          !!draft()?.linkable &&
+          draft()?.identity === props.documentKey &&
+          draft()?.source === props.body
+        }
+        inputmode={draft()?.numeric ? "decimal" : "text"}
+        contextKey={JSON.stringify([props.documentKey, props.body])}
+        disabled={props.locked}
+        onReady={(element) => {
+          valueInput = element;
+        }}
+        onChange={setDraftValue}
+        onCommit={commit}
+        onCancel={() => {
+          setDraft(null);
+          setError(null);
+        }}
+      />
       <button type="button" disabled={props.locked} onClick={commit}>
         추가 / 적용
       </button>
