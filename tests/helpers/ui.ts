@@ -79,6 +79,7 @@ export async function disableAutomaticFormatting(page: Page) {
         version: 1,
         theme: "system",
         linkTemplates: [],
+        ...JSON.parse(localStorage.getItem("granite.settings.v1") || "{}"),
         autoFormat: false,
       }),
     );
@@ -91,4 +92,27 @@ export async function redo(
   modifier: "ControlOrMeta" | "Control" = "ControlOrMeta",
 ) {
   await editor(page).press(`${modifier}+Shift+Z`);
+}
+
+/** Return to the property interface after preparing a full Markdown fixture. */
+export async function live(page: Page) {
+  const toggle = page.getByRole("button", {
+    name: "라이브 프리뷰",
+    exact: true,
+  });
+  if (await toggle.count()) await toggle.click();
+}
+/** Existing regression fixtures select the persisted experimental editor directly. */
+export async function propertyMode(page: Page, mode: "form" | "yaml") {
+  await page.evaluate((propertyEditor) => {
+    const current = JSON.parse(
+      localStorage.getItem("granite.settings.v1") ||
+        '{"version":1,"theme":"system","linkTemplates":[]}',
+    );
+    localStorage.setItem(
+      "granite.settings.v1",
+      JSON.stringify({ ...current, propertyEditor }),
+    );
+    window.dispatchEvent(new Event("granite-settings-change"));
+  }, mode);
 }

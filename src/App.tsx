@@ -1,3 +1,4 @@
+import { noteReference } from "./schema/references";
 import { SidebarNoteRow } from "./components/SidebarNoteRow";
 import { RecoveryPanel } from "./components/RecoveryPanel";
 import { NoteHeader } from "./components/NoteHeader";
@@ -6,6 +7,7 @@ import { TodayShortcut } from "./components/TodayShortcut";
 import { SaveStatus } from "./components/SaveStatus";
 import {
   createSignal,
+  createMemo,
   createEffect,
   onSettled,
   untrack,
@@ -458,6 +460,17 @@ export default function App() {
           body: workspace()!?.entries.get(note.filename)?.body ?? note.body,
         })),
       ))();
+  const references = createMemo(
+    () => (
+      revision(),
+      notes().map((note) =>
+        noteReference(
+          note.title,
+          workspace()?.entries.get(note.filename)?.body ?? note.body,
+        ),
+      )
+    ),
+  );
   const linked = () =>
     entry()!
       ? backlinks(
@@ -704,6 +717,10 @@ export default function App() {
                 {entry()! ? (
                   <>
                     <NoteHeader
+                      references={references()}
+                      propertyMode={settings().propertyEditor}
+                      source={source()}
+                      onSource={() => setSource(true)}
                       titles={notes().map((note) => note.title)}
                       documentKey={workspace()!.storage.id + ":" + current()!}
                       entry={entry()!}
@@ -771,6 +788,7 @@ export default function App() {
                     >
                       {(identity) => (
                         <Editor
+                          references={references()}
                           linkTemplates={settings().linkTemplates}
                           autoFormat={settings().autoFormat}
                           documentKey={identity}

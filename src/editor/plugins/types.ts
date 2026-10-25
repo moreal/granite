@@ -1,3 +1,4 @@
+import type { NoteReference } from "../../schema/references";
 import type { Extension } from "@codemirror/state";
 import type {
   Completion,
@@ -28,7 +29,10 @@ export interface EditorPlugin {
   readonly liveExtensions?: (services: EditorServices) => Extension;
   readonly completionSources?: readonly {
     readonly id: string;
-    complete(context: CompletionContext): CompletionResult | null;
+    complete(
+      context: CompletionContext,
+      services?: { references: readonly NoteReference[] },
+    ): CompletionResult | null;
   }[];
   readonly completions?: readonly EditorCompletionProvider[];
   readonly formatters?: readonly EditorFormatter[];

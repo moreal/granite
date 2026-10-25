@@ -1,30 +1,33 @@
-import { createSignal, For } from "solid-js";
+import { createSignal, createMemo } from "solid-js";
 import {
   readFrontmatter,
   replaceFrontmatter,
   patchPropertyScalar,
-  canEditPropertyScalar,
   propertyText,
 } from "../domain/frontmatter";
 import { planPropertyInsertion } from "../schema";
-import { PropertyCreateForm } from "./properties/PropertyCreateForm";
-import { PropertyPicker } from "./properties/PropertyPicker";
+import { PropertyAdvice } from "./properties/PropertyAdvice";
+import type { NoteReference } from "../schema/references";
+import type { PropertyEditorMode } from "../settings";
+import { PropertyForm } from "./properties/PropertyForm";
 import { PropertyValueInput } from "./properties/PropertyValueInput";
-import { PropertyRow } from "./properties/PropertyRow";
 import { YamlEditor } from "./properties/YamlEditor";
 export function NoteProperties(props: {
   body: string;
   documentKey?: string;
   titles?: readonly string[];
+  references?: readonly NoteReference[];
+  mode?: PropertyEditorMode;
+  source?: boolean;
+  onSource?: () => void;
   onChange: (body: string) => void;
   locked: boolean;
 }) {
-  const metadata = () => readFrontmatter(props.body);
+  const metadata = createMemo(() => readFrontmatter(props.body));
   const [key, setKey] = createSignal("");
+  const [initialType, setInitialType] = createSignal("Thing");
   const [error, setError] = createSignal<string | null>(null);
-  let editor: HTMLTextAreaElement | undefined;
   let valueInput: HTMLInputElement | undefined;
-  const [advanced, setAdvanced] = createSignal(false);
   const [draft, setDraft] = createSignal<{
     name: string;
     linkable: boolean;
@@ -95,8 +98,17 @@ export function NoteProperties(props: {
         label={`${draft()?.name} 값`}
         value={draftValue()}
         titles={props.titles ?? []}
+        references={props.references}
+        property={draft()?.name}
+        typeValue={
+          (draft()?.name === "type" || draft()?.name === "@type") &&
+          draft()?.identity === props.documentKey &&
+          draft()?.source === props.body
+        }
         linkable={
           !!draft()?.linkable &&
+          draft()?.name !== "type" &&
+          draft()?.name !== "@type" &&
           draft()?.identity === props.documentKey &&
           draft()?.source === props.body
         }
@@ -125,6 +137,11 @@ export function NoteProperties(props: {
       >
         취소
       </button>
+      <PropertyAdvice
+        property={draft()?.name}
+        value={draftValue()}
+        references={props.references ?? []}
+      />
       <span class="property-help">확정 전에는 저장되지 않습니다.</span>
     </div>
   );
@@ -142,98 +159,84 @@ export function NoteProperties(props: {
             {metadata().warning}
           </p>
         )}
-        {draft() &&
-          (!draft()?.existing || !metadata().properties.has(draft()!.name)) &&
-          valueField()}
-        {error() && (
-          <p class="property-warning" role="alert">
-            {error()}
-          </p>
-        )}
-        {metadata().present ? (
+        {!metadata().present &&
+          initialType() !== "Thing" &&
+          (props.source || props.mode === "yaml") && (
+            <p class="property-help">
+              입력한 유형은 보관되어 있습니다. 속성 폼에서 이어서 편집할 수
+              있습니다.
+            </p>
+          )}
+        {props.source ? (
           <>
-            <dl class="property-list">
-              <For each={[...metadata().properties]} keyed={(item) => item[0]}>
-                {(item) => (
-                  <>
-                    <PropertyRow
-                      name={item()[0]}
-                      value={item()[1]}
-                      editor={
-                        draft()?.existing && draft()?.name === item()[0]
-                          ? valueField()
-                          : undefined
-                      }
-                      editable={canEditPropertyScalar(props.body, item()[0])}
-                      disabled={props.locked}
-                      onEdit={() => begin(item()[0], true)}
-                      onSource={() => {
-                        setAdvanced(true);
-                        queueMicrotask(() => editor?.focus());
-                      }}
-                    />
-                  </>
-                )}
-              </For>
-            </dl>
-            <div class="property-create">
-              <PropertyPicker
-                value={key()}
-                types={metadata().types}
-                existingKeys={[...metadata().properties.keys()]}
-                disabled={props.locked || !metadata().closed}
-                onChange={setKey}
-                onSelect={(name) => begin(name)}
-              />
-              <button
-                type="button"
-                disabled={props.locked || !key().trim() || !metadata().closed}
-                onClick={() => begin(key())}
-              >
-                속성 넣기
-              </button>
-            </div>
-            <details
-              class="property-advanced"
-              open={advanced()}
-              onToggle={(event) => setAdvanced(event.currentTarget.open)}
-            >
-              <summary>YAML 원문 편집</summary>
-              <YamlEditor
-                value={metadata().yaml}
-                disabled={props.locked}
-                onReady={(element) => {
-                  editor = element;
-                }}
-                onChange={(yaml) => {
-                  setError(null);
-                  props.onChange(replaceFrontmatter(props.body, yaml));
-                }}
-              />
-              <p class="property-help">
-                원문을 편집하면 자동 저장합니다. type은 Book, Person 같은
-                이름이나 schema.org URL을 사용할 수 있습니다. 연결은 author:
-                &quot;[[노트 제목]]&quot;처럼 입력하세요.
-              </p>
-            </details>
-            {!metadata().closed && (
-              <p class="property-help">
-                본문의 원문 보기에서 속성 마지막에 ---를 추가해 주세요.
-              </p>
-            )}
+            <PropertyAdvice
+              body={props.body}
+              references={props.references ?? []}
+            />
+            <p class="property-help">
+              전체 원문에서 속성을 편집하고 있습니다.
+              {draft() && " 입력 중인 폼 값은 보관되어 있습니다."}
+            </p>
           </>
         ) : (
           <>
-            <p class="property-help">
-              이 노트에 유형과 속성을 붙일 수 있습니다. 본문 맨 앞에 YAML로
-              저장됩니다.
-            </p>
-            <PropertyCreateForm
-              disabled={props.locked}
-              onCreate={(type) =>
-                props.onChange(replaceFrontmatter(props.body, `type: ${type}`))
-              }
-            />
+            {draft() && props.mode === "yaml" && (
+              <p class="property-help" role="status">
+                입력 중인 값을 적용하거나 취소하면 YAML 편집기로 전환합니다.
+              </p>
+            )}
+            {props.mode === "yaml" && !draft() ? (
+              metadata().present ? (
+                <>
+                  <YamlEditor
+                    value={metadata().yaml}
+                    references={props.references}
+                    contextKey={props.documentKey}
+                    disabled={props.locked}
+                    onChange={(yaml) =>
+                      props.onChange(replaceFrontmatter(props.body, yaml))
+                    }
+                  />
+                  <p class="property-help">
+                    입력한 원문은 자동 저장합니다. @ 또는 [[로 노트를
+                    연결하세요.
+                  </p>
+                  <PropertyAdvice
+                    body={props.body}
+                    references={props.references ?? []}
+                  />
+                </>
+              ) : (
+                <button
+                  type="button"
+                  disabled={props.locked}
+                  onClick={() =>
+                    props.onChange(replaceFrontmatter(props.body, ""))
+                  }
+                >
+                  속성 YAML 추가
+                </button>
+              )
+            ) : (
+              <>
+                <PropertyForm
+                  initialType={initialType()}
+                  onInitialTypeChange={setInitialType}
+                  body={props.body}
+                  metadata={metadata()}
+                  locked={props.locked}
+                  propertyKey={key()}
+                  error={error()}
+                  draft={draft()}
+                  references={props.references}
+                  valueEditor={valueField}
+                  onBegin={begin}
+                  onPropertyKey={setKey}
+                  onSource={props.onSource}
+                  onChange={props.onChange}
+                />
+              </>
+            )}
           </>
         )}
       </div>

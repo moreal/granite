@@ -13,6 +13,11 @@ export interface SchemaProperty {
   ranges: string[];
 }
 export const schemaVersion = catalog.version;
+export function schemaProperty(name: string): SchemaProperty | undefined {
+  return catalog.properties.find(
+    (property) => property.id === normalizeType(name),
+  );
+}
 const types = new Map<string, SchemaType>(
   catalog.types.map((type) => [type.id, type]),
 );

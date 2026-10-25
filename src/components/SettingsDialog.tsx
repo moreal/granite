@@ -122,6 +122,28 @@ export function SettingsDialog(props: {
           </section>
         ) : section() === "writing" ? (
           <section aria-label="글쓰기 설정">
+            <h3>속성 편집 방식 (실험)</h3>
+            <p>
+              한 번에 한 편집 방식만 표시합니다. 입력 중인 값은 적용하거나
+              취소한 뒤 전환합니다.
+            </p>
+            <label class="property-mode-setting">
+              속성 편집 방식
+              <select
+                aria-label="속성 편집 방식"
+                value={draft().propertyEditor}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft(),
+                    propertyEditor:
+                      event.currentTarget.value === "yaml" ? "yaml" : "form",
+                  })
+                }
+              >
+                <option value="form">속성 폼</option>
+                <option value="yaml">YAML 편집기</option>
+              </select>
+            </label>
             <h3>자동 문서 정리</h3>
             <p>
               입력을 잠시 멈추면 Markdown 문서의 형식을 정리합니다. 정리한

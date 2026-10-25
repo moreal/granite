@@ -135,3 +135,41 @@ it("S23 source/document changes hide an old popup and refuse its detached option
   view.rerender(props);
   expect(screen.queryByRole("listbox")).toBeNull();
 });
+it("S24 bounds rendered typed recommendations after ranking and refinement finds known mismatches", async () => {
+  const { noteReference } = await import("../../src/schema/references");
+  const references = [
+    ...Array.from({ length: 24 }, (_, i) =>
+      noteReference(`대상 작가 ${i}`, "---\ntype: Person\n---\n"),
+    ),
+    noteReference("대상 책", "---\ntype: Book\n---\n"),
+  ];
+  render(() => {
+    const [value, setValue] = createSignal("");
+    return (
+      <PropertyValueInput
+        label="author 값"
+        value={value()}
+        titles={references.map((note) => note.title)}
+        references={references}
+        property="author"
+        linkable
+        onChange={setValue}
+        onCommit={() => {}}
+        onCancel={() => {}}
+      />
+    );
+  }, {});
+  const input = screen.getByLabelText("author 값") as HTMLInputElement;
+  fireEvent.input(input, {
+    target: { value: "@대상", selectionStart: 3, selectionEnd: 3 },
+  });
+  expect(screen.getAllByRole("option")).toHaveLength(20);
+  expect(screen.getByText(/처음 20개/)).toBeTruthy();
+  fireEvent.input(input, {
+    target: { value: "@책", selectionStart: 2, selectionEnd: 2 },
+  });
+  expect(screen.getAllByRole("option")).toHaveLength(1);
+  expect(screen.getByRole("option").textContent).toContain(
+    "Book · 권장 유형과 다름",
+  );
+});

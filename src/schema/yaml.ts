@@ -26,7 +26,7 @@ export interface InsertionResult {
   error: string | null;
 }
 type Mode = "yaml" | "frontmatter";
-function interval(source: string, mode: Mode) {
+export function yamlInterval(source: string, mode: Mode) {
   if (mode === "yaml") return { from: 0, to: source.length };
   const opening = /^---[ \t]*\r?\n/.exec(source);
   if (!opening) return null;
@@ -43,7 +43,12 @@ function interval(source: string, mode: Mode) {
         : end,
   };
 }
-function parse(yaml: string) {
+/** Completion repair must not shrink an oversized original YAML block into eligibility. */
+export function yamlCompletionInterval(source: string, mode: Mode) {
+  const range = yamlInterval(source, mode);
+  return range && range.to - range.from <= 32768 ? range : null;
+}
+export function parseSafeYaml(yaml: string) {
   if (yaml.length > 32768) return null;
   try {
     const doc = parseDocument(yaml, {
@@ -95,10 +100,10 @@ export function planPropertyInsertion(
   value: string,
   mode: Mode = "yaml",
 ): InsertionResult {
-  const range = interval(source, mode);
+  const range = yamlInterval(source, mode);
   if (!range) return { edit: null, error: "닫힌 속성 영역이 필요합니다." };
   const yaml = source.slice(range.from, range.to),
-    parsed = parse(yaml);
+    parsed = parseSafeYaml(yaml);
   if (!parsed)
     return {
       edit: null,
@@ -135,7 +140,7 @@ export function completionContext(
   cursor: number,
   mode: Mode = "yaml",
 ): CompletionContext | null {
-  const range = interval(source, mode);
+  const range = yamlCompletionInterval(source, mode);
   if (!range || cursor < range.from || cursor > range.to) return null;
   const yaml = source.slice(range.from, range.to),
     position = cursor - range.from;
@@ -144,7 +149,7 @@ export function completionContext(
   if (end < 0) end = yaml.length;
   const line = yaml.slice(start, end).replace(/\r$/, "");
   const offset = position - start;
-  const originalDocument = parse(yaml);
+  const originalDocument = parseSafeYaml(yaml);
   let insideScalar = false;
   if (originalDocument)
     visit(originalDocument.doc, (_key, node) => {
@@ -215,7 +220,7 @@ export function completionContext(
     // then prove the probe key belongs to the root (not a multiline scalar).
     const probe =
       yaml.slice(0, start) + "graniteCompletionProbe: null" + yaml.slice(end);
-    const parsed = parse(probe);
+    const parsed = parseSafeYaml(probe);
     if (!parsed || !isMap(parsed.doc.contents)) return null;
     const pair = parsed.doc.contents.items.find(
       (item) =>
@@ -224,7 +229,7 @@ export function completionContext(
         item.key.range?.[0] === start,
     );
     if (!pair) return null;
-    const original = parse(yaml);
+    const original = parseSafeYaml(yaml);
     if (match[2] && !original) return null;
     const data = original?.data ?? parsed.data;
     const existingKeys = [...data.keys()].filter(

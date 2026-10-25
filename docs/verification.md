@@ -121,3 +121,13 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 최종 운영 소스에서 단위242개, 타입 검사, `/granite/` 앱·Storybook 빌드와 전체 브라우저95개가 통과했다. 프로덕션 시각 검사18개도 통과했다. 독립 컴포넌트27개는 준비 완료 후 열린 후보·결과 없음·긴 한글의320px 라이트/다크 캡처와 실제 입력·선택을 검사한다. 긴 후보 목록의 방향키 이동은 선택 항목을 목록 안에 보이게 하며 입력 초점과 문서 스크롤을 보존한다.390px 전체 앱은 사이드바를 유지한 상태에서 편집 중인 속성 행만 쌓아 값 입력에 가능한 너비를 제공한다.
 
 대표 작은 화면은 [열린 후보](screenshots/property-value-menu-320-light.png), [긴 한글·다크](screenshots/property-value-long-korean-320-dark.png)다. 열린 후보·결과 없음·긴 한글의6개 화면과390px 전후 화면을 직접 열어 확인했다. 새 캡처는 모두 테스트 출력 경로로 생성한다. 데모 저장소와 합성 composition 이벤트의 증거이며 실제 사용자 폴더 picker/권한 또는 OS IME 검증은 아니다. 세부 명령·리뷰 수정·증거 위치는 `.superpowers/property-note-links/report.md`에 기록한다.
+
+## 2026-10-25 속성 폼/YAML 선택과 유형 안내 (S24)
+
+[승인 기준](superpowers/specs/2026-10-25-property-editor-modes.md)에 따라 설정 > 글쓰기에서 속성 폼과 YAML 편집기 중 하나를 고른다. 기본값은 폼이며, 전체 Markdown 원문에서는 속성 편집 컨트롤을 숨긴다. 미확정 속성 값은 적용/취소 전까지 전환을 보류하고, 처음 유형을 검색하던 문자는 방식/원문 왕복 후에도 보관한다. 바꾸기만 해서는 노트에 쓰지 않는다.
+
+폼의 type/@type, YAML과 전체 원문의 이름/유형/노트 완성은 공통 계획기를 쓴다. 원래 YAML 구간을 먼저 제한하고, 인용하지 않은 값은 활성 트리거 바깥 구조를 보존한 AST 검증으로 scalar 소유권과 시작/끝을 확인한다. 흐름 목록·중첩 맵·주석·블록 문자열·별칭·사용자 태그·모호한 문법은 바꾸지 않는다. 오프라인 범위/상속 추천은 Person/Organization 대안, Thing 하위 유형, 여러 유형/URL, 사용자 정의/미지정과 확인된 불일치를 구분한다. 추천 순서 후20개만 표시하고 전체 노트에서 검색어를 좁힐 수 있다. 불일치 안내는 저장을 막지 않는다.
+
+최종 동작 소스에서 단위257개, 타입 검사, `/granite/` 앱·Storybook 빌드, 전체 브라우저100개가 통과했다. 이후 화면 검사에서 편집 행의 중복 label과 도움말 때문에 버튼이 어긋나던 문제를 추가로 고쳤다. 이 CSS/표시 순서 수정 후 타입 검사·두 빌드·관련 브라우저18개·전체 컴포넌트33개·프로덕션 시각24개가 통과했다. 변경하지 않은 전체100개는 다시 실행하지 않았다. 컴포넌트 검사는 읽기/편집의 실제 텍스트 위치와40px 입력/버튼, 도움말 아래 배치, 메뉴가 열린 상태의 취소 클릭, 새 속성 label 표시를 확인한다. 320px와960px 뷰포트의 라이트·다크 실제 운영 화면을 열어 확인했고 독립 리뷰도 승인했다.
+
+대표 화면은 [편집 행과 버튼 정렬](screenshots/property-editor-form-desktop.png), [좁은 YAML 노트 추천](screenshots/property-editor-yaml-320.png), [저장 가능한 부드러운 유형 안내](screenshots/property-editor-warning-320-dark.png)다. PropertiesDisplay/Type/Value/New/Yaml/Warning Storybook 예제는 운영 컴포넌트이며, 준비 완료 표시 후 `testInfo.outputPath`로 작은 캡처를 생성한다. 상세 로그와 경로는 `.superpowers/property-editor-modes/report.md`에 기록한다. 데모 저장소와 합성 composition 이벤트의 증거이며 실제 사용자 폴더 picker/권한창·OS IME 검증은 아니다. Chromium에서 native undo를 확인했고 다른 엔진의 textarea 대체 입력 undo는 보장하지 않는다.

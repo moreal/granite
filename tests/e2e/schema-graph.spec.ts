@@ -1,9 +1,18 @@
 import { test, expect } from "@playwright/test";
-import { body, create, demo, editor, saved, source } from "../helpers/ui";
+import {
+  body,
+  create,
+  demo,
+  editor,
+  saved,
+  source,
+  live,
+  propertyMode,
+} from "../helpers/ui";
 
 test("S17 schema metadata preserves source and shows typed draft connections", async ({
   page,
-}) => {
+}, testInfo) => {
   await demo(page);
   await create(page, "스키마 책");
   await source(page);
@@ -11,6 +20,8 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
     '---\n# 그대로 두는 주석\ntype: Book\nauthor: "[[새 저자]]"\ncustom: [one, 2]\n---\n그대로 두는 본문';
   await body(page, original);
   await saved(page);
+  await propertyMode(page, "yaml");
+  await live(page);
   await page.getByText("속성", { exact: true }).click();
   await expect(page.locator(".note-properties")).toContainText("Book");
   await expect(page.getByLabel("속성 YAML 원문")).toHaveValue(
@@ -21,8 +32,9 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
   await expect(graph).toContainText("author");
   await expect(graph).toContainText("새 저자");
   await expect(graph).toContainText("없는 노트");
-  await page.screenshot({ path: "docs/screenshots/schema-graph-desktop.png" });
-  await page.getByText("YAML 원문 편집", { exact: true }).click();
+  await page.screenshot({
+    path: testInfo.outputPath("schema-graph-desktop.png"),
+  });
   await page
     .getByLabel("속성 YAML 원문")
     .fill(
@@ -52,7 +64,7 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
 
 test("S17 invalid properties stay editable and safe on a narrow screen", async ({
   page,
-}) => {
+}, testInfo) => {
   await demo(page);
   await create(page, "잘못된 속성");
   await source(page);
@@ -60,9 +72,10 @@ test("S17 invalid properties stay editable and safe on a narrow screen", async (
     page,
     '---\ntype: [broken\ncustom: "<img src=x onerror=alert(1)>"\n---\n보존할 글',
   );
+  await propertyMode(page, "yaml");
+  await live(page);
   await page.getByText("속성", { exact: true }).click();
   await expect(page.locator(".note-properties [role=alert]")).toBeVisible();
-  await page.getByText("YAML 원문 편집", { exact: true }).click();
   await page
     .getByLabel("속성 YAML 원문")
     .fill('type: Person\ncustom: "<img src=x onerror=alert(1)>"');
@@ -76,6 +89,6 @@ test("S17 invalid properties stay editable and safe on a narrow screen", async (
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "docs/screenshots/schema-properties-narrow.png",
+    path: testInfo.outputPath("schema-properties-narrow.png"),
   });
 });

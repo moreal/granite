@@ -16,6 +16,7 @@ import { PropertyRow } from "../src/components/properties/PropertyRow";
 import { YamlEditor } from "../src/components/properties/YamlEditor";
 import { UrlPasteMenu } from "../src/editor/UrlPasteMenu";
 import { FormatReviewDialog } from "../src/editor/FormatReviewDialog";
+import { noteReference } from "../src/schema/references";
 import { defaultSettings } from "../src/settings";
 
 export default { title: "Production/Components" };
@@ -57,6 +58,21 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           onChange={setValue}
           onCommit={() => setResult(value())}
           onCancel={() => setResult("취소")}
+        />
+      )}
+      {props.kind.startsWith("mode-") && (
+        <NoteProperties
+          body={noteBody()}
+          documentKey="mode-story"
+          locked={!!props.disabled}
+          mode={props.kind === "mode-yaml" ? "yaml" : "form"}
+          references={[
+            noteReference("대상 책", "---\ntype: Book\n---\n"),
+            noteReference("대상 조직", "---\ntype: Organization\n---\n"),
+            noteReference("대상 작가", "---\ntype: Person\n---\n"),
+            noteReference("대상 사용자", "body"),
+          ]}
+          onChange={setNoteBody}
         />
       )}
       {props.kind === "inline-properties" && (
@@ -282,3 +298,66 @@ export const PropertyValueLongKorean = propertyValueStory(
   "value-long",
   "[[아주",
 );
+
+const propertyModeStory = (kind: string) => ({
+  ...story(kind),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText("속성", { exact: true }));
+    if (kind === "mode-type") {
+      const button = canvas.getByRole("button", {
+        name: "type 값 편집",
+      });
+      await userEvent.click(button);
+      const input = canvas.getByRole("combobox", {
+        name: "type 값",
+      });
+      await userEvent.clear(input);
+      await userEvent.type(input, "Per");
+      await expect(canvas.getByRole("listbox")).toBeVisible();
+    } else if (kind === "mode-yaml") {
+      const input = canvas.getByRole("textbox", {
+        name: "속성 YAML 원문",
+      });
+      await userEvent.clear(input);
+      await userEvent.type(input, "author: @대상");
+      await expect(canvas.getByRole("listbox")).toBeVisible();
+    } else if (kind === "mode-value" || kind === "mode-new") {
+      if (kind === "mode-new") {
+        const picker = canvas.getByRole("combobox", { name: "속성 이름 검색" });
+        await userEvent.type(picker, "about");
+        await userEvent.keyboard("{Enter}");
+      } else
+        await userEvent.click(
+          canvas.getByRole("button", { name: "author 값 편집" }),
+        );
+      const input = canvas.getByRole("combobox", {
+        name: kind === "mode-new" ? "about 값" : "author 값",
+      });
+      await userEvent.clear(input);
+      await userEvent.type(input, "@대상");
+      await expect(canvas.getByRole("listbox")).toBeVisible();
+    } else if (kind === "mode-warning") {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "author 값 편집" }),
+      );
+      const input = canvas.getByRole("combobox", {
+        name: "author 값",
+      });
+      await userEvent.clear(input);
+      await userEvent.type(input, "@대상");
+      await userEvent.click(canvas.getByRole("option", { name: "대상 책" }));
+      await userEvent.keyboard("{Enter}");
+      await expect(
+        canvas.getByText(/대상 책 \(Book\): author 권장/),
+      ).toBeVisible();
+    }
+  },
+});
+export const PropertiesDisplay = propertyModeStory("mode-display");
+export const PropertiesType = propertyModeStory("mode-type");
+export const PropertiesYaml = propertyModeStory("mode-yaml");
+export const PropertiesWarning = propertyModeStory("mode-warning");
+
+export const PropertiesValue = propertyModeStory("mode-value");
+export const PropertiesNew = propertyModeStory("mode-new");

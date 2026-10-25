@@ -2,6 +2,12 @@ import { test, expect, takeSnapshot } from "@chromatic-com/playwright";
 // The existing Playwright Chromatic project archives both app and story iframes.
 // Resize to the isolated production component, including popup and focus padding.
 for (const state of [
+  "properties-display",
+  "properties-type",
+  "properties-value",
+  "properties-new",
+  "properties-yaml",
+  "properties-warning",
   "create",
   "property",
   "row-long",

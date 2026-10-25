@@ -1,4 +1,4 @@
-import { searchTypes } from "../../schema";
+import { searchTypes, normalizeType } from "../../schema";
 import { SchemaPicker } from "./SchemaPicker";
 export interface TypePickerProps {
   id?: string;
@@ -14,7 +14,7 @@ export function TypePicker(props: TypePickerProps) {
       label="노트 유형"
       value={props.value}
       disabled={props.disabled}
-      options={searchTypes(props.value)}
+      options={searchTypes(normalizeType(props.value))}
       onChange={props.onChange}
       onSelect={props.onSelect}
     />

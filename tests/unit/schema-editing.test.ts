@@ -57,3 +57,33 @@ it("S21 schema plugin refuses comments, nested content, read-only and composing 
     ),
   ).toBeNull();
 });
+it("S24 full source shares note completion and direct-list type completion, excluding body commands", () => {
+  const complete = pluginCompletions(
+    () => builtinPlugins,
+    () => ["윤작가"],
+  );
+  for (const text of [
+    "---\ntype: Book\nauthor: @윤\n---\nbody",
+    '---\nauthor:\n  - "[[윤"\n---\nbody',
+  ]) {
+    const result = complete(
+      new CompletionContext(
+        EditorState.create({ doc: text }),
+        text.indexOf("윤") + 1,
+        true,
+      ),
+    );
+    expect(result?.options.map((option) => option.label)).toContain("윤작가");
+    expect(result?.options.map((option) => option.label)).not.toContain("오늘");
+  }
+  const text = "---\ntype:\n  - Per\n---\n";
+  expect(
+    complete(
+      new CompletionContext(
+        EditorState.create({ doc: text }),
+        text.indexOf("Per") + 3,
+        true,
+      ),
+    )?.options.map((option) => option.label),
+  ).toContain("Person");
+});

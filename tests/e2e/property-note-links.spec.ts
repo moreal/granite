@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { filenameFor } from "../../src/domain/notes";
 import {
+  live,
   body,
   create,
   demo,
@@ -25,6 +26,7 @@ async function setup(page: Page) {
     "---\n# 보존\ntype: Book\nauthor: old # 주석\ncount: 2\nenabled: true\nempty: null\n---\n본문 보존",
   );
   await saved(page);
+  await live(page);
   await page.getByText("속성", { exact: true }).click();
   await page.getByRole("button", { name: "author 값 편집" }).click();
   return page.getByRole("combobox", { name: "author 값", exact: true });

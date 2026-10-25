@@ -82,10 +82,12 @@ it("S21 rejects stale document and source drafts while preserving their values",
 });
 it("S21 refuses guided insertion into invalid YAML while retaining editable source", () => {
   const change = vi.fn();
+  const onSource = vi.fn();
   const view = render(NoteProperties, {
     body: "---\ntype: [broken\n---\nprose",
     locked: false,
     onChange: change,
+    onSource,
   });
   view.container.querySelector("details")!.open = true;
   fireEvent.input(screen.getByRole("combobox"), {
@@ -95,9 +97,18 @@ it("S21 refuses guided insertion into invalid YAML while retaining editable sour
   expect(change).not.toHaveBeenCalled();
   fireEvent.keyDown(screen.getByLabelText("author 값"), { key: "Enter" });
   expect(screen.getAllByRole("alert").length).toBe(2);
-  (
-    view.container.querySelector(".property-advanced") as HTMLDetailsElement
-  ).open = true;
+  fireEvent.click(
+    screen.getByRole("button", { name: "전체 원문에서 복잡한 속성 편집" }),
+  );
+  expect(onSource).toHaveBeenCalledOnce();
+  expect(screen.queryByLabelText("속성 YAML 원문")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  view.rerender({
+    body: "---\ntype: [broken\n---\nprose",
+    locked: false,
+    onChange: change,
+    mode: "yaml",
+  });
   fireEvent.input(screen.getByLabelText("속성 YAML 원문"), {
     target: { value: "type: Book" },
   });
@@ -236,3 +247,66 @@ it.each([
     expect(screen.getByRole("alert")).toBeTruthy();
   },
 );
+it("S24 YAML caps matching render after ranking and a refined query finds later mismatches", async () => {
+  const { noteReference } = await import("../../src/schema/references");
+  const references = [
+    ...Array.from({ length: 24 }, (_, i) =>
+      noteReference(`대상 작가 ${i}`, "---\ntype: Person\n---\n"),
+    ),
+    noteReference("대상 책", "---\ntype: Book\n---\n"),
+  ];
+  const view = render(YamlEditor, {
+    value: "author: @대상",
+    references,
+    onChange: vi.fn(),
+  });
+  const input = screen.getByLabelText("속성 YAML 원문") as HTMLTextAreaElement;
+  input.setSelectionRange(input.value.length, input.value.length);
+  fireEvent.click(input);
+  expect(screen.getAllByRole("option")).toHaveLength(20);
+  expect(screen.getByText(/처음 20개/)).toBeTruthy();
+  view.rerender({ value: "author: @책", references, onChange: vi.fn() });
+  input.setSelectionRange(input.value.length, input.value.length);
+  fireEvent.click(input);
+  expect(screen.getAllByRole("option")).toHaveLength(1);
+  expect(screen.getByRole("option").textContent).toContain(
+    "Book · 권장 유형과 다름",
+  );
+});
+it("S24 preserves initial type queries across mode/source round trips without creating metadata", () => {
+  const change = vi.fn();
+  const props = {
+    body: "본문",
+    documentKey: "initial",
+    locked: false,
+    onChange: change,
+  };
+  const view = render(NoteProperties, props);
+  view.container.querySelector("details")!.open = true;
+  expect(
+    (screen.getByRole("combobox", { name: "노트 유형" }) as HTMLInputElement)
+      .value,
+  ).toBe("Thing");
+  for (const query of ["Per", "CustomType"]) {
+    fireEvent.input(screen.getByRole("combobox", { name: "노트 유형" }), {
+      target: { value: query },
+    });
+    view.rerender({ ...props, mode: "yaml" });
+    expect(screen.queryByRole("combobox", { name: "노트 유형" })).toBeNull();
+    expect(change).not.toHaveBeenCalled();
+    view.rerender({ ...props, mode: "form" });
+    expect(
+      (screen.getByRole("combobox", { name: "노트 유형" }) as HTMLInputElement)
+        .value,
+    ).toBe(query);
+    view.rerender({ ...props, source: true });
+    expect(screen.queryByRole("combobox", { name: "노트 유형" })).toBeNull();
+    view.rerender({ ...props, source: false });
+    expect(
+      (screen.getByRole("combobox", { name: "노트 유형" }) as HTMLInputElement)
+        .value,
+    ).toBe(query);
+  }
+  fireEvent.click(screen.getByRole("button", { name: "속성 추가" }));
+  expect(change).toHaveBeenCalledWith("---\ntype: CustomType\n---\n본문");
+});

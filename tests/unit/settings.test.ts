@@ -79,6 +79,18 @@ it("S20 enables automatic formatting for old settings and preserves explicit fal
     expect(readSettings()).toEqual({
       ...old,
       autoFormat: autoFormat !== false,
+      propertyEditor: "form",
     });
+  }
+});
+it("S24 safely defaults old/invalid property mode and persists YAML preference", () => {
+  for (const propertyEditor of [undefined, "invalid", "yaml", "form"]) {
+    localStorage.setItem(
+      SETTINGS_KEY,
+      JSON.stringify({ ...defaultSettings(), propertyEditor }),
+    );
+    expect(readSettings().propertyEditor).toBe(
+      propertyEditor === "yaml" ? "yaml" : "form",
+    );
   }
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { demo, openListed, saved } from "../helpers/ui";
+import { demo, openListed, saved, propertyMode } from "../helpers/ui";
 
 const person = "윤여울 — 가상의 작가";
 const book = "느린 질문의 숲 — 가상의 책";
@@ -7,7 +7,7 @@ const article = "질문을 산책시키는 독서 — 예시 글";
 
 test("S15/S17 typed fixtures expose relationships and edits survive reopening", async ({
   page,
-}) => {
+}, testInfo) => {
   await demo(page);
   await openListed(page, article);
   await page.locator(".note-properties > summary").click();
@@ -22,7 +22,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await expect(graph).not.toContainText("본문 링크");
   await expect(graph).toContainText("author");
   await expect(graph).toContainText("about");
-  await page.getByText("YAML 원문 편집", { exact: true }).click();
+  await propertyMode(page, "yaml");
   await page
     .getByLabel("속성 YAML 원문")
     .fill(
@@ -33,9 +33,11 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await expect(graph).not.toContainText(person);
   await expect(graph).not.toContainText(book);
   await saved(page);
-  await page.screenshot({ path: "docs/screenshots/typed-demo-desktop.png" });
+  await page.screenshot({
+    path: testInfo.outputPath("typed-demo-desktop.png"),
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "docs/screenshots/typed-demo-narrow.png" });
+  await page.screenshot({ path: testInfo.outputPath("typed-demo-narrow.png") });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

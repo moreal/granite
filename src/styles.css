@@ -1619,3 +1619,100 @@ textarea:focus-visible {
     gap: 4px;
   }
 }
+
+/* Align the label with the first value line inside a full-height click target. */
+.property-list > .property-row > dt {
+  padding-top: 8px;
+  line-height: 24px;
+}
+.property-value-button {
+  display: block;
+  min-height: 40px;
+  line-height: 24px;
+  padding: 8px 0;
+  width: 100%;
+}
+.property-advice {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.property-mode-setting {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.property-mode-setting select {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 8px;
+  background: var(--surface, transparent);
+  color: inherit;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+}
+.property-note-options li small {
+  display: block;
+}
+
+/* Keep controls together; advice and dropdowns must not cover Cancel. */
+.property-value-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+}
+.property-value-editor > .property-value-input {
+  grid-column: 1;
+}
+.property-value-editor > button {
+  margin-top: 24px;
+  white-space: nowrap;
+}
+.property-value-editor > .property-advice,
+.property-value-editor > .property-help {
+  grid-column: 1 / -1;
+}
+.property-value-editor .property-value-input > label {
+  line-height: 20px;
+}
+.property-value-input input {
+  min-height: 40px;
+  line-height: 22px;
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+.property-value-editor .property-note-options {
+  position: static;
+  box-shadow: none;
+}
+.property-row .property-value-input > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.property-row .property-value-editor > button {
+  margin-top: 0;
+}
+@media (max-width: 620px) {
+  .property-value-editor {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .property-value-editor > .property-value-input {
+    grid-column: 1 / -1;
+  }
+  .property-value-editor > button {
+    margin-top: 0;
+  }
+  .property-list > .property-row:has(.property-value-editor) > dt {
+    padding-top: 0;
+  }
+}

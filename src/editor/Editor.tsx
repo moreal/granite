@@ -38,7 +38,9 @@ export interface EditorHandle {
   requestFormatting(id?: string): void;
   formatForSave(): Promise<void>;
 }
+import type { NoteReference } from "../schema/references";
 interface Props {
+  references?: readonly NoteReference[];
   autoFormat?: boolean;
   plugins?: readonly EditorPlugin[];
   linkTemplates?: readonly LinkTemplate[];
@@ -336,6 +338,7 @@ export function Editor(
       const complete = pluginCompletions(
         () => resolveEditorPlugins(latest.current.plugins ?? builtinPlugins),
         () => latest.current.titles,
+        () => latest.current.references ?? [],
       );
       const liveExtensions = () =>
         resolveEditorPlugins(latest.current.plugins ?? builtinPlugins).flatMap(
@@ -401,6 +404,7 @@ export function Editor(
               ...historyKeymap,
             ]),
             autocompletion({
+              maxRenderedOptions: 20,
               override: [complete],
               activateOnTyping: true,
               defaultKeymap: false,

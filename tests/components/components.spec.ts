@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 const states = [
+  "properties-display",
+  "properties-type",
+  "properties-value",
+  "properties-new",
+  "properties-yaml",
+  "properties-warning",
   "today",
   "today-disabled",
   "type",
@@ -110,6 +116,38 @@ for (const state of states)
         }
       }
     }
+    if (state === "properties-display") {
+      const row = page
+        .locator(".property-row")
+        .filter({ has: page.locator("dt", { hasText: /^type$/ }) });
+      const geometry = await row.evaluate((element) => {
+        const textBounds = (node: Element) => {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect().y;
+        };
+        return {
+          label: textBounds(element.querySelector("dt")!),
+          value: textBounds(element.querySelector("button")!),
+          height: element.querySelector("button")!.getBoundingClientRect()
+            .height,
+        };
+      });
+      expect(Math.abs(geometry.label - geometry.value)).toBeLessThanOrEqual(1);
+      expect(geometry.height).toBeGreaterThanOrEqual(40);
+    }
+    if (state === "properties-type")
+      await expect(
+        page.getByRole("option").filter({ hasText: "Person" }),
+      ).toBeVisible();
+    if (state === "properties-yaml") {
+      await expect(page.getByRole("option").first()).toContainText(
+        "Organization",
+      );
+      await expect(
+        page.getByRole("button", { name: "type 값 편집" }),
+      ).toHaveCount(0);
+    }
     if (state === "toolbar") {
       await page.getByRole("button", { name: "원문 보기" }).click();
       await expect(
@@ -141,6 +179,79 @@ for (const state of states)
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const editableGeometry = async (desktop: boolean) => {
+      const row = page
+        .locator(".property-row")
+        .filter({ has: page.locator(".property-value-editor") });
+      const bounds = await row.evaluate((element) => {
+        const text = (node: Element) => {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const rect = range.getBoundingClientRect();
+          return {
+            top: rect.y,
+            bottom: rect.bottom,
+            center: rect.y + rect.height / 2,
+          };
+        };
+        const input = element.querySelector("input")!.getBoundingClientRect();
+        const buttons = [
+          ...element.querySelectorAll(".property-value-editor > button"),
+        ].map((button) => ({
+          top: button.getBoundingClientRect().top,
+          height: button.getBoundingClientRect().height,
+          text: text(button),
+        }));
+        const popup = element
+          .querySelector(".property-note-options")
+          ?.getBoundingClientRect();
+        const helper = element
+          .querySelector(".property-value-input > .property-help")
+          ?.getBoundingClientRect();
+        return {
+          label: text(element.querySelector("dt")!),
+          input: {
+            top: input.top,
+            bottom: input.bottom,
+            height: input.height,
+            center: input.y + input.height / 2,
+          },
+          buttons,
+          popup: popup ? { top: popup.top, bottom: popup.bottom } : null,
+          helperTop: helper?.top,
+        };
+      });
+      expect(bounds.input.height).toBeGreaterThanOrEqual(40);
+      expect(bounds.buttons.every((button) => button.height >= 40)).toBe(true);
+      expect(
+        Math.abs(bounds.buttons[0].top - bounds.buttons[1].top),
+      ).toBeLessThanOrEqual(1);
+      if (desktop) {
+        expect(
+          Math.abs(bounds.label.center - bounds.input.center),
+        ).toBeLessThanOrEqual(2);
+        expect(
+          bounds.buttons.every(
+            (button) => Math.abs(button.top - bounds.input.top) <= 1,
+          ),
+        ).toBe(true);
+        expect(
+          bounds.buttons.every(
+            (button) => Math.abs(button.text.center - bounds.input.center) <= 2,
+          ),
+        ).toBe(true);
+        if (bounds.helperTop !== undefined)
+          expect(bounds.helperTop).toBeGreaterThanOrEqual(bounds.input.bottom);
+      } else {
+        expect(bounds.label.bottom).toBeLessThanOrEqual(bounds.input.top);
+        if (bounds.popup)
+          expect(bounds.buttons[0].top).toBeGreaterThanOrEqual(
+            bounds.popup.bottom,
+          );
+      }
+    };
+    if (["properties-type", "properties-value"].includes(state))
+      await editableGeometry(false);
     const capture = async (theme: string) => {
       const box = (await target.boundingBox())!;
       const popup = (await page.locator(".schema-options").count())
@@ -154,7 +265,7 @@ for (const state of states)
         clip: {
           x: 0,
           y: Math.max(0, box.y - 4),
-          width: 320,
+          width: Math.min(480, page.viewportSize()!.width),
           height: bottom - Math.max(0, box.y - 4),
         },
       });
@@ -166,6 +277,12 @@ for (const state of states)
     await capture("light");
     if (
       [
+        "properties-display",
+        "properties-type",
+        "properties-value",
+        "properties-new",
+        "properties-yaml",
+        "properties-warning",
         "type",
         "create",
         "recovery",
@@ -182,6 +299,35 @@ for (const state of states)
         () => (document.documentElement.dataset.theme = "dark"),
       );
       await capture("dark");
+    }
+    if (state.startsWith("properties-")) {
+      await page.setViewportSize({ width: 960, height: 900 });
+      if (["properties-type", "properties-value"].includes(state))
+        await editableGeometry(true);
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "light";
+      });
+      await capture("desktop-light");
+      await page.evaluate(() => {
+        document.documentElement.dataset.theme = "dark";
+      });
+      await capture("desktop-dark");
+    }
+    if (
+      ["properties-type", "properties-value", "properties-new"].includes(state)
+    ) {
+      if (state === "properties-new") {
+        const label = await page
+          .locator(".property-value-input > label")
+          .boundingBox();
+        expect(label!.height).toBeGreaterThan(1);
+      }
+      await expect(page.getByRole("listbox")).toBeVisible();
+      await page.getByRole("button", { name: "취소", exact: true }).click();
+      await expect(page.getByRole("listbox")).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "type 값 편집", exact: true }),
+      ).toHaveText("Book");
     }
     expect(errors).toEqual([]);
   });

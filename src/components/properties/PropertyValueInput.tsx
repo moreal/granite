@@ -4,6 +4,13 @@ import {
   propertyNoteContext,
   propertyNoteTitles,
 } from "./property-note-completion";
+import { searchTypes, normalizeType } from "../../schema";
+import {
+  recommendNotes,
+  noteTypeLabel,
+  expectedTypes,
+  type NoteReference,
+} from "../../schema/references";
 import type { PropertyNoteContext } from "./property-note-completion";
 
 export interface PropertyValueInputProps {
@@ -11,6 +18,9 @@ export interface PropertyValueInputProps {
   label: string;
   value: string;
   titles: readonly string[];
+  references?: readonly NoteReference[];
+  property?: string;
+  typeValue?: boolean;
   linkable: boolean;
   inputmode?: "text" | "decimal";
   disabled?: boolean;
@@ -33,7 +43,7 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
   let list: HTMLUListElement | undefined;
   let composing = false;
   createEffect(
-    () => [props.contextKey, props.disabled, props.linkable],
+    () => [props.contextKey, props.disabled, props.linkable, props.typeValue],
     () => {
       setMenu(null);
       setActive(0);
@@ -44,28 +54,58 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
     const pending = menu();
     return pending &&
       !props.disabled &&
-      props.linkable &&
+      (props.linkable || props.typeValue) &&
       pending.value === props.value &&
       pending.identity === props.contextKey
       ? pending
       : null;
   };
-  const options = createMemo(() =>
-    scope() ? propertyNoteTitles(props.titles, scope()!.context.query) : [],
+  const recommendations = createMemo(() =>
+    recommendNotes(
+      props.references ?? [],
+      props.property ?? "",
+      scope()?.context.query ?? "",
+    ),
   );
+  const details = createMemo(
+    () =>
+      new Map(
+        recommendations().map((note) => [
+          note.title,
+          `${noteTypeLabel(note)} · ${note.compatibility === "mismatch" ? "권장 유형과 다름" : note.compatibility === "compatible" ? "권장 유형" : "유형 확인 필요"}`,
+        ]),
+      ),
+  );
+  const allOptions = createMemo(() =>
+    !scope()
+      ? []
+      : props.typeValue
+        ? searchTypes(normalizeType(props.value)).map((type) => type.id)
+        : props.references
+          ? recommendations().map((note) => note.title)
+          : propertyNoteTitles(props.titles, scope()!.context.query),
+  );
+  const options = () => allOptions().slice(0, 20);
   const sameCaret = () =>
     !!scope() &&
     input.selectionStart === scope()!.context.to &&
     input.selectionEnd === scope()!.context.to;
   const update = () => {
     const context =
-      !composing && props.linkable && !props.disabled
-        ? propertyNoteContext(
-            input.value,
-            input.selectionStart ?? 0,
-            input.selectionEnd ?? 0,
-          )
-        : null;
+      !composing && !props.disabled && props.typeValue
+        ? {
+            from: 0,
+            to: input.selectionStart ?? 0,
+            query: input.value,
+            closing: false,
+          }
+        : !composing && props.linkable && !props.disabled
+          ? propertyNoteContext(
+              input.value,
+              input.selectionStart ?? 0,
+              input.selectionEnd ?? 0,
+            )
+          : null;
     setMenu(
       context
         ? { context, value: input.value, identity: props.contextKey }
@@ -85,12 +125,18 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
       setMenu(null);
       return;
     }
-    const edit = completePropertyNote(input.value, pending.context, title);
+    const edit = props.typeValue
+      ? { value: title, caret: title.length }
+      : completePropertyNote(input.value, pending.context, title);
     setMenu(null);
-    input.value = edit.value;
-    props.onChange(edit.value);
     input.focus();
+    input.setSelectionRange(0, input.value.length);
+    if (!document.execCommand?.("insertText", false, edit.value)) {
+      input.value = edit.value;
+      props.onChange(edit.value);
+    }
     input.setSelectionRange(edit.caret, edit.caret);
+    setMenu(null);
   };
   return (
     <div class="property-value-input">
@@ -101,15 +147,17 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
           untrack(() => props.onReady?.(element));
         }}
         id={id()}
-        role={props.linkable ? "combobox" : undefined}
+        role={props.linkable || props.typeValue ? "combobox" : undefined}
         aria-label={props.label}
         autocomplete="off"
         inputmode={props.inputmode ?? "text"}
         value={props.value}
         disabled={props.disabled}
-        aria-autocomplete={props.linkable ? "list" : undefined}
+        aria-autocomplete={
+          props.linkable || props.typeValue ? "list" : undefined
+        }
         aria-expanded={
-          props.linkable
+          props.linkable || props.typeValue
             ? scope() && options().length > 0
               ? "true"
               : "false"
@@ -124,6 +172,9 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
             : undefined
         }
         aria-describedby={props.linkable ? `${id()}-help` : undefined}
+        onFocus={() => {
+          if (props.typeValue) update();
+        }}
         onInput={(event) => {
           props.onChange(event.currentTarget.value);
           update();
@@ -216,6 +267,9 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
       {props.linkable && (
         <span id={`${id()}-help`} class="property-help">
           @ 또는 [[로 기존 노트를 연결하세요.
+          {props.property &&
+            expectedTypes(props.property).length > 0 &&
+            ` 권장: ${expectedTypes(props.property).join(" 또는 ")}`}
         </span>
       )}
       {scope() && options().length > 0 && (
@@ -226,22 +280,31 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
           id={`${id()}-notes`}
           class="schema-options property-note-options"
           role="listbox"
-          aria-label="기존 노트"
+          aria-label={props.typeValue ? "Schema.org 유형" : "기존 노트"}
         >
           <For each={options()} keyed={(title) => title}>
             {(title, index) => (
               <li
                 id={`${id()}-note-${index()}`}
                 role="option"
+                aria-label={title()}
                 aria-selected={active() === index() ? "true" : "false"}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(title())}
               >
-                {title()}
+                <span>{title()}</span>
+                {!props.typeValue && details().get(title()) && (
+                  <small>{details().get(title())}</small>
+                )}
               </li>
             )}
           </For>
         </ul>
+      )}
+      {scope() && allOptions().length > 20 && (
+        <span class="property-help" role="status">
+          처음 20개를 표시합니다. 검색어를 더 입력해 주세요.
+        </span>
       )}
       {scope() && !options().length && (
         <p

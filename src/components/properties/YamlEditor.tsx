@@ -1,68 +1,101 @@
 import { textareaChange } from "./yaml-text";
-import { createSignal, For, untrack } from "solid-js";
+import { createEffect, createMemo, createSignal, For, untrack } from "solid-js";
 import {
-  completionContext,
-  planCompletion,
-  searchTypes,
-  suggestProperties,
-} from "../../schema";
-import type { CompletionContext } from "../../schema";
+  propertyCompletionScope,
+  propertyCompletionOptions,
+  planPropertyCompletion,
+  type PropertyCompletionScope,
+} from "../../schema/property-completions";
+import type { NoteReference } from "../../schema/references";
 export interface YamlEditorProps {
   id?: string;
   value: string;
   disabled?: boolean;
+  contextKey?: string;
+  references?: readonly NoteReference[];
   onChange: (value: string) => void;
   onReady?: (element: HTMLTextAreaElement) => void;
 }
 export function YamlEditor(props: YamlEditorProps) {
-  const [scope, setScope] = createSignal<CompletionContext | null>(null);
+  const [scope, setScope] = createSignal<PropertyCompletionScope | null>(null);
   const [active, setActive] = createSignal(0);
-  let textarea!: HTMLTextAreaElement;
-  let composing = false;
-  let completionCaret = -1;
+  let textarea!: HTMLTextAreaElement, list: HTMLUListElement | undefined;
+  let composing = false,
+    caret = -1,
+    identity: string | undefined;
+  createEffect(
+    () => [props.contextKey, props.disabled],
+    () => {
+      setScope(null);
+    },
+  );
+  const current = () =>
+    !props.disabled &&
+    scope()?.context.source === props.value.replace(/\r\n/g, "\n") &&
+    identity === props.contextKey
+      ? scope()
+      : null;
+  const allOptions = createMemo(() =>
+    current()
+      ? propertyCompletionOptions(current()!, props.references ?? [])
+      : [],
+  );
+  const options = () => allOptions().slice(0, 20);
   const sameCaret = () =>
-    textarea.selectionStart === completionCaret &&
-    textarea.selectionEnd === completionCaret;
+    textarea.selectionStart === caret && textarea.selectionEnd === caret;
   const id = () => props.id ?? "property-yaml";
-  const options = () => {
-    const context = scope();
-    return !context
-      ? []
-      : context.kind === "type"
-        ? searchTypes(context.prefix)
-        : suggestProperties(
-            context.types,
-            context.existingKeys,
-            context.prefix,
-          );
-  };
   const update = () => {
-    completionCaret = textarea.selectionStart;
+    caret = textarea.selectionStart;
+    identity = props.contextKey;
     setScope(
-      composing || textarea.selectionEnd !== completionCaret
+      composing || props.disabled || textarea.selectionEnd !== caret
         ? null
-        : completionContext(textarea.value, textarea.selectionStart),
+        : propertyCompletionScope(textarea.value, caret),
     );
     setActive(0);
   };
   const choose = (name: string) => {
-    if (props.disabled || composing || !sameCaret()) {
+    const pending = current();
+    if (
+      props.disabled ||
+      composing ||
+      !pending ||
+      !sameCaret() ||
+      !options().some((option) => option.id === name)
+    ) {
       setScope(null);
       return;
     }
-    const context = scope();
-    const edit = context && planCompletion(textarea.value, context, name);
+    const edit = planPropertyCompletion(textarea.value, pending, name);
     if (!edit) return;
-    // Chromium native replacement preserves undo and the normal input path.
-    // Other engines retain a safe text replacement fallback without an undo guarantee.
+    setScope(null);
     textarea.focus();
     textarea.setSelectionRange(edit.from, edit.to);
-    const inserted = document.execCommand?.("insertText", false, edit.insert);
-    if (!inserted) {
+    if (!document.execCommand?.("insertText", false, edit.insert)) {
       textarea.setRangeText(edit.insert, edit.from, edit.to, "end");
       props.onChange(textareaChange(props.value, textarea.value));
     }
     setScope(null);
+  };
+  const move = (direction: number) => {
+    if (!sameCaret()) {
+      setScope(null);
+      return;
+    }
+    const next = Math.max(
+      0,
+      Math.min(options().length - 1, active() + direction),
+    );
+    setActive(next);
+    const row = list?.children[next] as HTMLElement | undefined;
+    if (list && row) {
+      const a = list.getBoundingClientRect(),
+        b = row.getBoundingClientRect();
+      const top = a.top + list.clientTop,
+        bottom = top + list.clientHeight;
+      if (b.top < top) list.scrollTop += b.top - top;
+      else if (b.bottom > bottom) list.scrollTop += b.bottom - bottom;
+    }
   };
   return (
     <div class="yaml-editor">
@@ -81,14 +114,16 @@ export function YamlEditor(props: YamlEditorProps) {
         disabled={props.disabled}
         aria-autocomplete="list"
         aria-controls={`${id()}-options`}
-        aria-expanded={!!scope() && options().length > 0 ? "true" : "false"}
+        aria-expanded={!!current() && options().length > 0 ? "true" : "false"}
         aria-activedescendant={
-          scope() && options()[active()]
+          current() && options()[active()]
             ? `${id()}-option-${active()}`
             : undefined
         }
-        onInput={(e) => {
-          props.onChange(textareaChange(props.value, e.target.value));
+        onInput={(event) => {
+          props.onChange(
+            textareaChange(props.value, event.currentTarget.value),
+          );
           update();
         }}
         onClick={update}
@@ -103,9 +138,28 @@ export function YamlEditor(props: YamlEditorProps) {
         onCompositionEnd={() => {
           composing = false;
         }}
-        onKeyDown={(e) => {
-          if (composing || e.isComposing || props.disabled) return;
+        onKeyDown={(event) => {
           if (
+            composing ||
+            event.isComposing ||
+            event.keyCode === 229 ||
+            props.disabled
+          )
+            return;
+          if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === "s"
+          ) {
+            setScope(null);
+            return;
+          }
+          if (event.key === "Escape") {
+            setScope(null);
+            event.preventDefault();
+          } else if (event.ctrlKey && event.key === " ") {
+            event.preventDefault();
+            update();
+          } else if (
             [
               "ArrowLeft",
               "ArrowRight",
@@ -113,53 +167,55 @@ export function YamlEditor(props: YamlEditorProps) {
               "End",
               "PageUp",
               "PageDown",
-            ].includes(e.key)
-          ) {
+              "Tab",
+            ].includes(event.key) ||
+            (event.shiftKey && ["ArrowDown", "ArrowUp"].includes(event.key)) ||
+            ((event.metaKey || event.ctrlKey) &&
+              event.key.toLowerCase() === "a")
+          )
             setScope(null);
-          } else if (e.key === "Escape") {
-            setScope(null);
-            e.preventDefault();
-          } else if (e.ctrlKey && e.key === " ") {
-            e.preventDefault();
-            update();
-          } else if (
-            scope() &&
+          else if (
+            current() &&
             options().length &&
-            (e.key === "ArrowDown" || e.key === "ArrowUp")
+            ["ArrowDown", "ArrowUp"].includes(event.key)
           ) {
-            e.preventDefault();
-            setActive((value) =>
-              Math.max(
-                0,
-                Math.min(
-                  options().length - 1,
-                  value + (e.key === "ArrowDown" ? 1 : -1),
-                ),
-              ),
-            );
-          } else if (e.key === "Enter" && scope() && options()[active()]) {
-            e.preventDefault();
+            event.preventDefault();
+            move(event.key === "ArrowDown" ? 1 : -1);
+          } else if (
+            event.key === "Enter" &&
+            current() &&
+            options()[active()]
+          ) {
+            event.preventDefault();
             choose(options()[active()].id);
           }
         }}
       />
-      {scope() && options().length > 0 && (
-        <ul class="schema-options" role="listbox" id={`${id()}-options`}>
+      {current() && allOptions().length > 20 && (
+        <p class="property-help" role="status">
+          처음 20개를 표시합니다. 검색어를 더 입력해 주세요.
+        </p>
+      )}
+      {current() && options().length > 0 && (
+        <ul
+          ref={(element) => {
+            list = element;
+          }}
+          class="schema-options"
+          role="listbox"
+          id={`${id()}-options`}
+        >
           <For each={options()} keyed={(option) => option.id}>
             {(option, index) => (
               <li
                 role="option"
                 id={`${id()}-option-${index()}`}
                 aria-selected={active() === index() ? "true" : "false"}
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(option().id)}
               >
                 <strong>{option().id}</strong>
-                <span>
-                  {"ranges" in option()
-                    ? (option() as { ranges: string[] }).ranges.join(" · ")
-                    : ""}
-                </span>
+                <span>{option().detail}</span>
                 <small>{option().description}</small>
               </li>
             )}

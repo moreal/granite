@@ -1,5 +1,15 @@
 import { test, expect } from "@playwright/test";
-import { body, create, demo, editor, source } from "../helpers/ui";
+import {
+  body,
+  create,
+  demo,
+  editor,
+  source,
+  live,
+  propertyMode,
+  rawNotes,
+  saved,
+} from "../helpers/ui";
 
 test("S21 typed panel creates metadata, adds author/about, focuses value and updates graph", async ({
   page,
@@ -19,7 +29,7 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
     .click();
   const value = page.getByRole("combobox", { name: "author 값", exact: true });
   await expect(value).toBeFocused();
-  await expect(yaml).toHaveValue("type: Book");
+  await expect(yaml).toHaveCount(0);
   await value.fill("[[새 저자]]");
   await value.press("Enter");
   await picker.fill("about");
@@ -30,9 +40,14 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   await page
     .getByRole("combobox", { name: "about 값", exact: true })
     .press("ControlOrMeta+s");
-  await expect(yaml).toHaveValue(
-    'type: Book\n"author": "[[새 저자]]"\n"about": "[[주제]]"',
-  );
+  await saved(page);
+  expect(
+    Object.values(await rawNotes(page)).some((note) =>
+      note.raw.includes(
+        'type: Book\n"author": "[[새 저자]]"\n"about": "[[주제]]"',
+      ),
+    ),
+  ).toBe(true);
   await page.getByText("노트 그래프", { exact: true }).click();
   await expect(page.getByRole("region", { name: "노트 그래프" })).toContainText(
     "새 저자",
@@ -52,7 +67,8 @@ test("S21 raw YAML key/type completion preserves source, dismisses and supports 
   await source(page);
   await body(page, "---\n# keep\ntype: Book\nau\n---\nprose");
   await page.getByText("속성", { exact: true }).click();
-  await page.getByText("YAML 원문 편집", { exact: true }).click();
+  await propertyMode(page, "yaml");
+  await live(page);
   const yaml = page.getByLabel("속성 YAML 원문");
   await yaml.focus();
   await yaml.press("ControlOrMeta+End");
@@ -165,7 +181,8 @@ test("S21 raw YAML dismisses completion when caret moves or text is selected", a
   await source(page);
   await body(page, "---\ntype: Book\nauthor\n---\nprose");
   await page.getByText("속성", { exact: true }).click();
-  await page.getByText("YAML 원문 편집", { exact: true }).click();
+  await propertyMode(page, "yaml");
+  await live(page);
   const yaml = page.getByLabel("속성 YAML 원문");
   for (const key of ["Home", "ArrowLeft", "ControlOrMeta+a"]) {
     await yaml.fill("type: Book\nauthor");

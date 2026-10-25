@@ -1,10 +1,12 @@
 import { validateLinkTemplate } from "./editor/link-templates";
+export type PropertyEditorMode = "form" | "yaml";
 export type ThemePreference = "light" | "dark" | "system";
 export type LinkTemplate = { id: string; name: string; template: string };
 export type AppSettings = {
   version: 1;
   theme: ThemePreference;
   autoFormat: boolean;
+  propertyEditor: PropertyEditorMode;
   linkTemplates: LinkTemplate[];
 };
 export const SETTINGS_KEY = "granite.settings.v1";
@@ -12,6 +14,7 @@ export const defaultSettings = (): AppSettings => ({
   version: 1,
   theme: "system",
   autoFormat: true,
+  propertyEditor: "form",
   linkTemplates: [],
 });
 export function readSettings(): AppSettings {
@@ -48,6 +51,7 @@ export function readSettings(): AppSettings {
       version: 1,
       theme: data.theme!,
       autoFormat: data.autoFormat !== false,
+      propertyEditor: data.propertyEditor === "yaml" ? "yaml" : "form",
       linkTemplates: data.linkTemplates,
     };
   } catch {

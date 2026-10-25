@@ -1,42 +1,49 @@
 import {
-  completionContext,
-  planCompletion,
-  searchTypes,
-  suggestProperties,
-} from "../../schema";
+  propertyCompletionScope,
+  propertyCompletionOptions,
+  planPropertyCompletion,
+} from "../../schema/property-completions";
 import type { EditorPlugin } from "./types";
-/** Providers own their scope; the editor does not need to know YAML syntax. */
+/** Both source and property YAML use the same bounded context and exact patch planner. */
 export const schemaPlugin: EditorPlugin = {
   id: "granite.schema",
   completionSources: [
     {
       id: "granite.schema.yaml",
-      complete(context) {
+      complete(context, services) {
         const source = context.state.doc.toString();
-        const scope = completionContext(source, context.pos, "frontmatter");
+        const scope = propertyCompletionScope(
+          source,
+          context.pos,
+          "frontmatter",
+        );
         if (!scope) return null;
-        const candidates =
-          scope.kind === "type"
-            ? searchTypes(scope.prefix)
-            : suggestProperties(scope.types, scope.existingKeys, scope.prefix);
+        const options = propertyCompletionOptions(
+          scope,
+          services?.references ?? [],
+        );
+        if (!options.length) return null;
         return {
-          from: scope.from,
-          to: scope.to,
+          from: scope.context.from,
+          to: scope.context.to,
           filter: false,
-          options: candidates.map((candidate) => ({
-            label: candidate.id,
-            detail:
-              "ranges" in candidate
-                ? candidate.ranges.join(" · ")
-                : candidate.label,
-            info: candidate.description,
-            type: scope.kind === "type" ? "class" : "property",
+          options: options.map((option) => ({
+            label: option.id,
+            detail: option.detail,
+            info: option.description,
+            type: scope.kind === "note" ? "text" : "property",
             apply(view) {
-              if (view.composing || view.state.readOnly) return;
-              const edit = planCompletion(
+              if (
+                view.composing ||
+                view.state.readOnly ||
+                !view.state.selection.main.empty ||
+                view.state.selection.main.head !== context.pos
+              )
+                return;
+              const edit = planPropertyCompletion(
                 view.state.doc.toString(),
                 scope,
-                candidate.id,
+                option.id,
               );
               if (edit)
                 view.dispatch({

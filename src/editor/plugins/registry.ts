@@ -1,3 +1,4 @@
+import type { NoteReference } from "../../schema/references";
 import type { CompletionContext } from "@codemirror/autocomplete";
 import { menuTrigger } from "../../domain/links";
 import { documentContext } from "../document-context";
@@ -21,12 +22,21 @@ export function resolveEditorPlugins(plugins: readonly EditorPlugin[]) {
 export function pluginCompletions(
   getPlugins: () => readonly EditorPlugin[],
   getTitles: () => readonly string[],
+  getReferences: () => readonly NoteReference[] = () =>
+    getTitles().map((title) => ({ title, types: [], known: false })),
 ) {
   return (context: CompletionContext) => {
-    if (context.view?.composing || context.state.readOnly) return null;
+    if (
+      context.view?.composing ||
+      context.state.readOnly ||
+      !context.state.selection.main.empty
+    )
+      return null;
     for (const plugin of getPlugins()) {
       for (const source of plugin.completionSources ?? []) {
-        const result = source.complete(context);
+        const result = source.complete(context, {
+          references: getReferences(),
+        });
         if (result) return result;
       }
     }

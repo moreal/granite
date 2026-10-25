@@ -1,10 +1,16 @@
 import { SaveStatus } from "./SaveStatus";
 import { NoteProperties } from "./NoteProperties";
+import type { PropertyEditorMode } from "../settings";
+import type { NoteReference } from "../schema/references";
 import type { Entry } from "../storage/workspace";
 export function NoteHeader(props: {
   entry: Entry;
   documentKey?: string;
   titles?: readonly string[];
+  references?: readonly NoteReference[];
+  propertyMode?: PropertyEditorMode;
+  source?: boolean;
+  onSource?: () => void;
   locked: boolean;
   wordCount: number;
   onBody: (body: string) => void;
@@ -17,6 +23,10 @@ export function NoteHeader(props: {
       <h1>{props.entry.note.title}</h1>
       <NoteProperties
         titles={props.titles}
+        references={props.references}
+        mode={props.propertyMode}
+        source={props.source}
+        onSource={props.onSource}
         documentKey={props.documentKey}
         body={props.entry.body}
         locked={props.locked}
