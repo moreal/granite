@@ -1,3 +1,4 @@
+import type { NotePreviewLookup } from "../domain/note-preview";
 import { SaveStatus } from "./SaveStatus";
 import { NoteProperties } from "./NoteProperties";
 import type { PropertyEditorMode } from "../settings";
@@ -7,6 +8,7 @@ export function NoteHeader(props: {
   entry: Entry;
   documentKey?: string;
   titles?: readonly string[];
+  preview?: NotePreviewLookup;
   references?: readonly NoteReference[];
   propertyMode?: PropertyEditorMode;
   source?: boolean;
@@ -25,6 +27,7 @@ export function NoteHeader(props: {
       <h1>{props.entry.note.title}</h1>
       <NoteProperties
         titles={props.titles}
+        preview={props.preview}
         references={props.references}
         mode={props.propertyMode}
         source={props.source}

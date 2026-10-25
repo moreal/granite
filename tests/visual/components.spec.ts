@@ -3,6 +3,9 @@ import { test, expect, takeSnapshot } from "@chromatic-com/playwright";
 // Resize to the isolated production component, including popup and focus padding.
 for (const state of [
   "properties-display",
+  "properties-links",
+  "property-link-preview",
+  "property-link-missing",
   "properties-type",
   "properties-value",
   "properties-new",
@@ -43,7 +46,7 @@ for (const state of [
           Math.max(
             box!.height,
             await page
-              .locator(".schema-options")
+              .locator(".schema-options, .note-link-preview:popover-open")
               .evaluateAll((nodes) =>
                 Math.max(
                   0,
@@ -53,6 +56,22 @@ for (const state of [
           ),
         ) + 8,
     });
+    if (
+      [
+        "properties-links",
+        "property-link-preview",
+        "property-link-missing",
+      ].includes(state)
+    ) {
+      await page
+        .locator(".property-note-link")
+        .first()
+        .evaluate((element: HTMLButtonElement) => {
+          element.blur();
+          element.focus();
+        });
+      await expect(page.getByRole("tooltip")).toBeVisible();
+    }
     await takeSnapshot(page, `S22 ${state} narrow production component`, info);
   });
 }

@@ -51,3 +51,5 @@ yarn test:visual
 `tests/components/design-system.spec.ts`와 `tests/e2e/design-system.spec.ts`는 실제 속성/설정/툴바의 토큰 전파, 기본 네이티브 버튼의 전역 크기 부재, inline/list 격리와 네이티브 상호작용을 검사한다. S24–S26의 YAML/caret/undo/초안/메뉴 한 번 클릭 회귀를 유지한다. 새로운 변형은 기존 화면을 바꾸지 않는지 이 예제와 실제 소비 화면에서 함께 검사한다.
 
 현재 경계: 풍부한 본문/CodeMirror/수식/다이어그램·한국어 줄바꿈·화면 그리드·팝업 위치는 기능 스타일에 남는다. 새 디자인 라이브러리, 토큰 외부 게시, 데이터 변환이나 동기화는 포함하지 않는다. 자동 Chromium/합성 데모 검증은 실제 사용자 폴더 권한창·OS IME·스크린리더 확인과 구분한다.
+
+속성 링크 미리보기(S28)는 `PropertyNoteLink`가 native inline Button과 비대화형 top-layer popover를 조합한다. 색/테두리/간격/그림자는 기존 토큰, hover intent/해제 지연과 최대 폭은 `--delay-note-preview-*`/`--note-preview-width`를 쓴다. 내용 조회·직접 이동/초안 보호는 호출자에 남고 미리보기가 새 탭 대상이나 live region을 만들지 않는다.

@@ -120,3 +120,15 @@ C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다
 | S27d     | 같은 운영 규칙의 기초·변형·상태를320px와 두 테마에서 검토, Storybook 테마는 설정에 쓰지 않음 | C design-system 기본/명시 제출·disabled·초점/ref·ARIA·테마 비저장·대비/넘침·작은 캡처, 기존 Production 운영 story; [수정 안내](design-system.md)                                                                                                                                                                            |
 
 기존 저장/복구·안전한 HTML·테마/포인터/reduced-motion 검사는 유지한다. 실제 picker/권한·OS IME·스크린리더 확인은 별도 수동 범위다.
+
+## S28 속성 노트 링크 미리보기와 직접 이동
+
+기준: [S28](superpowers/specs/2026-10-26-note-link-preview.md), S01/S04/S06/S10/S12/S25/S26/S27.
+
+| 기준   | 기대 동작                                                                                                 | 검증                                                                                                                                                                                                  |
+| ------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S28a   | 첫 클릭/Enter/터치로 기존 노트 직접 열기, 미확정 초안/없는 대상 확인 보호                                 | E [note-link-preview](../tests/e2e/note-link-preview.spec.ts), 기존 property-navigation; C [note-link-preview](../tests/components/note-link-preview.spec.ts) story 목적지의 실제 내용·추가 열기 없음 |
+| S28b/c | hover/focus 읽기 전용·hover 유지·Escape 초점 유지·안전한 로컬 제한 내용·오래된 팝업 정리                  | U [note-preview](../tests/unit/note-preview.test.ts), [property-note-link](../tests/unit/property-note-link.test.tsx) 내용/context 변경·언마운트·Escape/직접 callback; E/C note-link-preview          |
+| S28d   | 관련 속성/preview에서 끝나는 운영 story, 좁은 창/두 테마에서 viewport 안 배치와 native 링크 geometry 유지 | C note-link-preview320/960px·라이트/다크 작은 캡처, 기존 components/S26 정렬·초안 후보 한 번 클릭; V 운영 PropertiesLinks/preview/missing                                                             |
+
+본문 편집기의 일반 클릭/수정자 이동 규칙은 그대로다. 미리보기는 저장소를 읽거나 생성/저장하지 않으며 HTML/네트워크를 실행하지 않는다. 실제 picker/권한·OS IME·스크린리더 확인은 합성 Chromium 증거와 구분한다.

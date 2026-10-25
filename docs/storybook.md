@@ -34,3 +34,5 @@ Tests CI는 빌드·컴포넌트 검사를 실행하고 보고서/trace/탐색�
 S25에는 실제 NoteProperties의 `PropertiesYamlQuiet`, `PropertiesYamlValidated`, `PropertiesYamlNoResults`, `PropertiesDraftPreserved`, `PropertiesInvalidForm`을 추가했다. 각각 입력 중 조용한 미완성 YAML, 떠난 뒤 검증 안내, 기존 노트 결과 없음, 거부된 숫자 초안 보존, 전체 원문 복구를 재현한다. `data-story-ready=true` 이후 native 키보드로 계속 입력하는 회귀와320/960px 라이트·다크 캡처는 `tests/components/property-ux.spec.ts`가 맡는다. 새 캡처는 모두 테스트 결과 폴더에 생성한다.
 
 S27의 **Design System → Foundations / Primitives**는 운영 토큰/컨트롤의 색·글자·간격·변형·상태를 한곳에서 보여 준다. 상단 테마 도구는 앱 설정을 저장하지 않는다. 수정 위치·선택 기준·네이티브 동작 경계·검사 추가법은 [디자인 수정 안내](design-system.md)를 따른다.
+
+S28의 PropertiesLinks는 운영 속성 링크와 읽기 전용 미리보기에서 준비를 끝낸다. 링크를 누르면 예제 노트의 실제 합성 내용으로 바로 이동하며, 추가 열기/돌아가기 단계나 작업 결과 문구를 표시하지 않는다. story 재설정으로 출발 상태를 다시 볼 수 있다. PropertyLinkPreview/Empty/Missing/Long은 같은 운영 링크의 내용·빈/없는 대상·긴 한글을 작게 검토한다. 미리보기는 기존 메모리의 일반 텍스트만 사용하고 클릭/Enter/터치의 운영 이동 경로는 바꾸지 않는다.

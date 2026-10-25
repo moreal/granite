@@ -1,3 +1,4 @@
+import { notePreview } from "./domain/note-preview";
 import { Button } from "./design-system/Button";
 import { noteReference } from "./schema/references";
 import { SidebarNoteRow } from "./components/SidebarNoteRow";
@@ -481,6 +482,16 @@ export default function App() {
       )
     ),
   );
+  const previewNote = (title: string) => {
+    revision();
+    const note = notes().find((candidate) => candidate.title === title);
+    return note
+      ? notePreview(
+          note.title,
+          workspace()?.entries.get(note.filename)?.body ?? note.body,
+        )
+      : undefined;
+  };
   const linked = () =>
     entry()!
       ? backlinks(
@@ -735,6 +746,7 @@ export default function App() {
                 {entry()! ? (
                   <>
                     <NoteHeader
+                      preview={previewNote}
                       references={references()}
                       propertyMode={settings().propertyEditor}
                       source={source()}

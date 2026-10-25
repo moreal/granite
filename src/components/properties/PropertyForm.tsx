@@ -1,3 +1,4 @@
+import type { NotePreviewLookup } from "../../domain/note-preview";
 import { Button } from "../../design-system/Button";
 import { For } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -20,6 +21,8 @@ export function PropertyForm(props: {
   propertyKey: string;
   error: string | null;
   draft: { name: string; existing: boolean } | null;
+  preview?: NotePreviewLookup;
+  contextKey?: string;
   references?: readonly NoteReference[];
   valueEditor: () => JSX.Element;
   onBegin: (name: string, existing?: boolean) => void;
@@ -63,6 +66,8 @@ export function PropertyForm(props: {
               {(item) => (
                 <>
                   <PropertyRow
+                    preview={props.preview}
+                    contextKey={props.contextKey}
                     name={item()[0]}
                     value={item()[1]}
                     editor={

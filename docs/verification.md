@@ -168,3 +168,15 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 새 회귀는 실제 속성 입력/적용·설정/툴바의 토큰 전파, 인라인/행의 크기 격리, 분류하지 않은 native 버튼에 전역40px가 없는 점, ref/disabled/ARIA/핸들러/제출과 두 테마의 주요/안내 대비를 검사한다. 실제 Storybook 관리 화면의 테마 도구를 조작하고 Production→Design System→Production으로 이동해 미리보기 변경과 앱 설정 비저장을 확인한다. 기존 caret/undo/조합·조용한 경고·한 번 클릭 적용/취소·저장/복구·unsafe HTML 회귀는 유지했다.
 
 실제 앱390px/데스크톱과 운영 속성 팝업/YAML/정리 대화상자·작은 Design System 예제를 직접 열어 검토했다. 최종 작은 화면과 전체 실행 로그는 `.superpowers/design-system/evidence/`와 `implementation.md`에 보존한다. 데모/합성 이벤트/Chromium 검증이며 실제 폴더 picker/권한창·OS IME·스크린리더 검증과 구분한다.
+
+## 2026-10-26 속성 링크의 직접 이동과 로컬 미리보기 (S28)
+
+[S28](superpowers/specs/2026-10-26-note-link-preview.md)은 기존 운영 링크의 직접 이동을 유지하고 hover/키보드 초점에서 읽기 전용 미리보기를 더한다. 중간 단계처럼 보이던 합성 대상·돌아가기·작업 결과 문구는 Storybook fixture에서 생겼으며, PropertiesLinks play는 이제 실제 속성/미리보기에서 끝난다. 클릭/Enter/터치 첫 조작은 기존 openTitle·없는 대상 생성 확인으로 전달하고 미확정 속성 값의 S25/S26 보호를 유지한다.
+
+미리보기는 현재 메모리의 노트/초안에서만 닫힌 frontmatter를 제외한 최대240자 일반 텍스트를 얻는다. 닫히지 않은 원문은 안전한 텍스트로 남긴다. HTML·외부 자원·저장/생성을 실행하지 않는다. 네이티브 비모달 popover와 기존 디자인 토큰을 사용하며200ms hover intent/즉시 키보드 초점, 포인터가 카드로 이동해 읽기·선택, Escape 초점 유지, 문서/내용/잠금/스크롤/언마운트 정리를 검증한다.
+
+최종 단위271개, 전체 운영 컴포넌트69개와 시각32개, 타입 검사·Pages 앱→Storybook 빌드가 통과했다. 실제 앱의 집중26개는 새 미리보기·터치 첫 조작과 기존 editor identity/YAML/source/history/속성 이동을 포함한다. 최종 타이밍 수정 후 관련 앱16개를 다시 통과했다. 바꾸지 않은 전체 앱 E2E는 이번 로컬 작업에서 중복 실행하지 않았다.
+
+독립 화면 리뷰의 수정1회에서 production CSS가200ms/120ms를.2s/.12s로 줄였는데 숫자만 읽어 hover가 너무 빨리 열리고 링크/카드 사이에서 닫히는 원인을 확인했다. 같은 빌드의150ms hover intent 회귀가 먼저 실패했고 초/밀리초를 구분하도록 고친 뒤 통과했다. 실제 포인터를8px 간격에60ms 머무르게 하고 카드에160ms 들어간 다음 글을 드래그 선택하는 검사가 통과했다. 전체 컴포넌트/시각 검사도 수정한 앱→Storybook 재빌드에 대해 실행했다.
+
+작은320/960px·라이트/다크 preview·빈/없는 대상·긴 한글과 PropertiesLinks 원래 화면을 생성하고 직접 열어 확인했다. 기록/실패와 수정 후 로그·보존 화면은 `.superpowers/note-link-preview/implementation.md` 및 `evidence/`에 있다. 일반 텍스트·네이티브 Chromium popover/합성 데모 증거이며 실제 사용자 폴더 picker/권한창·OS IME·스크린리더 검증을 주장하지 않는다. Popover를 지원하지 않는 브라우저에서는 미리보기 없이 기존 직접 이동을 유지한다.

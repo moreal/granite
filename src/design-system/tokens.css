@@ -70,6 +70,9 @@
   --layer-menu: 12;
   --layer-overlay: 10;
   --layer-dialog: 30;
+  --delay-note-preview-open: 200ms;
+  --delay-note-preview-close: 120ms;
+  --note-preview-width: 320px;
   --duration-chrome-hide: 250ms;
   --duration-chrome-reveal: 120ms;
   --duration-spin: 1.3s;

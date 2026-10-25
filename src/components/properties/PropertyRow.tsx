@@ -1,3 +1,5 @@
+import { PropertyNoteLink } from "./PropertyNoteLink";
+import type { NotePreviewLookup } from "../../domain/note-preview";
 import { Button } from "../../design-system/Button";
 import type { JSX } from "@solidjs/web";
 import { createMemo } from "solid-js";
@@ -11,6 +13,8 @@ export interface PropertyRowProps {
   disabled?: boolean;
   onEdit?: () => void;
   onSource?: () => void;
+  preview?: NotePreviewLookup;
+  contextKey?: string;
   onOpen?: (title: string) => void;
 }
 export function PropertyRow(props: PropertyRowProps) {
@@ -34,18 +38,13 @@ export function PropertyRow(props: PropertyRowProps) {
     for (const link of parseWikiLinks(value)) {
       pieces.push(value.slice(from, link.from));
       pieces.push(
-        <Button
-          type="button"
-          layout="inline"
-          class="property-note-link"
+        <PropertyNoteLink
+          title={link.title}
           disabled={props.disabled}
-          aria-label={`${link.title} 노트 열기`}
-          // Keep an open input menu from moving this target during the click.
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => props.onOpen?.(link.title)}
-        >
-          {link.title}
-        </Button>,
+          preview={props.preview}
+          contextKey={props.contextKey}
+          onOpen={(title) => props.onOpen?.(title)}
+        />,
       );
       from = link.to;
     }

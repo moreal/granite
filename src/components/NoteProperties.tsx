@@ -1,3 +1,4 @@
+import type { NotePreviewLookup } from "../domain/note-preview";
 import { Button } from "../design-system/Button";
 import { createSignal, createMemo, createEffect } from "solid-js";
 import {
@@ -17,6 +18,7 @@ export function NoteProperties(props: {
   body: string;
   documentKey?: string;
   titles?: readonly string[];
+  preview?: NotePreviewLookup;
   references?: readonly NoteReference[];
   mode?: PropertyEditorMode;
   source?: boolean;
@@ -329,6 +331,8 @@ export function NoteProperties(props: {
             ) : (
               <>
                 <PropertyForm
+                  preview={props.preview}
+                  contextKey={props.documentKey}
                   initialType={initialType()}
                   onInitialTypeChange={setInitialType}
                   body={props.body}

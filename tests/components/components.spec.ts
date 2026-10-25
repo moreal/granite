@@ -56,7 +56,11 @@ test("S26 actual property links open a target view with click and Enter; pending
   await expect(
     surface.getByRole("heading", { name: "작가", exact: true }),
   ).toBeVisible();
-  await surface.getByRole("button", { name: "속성 노트로 돌아가기" }).click();
+  await page.reload();
+  await expect(page.locator("#storybook-root")).toHaveAttribute(
+    "data-story-ready",
+    "true",
+  );
   await surface
     .getByRole("button", { name: "대상 책 노트 열기", exact: true })
     .focus();
@@ -64,7 +68,11 @@ test("S26 actual property links open a target view with click and Enter; pending
   await expect(
     surface.getByRole("heading", { name: "대상 책", exact: true }),
   ).toBeVisible();
-  await surface.getByRole("button", { name: "속성 노트로 돌아가기" }).click();
+  await page.reload();
+  await expect(page.locator("#storybook-root")).toHaveAttribute(
+    "data-story-ready",
+    "true",
+  );
   await surface
     .getByRole("button", { name: "author 값 편집", exact: true })
     .click();

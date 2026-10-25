@@ -1,4 +1,6 @@
 import { Button } from "../src/design-system/Button";
+import { Dialog } from "../src/components/Dialog";
+import { notePreview } from "../src/domain/note-preview";
 import { expect, userEvent, within } from "storybook/test";
 import { createSignal } from "solid-js";
 import { TodayShortcut } from "../src/components/TodayShortcut";
@@ -37,6 +39,17 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
         : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
   );
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
+  const exampleNotes: Record<string, string> = {
+    작가: "---\ntype: Person\n---\n작가는 일상에서 읽고 생각한 것을 기록합니다. 책과 사람에 관한 짧은 글을 모으고 다음 이야기를 준비합니다.",
+    "대상 조직":
+      "---\ntype: Organization\n---\n작가와 독자가 함께 읽고 쓰는 모임입니다.",
+    "대상 책":
+      "---\ntype: Book\n---\n읽기와 기록을 이어 주는 책입니다. 기억하고 싶은 문장과 질문을 이 노트에 남깁니다.",
+    "빈 노트": "",
+  };
+  const preview = (title: string) =>
+    title in exampleNotes ? notePreview(title, exampleNotes[title]) : undefined;
+
   return (
     <section class="story-surface" data-testid="component">
       {props.kind.startsWith("value-") && (
@@ -70,23 +83,20 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
         <>
           {openedNote() && (
             <article aria-label="연결된 노트">
-              <h2>{openedNote()}</h2>
-              <p>속성 링크로 연 노트의 본문입니다.</p>
-              <Button type="button" onClick={() => setOpenedNote("")}>
-                속성 노트로 돌아가기
-              </Button>
+              <h1>{openedNote()}</h1>
+              <p>{preview(openedNote())?.excerpt ?? "아직 없는 노트입니다."}</p>
             </article>
           )}
           <div hidden={!!openedNote()}>
             <NoteProperties
               body={noteBody()}
+              preview={preview}
               documentKey="mode-story"
               locked={!!props.disabled}
               mode={props.kind.startsWith("mode-yaml") ? "yaml" : "form"}
               onSource={() => setResult("전체 원문 수정 요청")}
               onOpen={(title) => {
                 setOpenedNote(title);
-                setResult(`${title} 노트 열기`);
               }}
               references={[
                 noteReference("대상 책", "---\ntype: Book\n---\n"),
@@ -240,7 +250,9 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           onApply={() => setResult("적용")}
         />
       )}
-      <output aria-label="상호작용 결과">{result()}</output>
+      {!props.kind.startsWith("mode-") && (
+        <output aria-label="상호작용 결과">{result()}</output>
+      )}
     </section>
   );
 }
@@ -329,15 +341,6 @@ const propertyModeStory = (kind: string) => ({
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByText("속성", { exact: true }));
     if (kind === "mode-type") {
-      await userEvent.click(
-        canvas.getByRole("button", { name: "작가 노트 열기" }),
-      );
-      await expect(
-        canvas.getByRole("heading", { name: /^작가$/ }),
-      ).toBeVisible();
-      await userEvent.click(
-        canvas.getByRole("button", { name: "속성 노트로 돌아가기" }),
-      );
       const button = canvas.getByRole("button", {
         name: "type 값 편집",
       });
@@ -357,6 +360,13 @@ const propertyModeStory = (kind: string) => ({
       await expect(
         canvas.getByText("입력 중인 값을 적용하거나 취소해 주세요."),
       ).toBeVisible();
+    } else if (kind === "mode-links") {
+      const link = canvas.getByRole("button", { name: /^작가 노트 열기$/ });
+      link.focus();
+      await expect(canvas.getByRole("tooltip")).toHaveTextContent(
+        "일상에서 읽고",
+      );
+      await expect(canvas.queryByRole("article")).toBeNull();
     } else if (kind.startsWith("mode-yaml")) {
       const input = canvas.getByRole("textbox", {
         name: "속성 YAML 원문",
@@ -449,3 +459,78 @@ export const PropertiesYamlValidated = propertyModeStory("mode-yaml-validated");
 export const PropertiesYamlNoResults = propertyModeStory("mode-yaml-empty");
 export const PropertiesDraftPreserved = propertyModeStory("mode-preserved");
 export const PropertiesInvalidForm = propertyModeStory("mode-invalid");
+
+function PropertyPreviewFixture(props: {
+  target: "작가" | "빈 노트" | "없는 노트" | "긴 한글 노트";
+}) {
+  const [opened, setOpened] = createSignal(false);
+  const [confirm, setConfirm] = createSignal(false);
+  const [created, setCreated] = createSignal(false);
+  const content =
+    props.target === "빈 노트" || props.target === "없는 노트"
+      ? ""
+      : props.target === "긴 한글 노트"
+        ? long + " <img src=x onerror=alert(1)> https://example.invalid/긴주소"
+        : "작가는 일상에서 읽고 생각한 것을 기록합니다. 책과 사람에 관한 글을 모읍니다.";
+  return (
+    <section class="story-surface" data-testid="component">
+      {opened() ? (
+        <article aria-label="연결된 노트">
+          <h1>{props.target}</h1>
+          <p>{content}</p>
+        </article>
+      ) : (
+        <dl class="property-list">
+          <PropertyRow
+            name="author"
+            value={`[[${props.target}]]`}
+            preview={(title) =>
+              props.target === "없는 노트" && !created()
+                ? undefined
+                : notePreview(title, content)
+            }
+            onOpen={() =>
+              props.target === "없는 노트" && !created()
+                ? setConfirm(true)
+                : setOpened(true)
+            }
+          />
+        </dl>
+      )}
+      {confirm() && (
+        <Dialog title="없는 노트 만들기" onClose={() => setConfirm(false)}>
+          <p>아직 없는 노트입니다. 새 노트를 만들까요?</p>
+          <div class="ui-action-row dialog-actions">
+            <Button variant="secondary" onClick={() => setConfirm(false)}>
+              취소
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setCreated(true);
+                setConfirm(false);
+                setOpened(true);
+              }}
+            >
+              만들기
+            </Button>
+          </div>
+        </Dialog>
+      )}
+    </section>
+  );
+}
+const propertyPreviewStory = (
+  target: "작가" | "빈 노트" | "없는 노트" | "긴 한글 노트",
+) => ({
+  render: () => <PropertyPreviewFixture target={target} />,
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    canvas.getByRole("button", { name: `${target} 노트 열기` }).focus();
+    await expect(canvas.getByRole("tooltip")).toBeVisible();
+  },
+});
+export const PropertyLinkPreview = propertyPreviewStory("작가");
+export const PropertyLinkEmpty = propertyPreviewStory("빈 노트");
+export const PropertyLinkMissing = propertyPreviewStory("없는 노트");
+export const PropertyLinkLong = propertyPreviewStory("긴 한글 노트");
