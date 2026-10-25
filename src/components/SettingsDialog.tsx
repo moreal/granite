@@ -218,6 +218,9 @@ export function SettingsDialog({
             적용
           </button>
         </div>
+        <footer>
+          <a href={`${import.meta.env.BASE_URL}licenses/`}>라이선스와 소스</a>
+        </footer>
       </form>
     </Dialog>
   );

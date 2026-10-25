@@ -314,3 +314,246 @@ it("S04 leaves escaped hashes and code spacing intact", () => {
   expect(box.textContent).toContain("##   코드");
   expect(view.state.doc.toString()).toBe(value);
 });
+
+it("S17 hides valid frontmatter and reveals before a destructive boundary edit", () => {
+  const value = "---\ntitle: secret\n---\nBody";
+  const { box, view } = setup(value);
+  const start = value.indexOf("Body");
+  expect(view.state.selection.main.head).toBe(start);
+  expect(box.textContent).not.toContain("secret");
+  act(() =>
+    view.dispatch({
+      changes: { from: start - 1, to: start },
+      userEvent: "delete.backward",
+    }),
+  );
+  expect(view.state.doc.toString()).toBe(value);
+  expect(box.textContent).toContain("secret");
+});
+
+it("S04 styles inactive nested and lazy quote lines without styling escaped markers", () => {
+  const { box, view } = setup(
+    "> quote\n> > nested\nlazy continuation\n\n\\> escaped\n\nlast",
+  );
+  act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
+  expect(box.querySelectorAll(".cm-blockquote").length).toBe(3);
+  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("quote");
+  expect(
+    box
+      .querySelectorAll<HTMLElement>(".cm-blockquote")[1]
+      .style.getPropertyValue("--quote-depth"),
+  ).toBe("2");
+  expect(box.textContent).toContain("\\> escaped");
+});
+
+it.each(["---\n---\n", "---\ntitle: secret\n---\n"])(
+  "S17 metadata-only %j retains an editable body position and protects its bytes",
+  (value) => {
+    const { box, view } = setup(value);
+    expect(view.state.selection.main.head).toBe(value.length);
+    expect(box.textContent).not.toContain("secret");
+    act(() =>
+      view.dispatch({
+        changes: { from: value.length, insert: "Body" },
+        userEvent: "input",
+      }),
+    );
+    expect(view.state.doc.toString()).toBe(value + "Body");
+  },
+);
+
+it("S17 select-all reveals metadata and allows an intentional edit with undo", async () => {
+  const { undo } = await import("@codemirror/commands");
+  const value = "---\ntitle: secret\n---\nBody";
+  const { box, view } = setup(value);
+  act(() => view.dispatch({ selection: { anchor: 0, head: value.length } }));
+  expect(box.textContent).toContain("secret");
+  act(() =>
+    view.dispatch({
+      changes: { from: 0, to: value.length, insert: "new" },
+      userEvent: "input",
+    }),
+  );
+  act(() => {
+    undo(view);
+  });
+  expect(view.state.doc.toString()).toBe(value);
+});
+
+it.each(["---\ntitle: [bad\n---\nBody", "---\ntitle: secret\nBody"])(
+  "S17 malformed metadata %j stays visible",
+  (value) => {
+    const { box } = setup(value);
+    expect(box.textContent).toContain("title:");
+  },
+);
+
+it("S17 editing CRLF prose preserves original line separators", () => {
+  const value = "---\r\ntitle: secret\r\n---\r\nBody";
+  const onChange = vi.fn();
+  render(
+    <Editor
+      value={value}
+      source={false}
+      locked={false}
+      titles={[]}
+      onChange={onChange}
+      onOpen={() => {}}
+      onSelection={() => {}}
+    />,
+  );
+  const view = EditorView.findFromDOM(
+    screen.getByRole("textbox", { name: "노트 본문" }),
+  )!;
+  expect(view.state.selection.main.head).toBe(view.state.doc.length - 4);
+  act(() =>
+    view.dispatch({
+      changes: { from: view.state.doc.length, insert: "!" },
+      userEvent: "input",
+    }),
+  );
+  expect(onChange).toHaveBeenLastCalledWith(value + "!");
+});
+
+it("S20 a registered live extension adds presentation without host changes", async () => {
+  const { Decoration, ViewPlugin } = await import("@codemirror/view");
+  const { builtinPlugins } = await import("../../src/editor/plugins/builtins");
+  render(
+    <Editor
+      value="Hello"
+      source={false}
+      locked={false}
+      titles={[]}
+      onChange={() => {}}
+      onOpen={() => {}}
+      onSelection={() => {}}
+      plugins={[
+        ...builtinPlugins,
+        {
+          id: "example.format",
+          liveExtensions: () =>
+            ViewPlugin.fromClass(
+              class {
+                decorations = Decoration.set([
+                  Decoration.mark({ class: "example-format" }).range(0, 5),
+                ]);
+              },
+              { decorations: (plugin) => plugin.decorations },
+            ),
+        },
+      ]}
+    />,
+  );
+  expect(
+    screen
+      .getByRole("textbox", { name: "노트 본문" })
+      .querySelector(".example-format")?.textContent,
+  ).toBe("Hello");
+});
+
+it("S17 metadata-only document without final newline creates prose after the closing fence", () => {
+  const value = "---\ntitle: secret\n---";
+  const { view } = setup(value);
+  act(() =>
+    view.dispatch({
+      changes: { from: view.state.doc.length, insert: "Body" },
+      selection: { anchor: view.state.doc.length + 4 },
+      userEvent: "input",
+    }),
+  );
+  expect(view.state.doc.toString()).toBe(value + "\nBody");
+  expect(view.state.selection.main.head).toBe(value.length + 5);
+});
+
+it("S17 trusted property synchronization preserves a body caret and undo history", async () => {
+  const { undo, redo } = await import("@codemirror/commands");
+  const initial = "---\ntitle: first\n---\nBody";
+  const updated = initial.replace("first", "longer value");
+  const props = {
+    source: false,
+    locked: false,
+    titles: [],
+    onChange: () => {},
+    onOpen: () => {},
+    onSelection: () => {},
+  };
+  const { rerender } = render(<Editor {...props} value={initial} />);
+  const box = screen.getByRole("textbox", { name: "노트 본문" });
+  const view = EditorView.findFromDOM(box)!;
+  act(() =>
+    view.dispatch({ selection: { anchor: view.state.doc.length - 2 } }),
+  );
+  rerender(<Editor {...props} value={updated} />);
+  expect(view.state.doc.toString()).toBe(updated);
+  expect(view.state.selection.main.head).toBe(updated.length - 2);
+  act(() => {
+    undo(view);
+  });
+  expect(view.state.doc.toString()).toBe(initial);
+  expect(box.textContent).toContain("first");
+  act(() => {
+    redo(view);
+  });
+  expect(view.state.doc.toString()).toBe(updated);
+});
+
+it("S17 CRLF property line additions preserve logical lines, bytes, caret and history", async () => {
+  const { undo, redo } = await import("@codemirror/commands");
+  const initial = "---\r\ntype: Book\r\n---\r\nBody";
+  const updated = "---\r\ntype: Book\r\nauthor: Person\r\n---\r\nBody";
+  const onChange = vi.fn();
+  const props = {
+    source: false,
+    locked: false,
+    titles: [],
+    onChange,
+    onOpen: () => {},
+    onSelection: () => {},
+  };
+  const { rerender } = render(<Editor {...props} value={initial} />);
+  const view = EditorView.findFromDOM(
+    screen.getByRole("textbox", { name: "노트 본문" }),
+  )!;
+  act(() =>
+    view.dispatch({ selection: { anchor: view.state.doc.length - 2 } }),
+  );
+  rerender(<Editor {...props} value={updated} />);
+  expect(view.state.sliceDoc()).toBe(updated);
+  expect(view.state.doc.lines).toBe(5);
+  expect(view.state.doc.line(3).text).toBe("author: Person");
+  expect(view.state.selection.main.head).toBe(view.state.doc.length - 2);
+  expect(onChange).toHaveBeenLastCalledWith(updated);
+  act(() => {
+    undo(view);
+  });
+  expect(view.state.sliceDoc()).toBe(initial);
+  expect(view.state.doc.lines).toBe(4);
+  act(() => {
+    redo(view);
+  });
+  expect(view.state.sliceDoc()).toBe(updated);
+  expect(view.state.doc.lines).toBe(5);
+});
+
+it("S17 CRLF metadata-only body insertion creates a logical CRLF line", () => {
+  const value = "---\r\ntitle: secret\r\n---";
+  const { view } = setup(value);
+  act(() =>
+    view.dispatch({
+      changes: { from: view.state.doc.length, insert: "Body" },
+      userEvent: "input",
+    }),
+  );
+  expect(view.state.sliceDoc()).toBe(value + "\r\nBody");
+  expect(view.state.doc.lines).toBe(4);
+  expect(view.state.doc.line(4).text).toBe("Body");
+});
+
+it("S04/S17 YAML literal fences cannot swallow body Markdown syntax", () => {
+  const value = "---\nexample: |\n  ```\n---\n# Heading\n\n> quote\n\nBody";
+  const { box, view } = setup(value);
+  act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
+  expect(box.querySelector(".cm-heading")?.textContent).toBe("Heading");
+  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("quote");
+  expect(box.textContent).not.toContain("example:");
+});

@@ -22,10 +22,18 @@ export interface Frontmatter {
   /** Exact editable source interval, excluding the separator before the closing fence. */
   from: number;
   to: number;
+  /** End of the complete metadata block, including its closing line separator. */
+  bodyStart: number;
   markdown: string;
   types: string[];
   properties: Map<string, unknown>;
   warning: string | null;
+}
+
+/** Shared delimiter classification for source projection and Markdown grammar. */
+const frontmatterFenceSource = "---[ \t]*";
+export function isFrontmatterFenceLine(line: string): boolean {
+  return new RegExp(`^${frontmatterFenceSource}\\r?$`).test(line);
 }
 
 function schemaType(value: unknown): string | null {
@@ -38,13 +46,14 @@ function schemaType(value: unknown): string | null {
 
 /** Metadata is a projection of text: parsing never rewrites the note. */
 export function readFrontmatter(body: string): Frontmatter {
-  const opening = /^---[ \t]*\r?\n/.exec(body);
+  const opening = new RegExp(`^${frontmatterFenceSource}\\r?\\n`).exec(body);
   const result: Frontmatter = {
     present: !!opening,
     closed: false,
     yaml: "",
     from: 0,
     to: 0,
+    bodyStart: 0,
     markdown: body,
     types: ["Thing"],
     properties: new Map(),
@@ -52,7 +61,10 @@ export function readFrontmatter(body: string): Frontmatter {
   };
   if (!opening) return result;
   result.from = opening[0].length;
-  const closing = /^---[ \t]*(?:\r?\n|$)/m.exec(body.slice(result.from));
+  const closing = new RegExp(
+    `^${frontmatterFenceSource}(?:\\r?\\n|$)`,
+    "m",
+  ).exec(body.slice(result.from));
   result.closed = !!closing;
   const end = closing ? result.from + closing.index : body.length;
   result.to =
@@ -60,6 +72,7 @@ export function readFrontmatter(body: string): Frontmatter {
       ? end - (body.slice(0, end).endsWith("\r\n") ? 2 : 1)
       : end;
   result.yaml = body.slice(result.from, result.to);
+  result.bodyStart = closing ? end + closing[0].length : body.length;
   result.markdown = closing ? body.slice(end + closing[0].length) : "";
   if (!closing) {
     result.warning = "속성의 닫는 ---가 없습니다. 원문을 그대로 보관합니다.";

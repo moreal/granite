@@ -1,4 +1,4 @@
-import { markdownLanguage } from "@codemirror/lang-markdown";
+import { noteMarkdownLanguage } from "./markdown";
 import type { Note } from "./notes";
 export interface WikiMatch {
   title: string;
@@ -10,7 +10,7 @@ export function wikiLink(title: string) {
 }
 export function codeRanges(body: string) {
   const ranges: { from: number; to: number }[] = [];
-  markdownLanguage.parser.parse(body).iterate({
+  noteMarkdownLanguage.parser.parse(body).iterate({
     enter(node) {
       if (["FencedCode", "CodeBlock", "InlineCode"].includes(node.name)) {
         ranges.push({ from: node.from, to: node.to });

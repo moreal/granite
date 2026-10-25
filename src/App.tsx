@@ -590,6 +590,13 @@ export default function App() {
             </span>
           </div>
           <div className="top-actions">
+            <button
+              className="mode-button"
+              disabled={!entry}
+              onClick={() => editor.current?.requestFormatting()}
+            >
+              문서 정리
+            </button>
             {workspace.storage.kind === "demo" && (
               <span className="demo-tag">DEMO</span>
             )}

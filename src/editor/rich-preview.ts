@@ -5,8 +5,9 @@ import {
   WidgetType,
   type DecorationSet,
 } from "@codemirror/view";
-import { markdownLanguage } from "@codemirror/lang-markdown";
+import { noteMarkdownLanguage } from "../domain/markdown";
 import katex from "katex";
+import { documentContext } from "./document-context";
 import { isImageAssetPath } from "../storage/assets";
 import "katex/dist/katex.min.css";
 
@@ -24,8 +25,11 @@ export function richNodes(state: EditorState): RichNode[] {
   const text = state.doc.toString(),
     nodes: RichNode[] = [],
     excluded: { from: number; to: number }[] = [];
-  markdownLanguage.parser.parse(text).iterate({
+  const { metadataEnd } = documentContext(text);
+  if (metadataEnd) excluded.push({ from: 0, to: metadataEnd });
+  noteMarkdownLanguage.parser.parse(text).iterate({
     enter(node) {
+      if (node.name !== "Document" && node.from < metadataEnd) return false;
       if (
         [
           "FencedCode",

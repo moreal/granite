@@ -757,6 +757,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hongdown/wasm@npm:0.5.3":
+  version: 0.5.3
+  resolution: "@hongdown/wasm@npm:0.5.3"
+  checksum: 10c0/8421041ccd24ac7f41043fe1cc950c93a0f1f899bdfded66d0970e49944fec966944405626071cabd2f1db430440663badab9054ac65ecb923435469f626a154
+  languageName: node
+  linkType: hard
+
 "@iconify/types@npm:^2.0.0":
   version: 2.0.0
   resolution: "@iconify/types@npm:2.0.0"
@@ -2593,6 +2600,7 @@ __metadata:
     "@codemirror/language-data": "npm:^6.5.2"
     "@codemirror/state": "npm:^6.5.0"
     "@codemirror/view": "npm:^6.38.0"
+    "@hongdown/wasm": "npm:0.5.3"
     "@lezer/highlight": "npm:^1.2.0"
     "@playwright/test": "npm:^1.58.0"
     "@testing-library/dom": "npm:^10.4.2"

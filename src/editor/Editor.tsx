@@ -1,3 +1,4 @@
+import { Dialog } from "../components/Dialog";
 import {
   useEffect,
   useRef,
@@ -5,50 +6,36 @@ import {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import { EditorState, Compartment, Prec, StateEffect } from "@codemirror/state";
-import {
-  EditorView,
-  Decoration,
-  ViewPlugin,
-  keymap,
-  placeholder,
-  type DecorationSet,
-  type ViewUpdate,
-} from "@codemirror/view";
+import { EditorState, Compartment, Prec } from "@codemirror/state";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
+import { frontmatterSyntax } from "../domain/markdown";
 import { languages } from "@codemirror/language-data";
-import { richPreview, imagePath, refreshRichPreview } from "./rich-preview";
-import {
-  syntaxTree,
-  syntaxHighlighting,
-  HighlightStyle,
-} from "@codemirror/language";
+import { imagePath } from "./rich-preview";
+import { previewLinks } from "./live-preview";
+import { documentContext, synchronizeDocument } from "./document-context";
+import { builtinPlugins } from "./plugins/builtins";
+import { resolveEditorPlugins, pluginCompletions } from "./plugins/registry";
+import type { EditorPlugin } from "./plugins/types";
+import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
 import {
   defaultKeymap,
   history,
   historyKeymap,
   isolateHistory,
 } from "@codemirror/commands";
-import {
-  autocompletion,
-  completionKeymap,
-  type CompletionContext,
-} from "@codemirror/autocomplete";
+import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { tags } from "@lezer/highlight";
-import {
-  localDate,
-  menuTrigger,
-  parseWikiLinks,
-  wikiLink,
-} from "../domain/links";
 import { pasteStillCurrent, safeWebUrl } from "./helpers";
 import type { LinkTemplate } from "../settings";
 import { renderLinkTemplate } from "./link-templates";
 export interface EditorHandle {
   selection(): { from: number; to: number };
   focus(): void;
+  requestFormatting(id?: string): void;
 }
 interface Props {
+  plugins?: readonly EditorPlugin[];
   linkTemplates?: readonly LinkTemplate[];
   documentKey?: string;
   onPasteImage?: (blob: Blob) => Promise<string>;
@@ -65,201 +52,6 @@ interface Props {
   onSelection: (size: number) => void;
   onOpen: (title: string) => void;
 }
-interface PreviewLink {
-  from: number;
-  to: number;
-  labelFrom: number;
-  labelTo: number;
-  target: string;
-  external: boolean;
-}
-function previewLinks(state: EditorState): PreviewLink[] {
-  const links: PreviewLink[] = parseWikiLinks(state.doc.toString()).map(
-    (link) => ({
-      ...link,
-      labelFrom: link.from + 2,
-      labelTo: link.to - 2,
-      target: link.title,
-      external: false,
-    }),
-  );
-  syntaxTree(state).iterate({
-    enter(node) {
-      if (["FencedCode", "CodeBlock", "InlineCode"].includes(node.name))
-        return false;
-      if (node.name !== "Link") return;
-      const raw = state.doc.sliceString(node.from, node.to);
-      const match = /^\[((?:\\.|[^\]])*)\]\(([^\s]+)\)$/.exec(raw);
-      if (match && !raw.includes("\n") && safeWebUrl(match[2])) {
-        links.push({
-          from: node.from,
-          to: node.to,
-          labelFrom: node.from + 1,
-          labelTo: node.from + 1 + match[1].length,
-          target: match[2],
-          external: true,
-        });
-      }
-      return false;
-    },
-  });
-  return links;
-}
-const refreshPreview = StateEffect.define<null>();
-function preview() {
-  return ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
-      constructor(view: EditorView) {
-        this.decorations = this.build(view);
-      }
-      update(update: ViewUpdate) {
-        // Keep the composing DOM stable, while tracking positions through edits.
-        if (update.view.composing) {
-          this.decorations = this.decorations.map(update.changes);
-          return;
-        }
-        if (
-          update.docChanged ||
-          update.selectionSet ||
-          update.viewportChanged ||
-          update.transactions.some((transaction) =>
-            transaction.effects.some((effect) => effect.is(refreshPreview)),
-          )
-        ) {
-          this.decorations = this.build(update.view);
-        }
-      }
-      build(view: EditorView) {
-        const ranges: ReturnType<
-          ReturnType<typeof Decoration.mark>["range"]
-        >[] = [];
-        const doc = view.state.doc;
-        const selection = view.state.selection.ranges;
-        const activeLines = new Set(
-          selection.flatMap((range) => {
-            const lines: number[] = [];
-            for (
-              let n = doc.lineAt(range.from).number;
-              n <= doc.lineAt(range.to).number;
-              n++
-            )
-              lines.push(n);
-            return lines;
-          }),
-        );
-        syntaxTree(view.state).iterate({
-          enter(node) {
-            const line = doc.lineAt(node.from);
-            if (node.name === "FencedCode" || node.name === "CodeBlock") {
-              for (
-                let number = line.number;
-                number <= doc.lineAt(node.to).number;
-                number++
-              ) {
-                ranges.push(
-                  Decoration.line({
-                    class:
-                      node.name === "FencedCode"
-                        ? "cm-fenced-code cm-code-layout"
-                        : "cm-code-layout",
-                  }).range(doc.line(number).from),
-                );
-              }
-            }
-            if (/^ATXHeading[1-6]$/.test(node.name)) {
-              ranges.push(
-                Decoration.line({
-                  class: "cm-heading cm-heading-" + node.name.slice(-1),
-                }).range(line.from),
-              );
-            }
-            if (node.name === "InlineCode") {
-              ranges.push(
-                Decoration.mark({ class: "cm-code-layout" }).range(
-                  node.from,
-                  node.to,
-                ),
-              );
-            }
-            if (activeLines.has(line.number)) return;
-            if (
-              ["HeaderMark", "EmphasisMark", "CodeMark", "CodeInfo"].includes(
-                node.name,
-              )
-            ) {
-              // The opening ATX marker owns its separator; indentation and
-              // closing-marker whitespace remain untouched document text.
-              const openingHeading =
-                node.name === "HeaderMark" &&
-                /^ATXHeading[1-6]$/.test(node.node.parent?.name ?? "") &&
-                node.node.parent?.firstChild?.from === node.from;
-              const separator = openingHeading
-                ? (doc.sliceString(node.to, line.to).match(/^[ \t]+/)?.[0]
-                    .length ?? 0)
-                : 0;
-              ranges.push(
-                Decoration.replace({}).range(node.from, node.to + separator),
-              );
-            }
-            const classes: Record<string, string> = {
-              StrongEmphasis: "cm-strong",
-              Emphasis: "cm-emphasis",
-              InlineCode: "cm-inline-code",
-            };
-            const className = classes[node.name];
-            if (className)
-              ranges.push(
-                Decoration.mark({ class: className }).range(node.from, node.to),
-              );
-          },
-        });
-        for (const link of previewLinks(view.state)) {
-          if (
-            selection.some(
-              (range) => range.from <= link.to && range.to >= link.from,
-            )
-          )
-            continue;
-          // Empty labels and multiline syntax stay editable as ordinary source.
-          if (link.labelFrom === link.labelTo) continue;
-          ranges.push(Decoration.replace({}).range(link.from, link.labelFrom));
-          ranges.push(
-            Decoration.mark({
-              class: "cm-note-link",
-              attributes: {
-                "data-link-target": link.target,
-                "data-link-external": String(link.external),
-              },
-            }).range(link.labelFrom, link.labelTo),
-          );
-          ranges.push(Decoration.replace({}).range(link.labelTo, link.to));
-          const label = doc.sliceString(link.labelFrom, link.labelTo);
-          const escapes = link.external ? /\\(.)/g : /\\([\\[\]])/g;
-          for (const match of label.matchAll(escapes)) {
-            const from = link.labelFrom + match.index;
-            ranges.push(Decoration.replace({}).range(from, from + 1));
-          }
-        }
-        return Decoration.set(ranges, true);
-      }
-    },
-    {
-      decorations: (plugin) => plugin.decorations,
-      eventHandlers: {
-        compositionend(_event, view) {
-          // CodeMirror finishes its composition handler before the queued refresh.
-          queueMicrotask(() => {
-            if (view.dom.isConnected)
-              view.dispatch({
-                effects: [refreshPreview.of(null), refreshRichPreview.of(null)],
-              });
-          });
-        },
-      },
-    },
-  );
-}
 interface Paste {
   from: number;
   to: number;
@@ -272,6 +64,130 @@ interface Paste {
 }
 export const Editor = forwardRef<EditorHandle, Props>(
   function Editor(props, ref) {
+    const formattingJob = useRef<{
+      controller: AbortController;
+      key: string | undefined;
+      revision: number;
+      original: string;
+      anchor: number;
+      head: number;
+      output?: string;
+    } | null>(null);
+    const [formatting, setFormatting] = useState<{
+      label: string;
+      original?: string;
+      output?: string;
+      message?: string;
+    } | null>(null);
+    function cancelFormatting() {
+      formattingJob.current?.controller.abort();
+      formattingJob.current = null;
+      setFormatting(null);
+    }
+    function formattingCurrent(job: NonNullable<typeof formattingJob.current>) {
+      return (
+        formattingJob.current === job &&
+        !job.controller.signal.aborted &&
+        latest.current.documentKey === job.key &&
+        revision.current === job.revision &&
+        !latest.current.locked &&
+        !!view.current &&
+        !view.current.composing &&
+        view.current.state.sliceDoc() === job.original
+      );
+    }
+    async function requestFormatting(id?: string) {
+      cancelFormatting();
+      const v = view.current;
+      if (!v || latest.current.locked || v.composing) return;
+      const formatter = resolveEditorPlugins(
+        latest.current.plugins ?? builtinPlugins,
+      )
+        .flatMap((p) => p.formatters ?? [])
+        .find((f) => !id || f.id === id);
+      if (!formatter) return;
+      const selection = v.state.selection.main;
+      const job = {
+        controller: new AbortController(),
+        key: latest.current.documentKey,
+        revision: revision.current,
+        original: v.state.sliceDoc(),
+        anchor: selection.anchor,
+        head: selection.head,
+        output: undefined as string | undefined,
+      };
+      formattingJob.current = job;
+      setFormatting({ label: formatter.label, message: "문서를 정리하는 중…" });
+      try {
+        const output = await formatter.format(job.original, {
+          signal: job.controller.signal,
+        });
+        if (!formattingCurrent(job)) return;
+        if (output === job.original) {
+          setFormatting({
+            label: formatter.label,
+            message: "정리할 변경 사항이 없습니다.",
+          });
+          return;
+        }
+        job.output = output;
+        setFormatting({
+          label: formatter.label,
+          original: job.original,
+          output,
+        });
+      } catch (error) {
+        if (formattingCurrent(job))
+          setFormatting({
+            label: formatter.label,
+            message:
+              error instanceof Error
+                ? error.message
+                : "문서 정리에 실패했습니다.",
+          });
+      }
+    }
+    function applyFormatting() {
+      const job = formattingJob.current,
+        v = view.current;
+      if (!job || !v || job.output === undefined || !formattingCurrent(job)) {
+        cancelFormatting();
+        return;
+      }
+      const output = v.state.toText(job.output);
+      const before = v.state.doc.toString(),
+        after = output.toString();
+      let from = 0,
+        oldEnd = before.length,
+        newEnd = after.length;
+      while (from < oldEnd && from < newEnd && before[from] === after[from])
+        from++;
+      while (
+        oldEnd > from &&
+        newEnd > from &&
+        before[oldEnd - 1] === after[newEnd - 1]
+      ) {
+        oldEnd--;
+        newEnd--;
+      }
+      const changes = v.state.changes({
+        from,
+        to: oldEnd,
+        insert: output.slice(from, newEnd),
+      });
+      cancelFormatting();
+      v.dispatch({
+        changes,
+        selection: {
+          anchor: changes.mapPos(job.anchor),
+          head: changes.mapPos(job.head),
+        },
+        annotations: isolateHistory.of("full"),
+        userEvent: "input.format",
+      });
+      v.focus();
+    }
+    resolveEditorPlugins(props.plugins ?? builtinPlugins);
     const mount = useRef<HTMLDivElement>(null),
       view = useRef<EditorView | null>(null),
       latest = useRef(props),
@@ -307,72 +223,45 @@ export const Editor = forwardRef<EditorHandle, Props>(
           return { from: s?.from ?? 0, to: s?.to ?? 0 };
         },
         focus: () => view.current?.focus(),
+        requestFormatting: (id) => {
+          void requestFormatting(id);
+        },
       }),
       [],
     );
     useEffect(() => {
       if (!mount.current) return;
-      const complete = (ctx: CompletionContext) => {
-        const trigger = menuTrigger(
-          ctx.state.doc.toString(),
-          ctx.pos,
-          !!ctx.view?.composing,
+      const complete = pluginCompletions(
+        () => resolveEditorPlugins(latest.current.plugins ?? builtinPlugins),
+        () => latest.current.titles,
+      );
+      const liveExtensions = () =>
+        resolveEditorPlugins(latest.current.plugins ?? builtinPlugins).flatMap(
+          (plugin) =>
+            plugin.liveExtensions?.({
+              readImage: latest.current.readImage,
+              open: (title) => latest.current.onOpen(title),
+            }) ?? [],
         );
-        if (!trigger) return null;
-        const commands =
-          trigger.kind === "command"
-            ? [
-                { title: "오늘", detail: "오늘 날짜 연결", offset: 0 },
-                { title: "어제", detail: "어제 날짜 연결", offset: -1 },
-                { title: "내일", detail: "내일 날짜 연결", offset: 1 },
-              ].filter((c) => c.title.includes(trigger.query))
-            : [];
-        const notes = latest.current.titles
-          .filter((t) =>
-            t.toLocaleLowerCase().includes(trigger.query.toLocaleLowerCase()),
-          )
-          .slice(0, 12);
-        const options = [
-          ...commands.map((c) => ({
-            label: c.title,
-            detail: c.detail,
-            type: "keyword",
-            apply: (v: EditorView, _c: unknown, from: number, to: number) => {
-              const text = wikiLink(localDate(c.offset));
-              v.dispatch({
-                changes: { from, to, insert: text },
-                selection: { anchor: from + text.length },
-                userEvent: "input.complete",
-              });
-            },
-          })),
-          ...notes.map((t) => ({
-            label: t,
-            detail: "노트",
-            type: "text",
-            apply: wikiLink(t),
-          })),
-        ];
-        if (
-          trigger.query &&
-          !notes.includes(trigger.query) &&
-          trigger.kind === "wiki"
-        )
-          options.push({
-            label: trigger.query,
-            detail: "새 연결 · 열 때 만들기",
-            type: "text",
-            apply: wikiLink(trigger.query),
-          });
-        return { from: trigger.from, to: trigger.to, options, filter: false };
-      };
       const v = new EditorView({
         parent: mount.current,
         state: EditorState.create({
           doc: latest.current.value,
+          selection: {
+            anchor: latest.current.source
+              ? 0
+              : documentContext(latest.current.value.replace(/\r\n/g, "\n"))
+                  .bodyStart,
+          },
           extensions: [
-            markdown({ codeLanguages: languages }),
+            markdown({
+              codeLanguages: languages,
+              extensions: frontmatterSyntax,
+            }),
             history(),
+            EditorState.lineSeparator.of(
+              latest.current.value.includes("\r\n") ? "\r\n" : "\n",
+            ),
             EditorView.lineWrapping,
             placeholder("본문을 입력하세요."),
             EditorView.contentAttributes.of({
@@ -418,9 +307,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
               interactionDelay: 0,
             }),
             previewConfig.current.of(
-              latest.current.source
-                ? []
-                : [preview(), richPreview(latest.current.readImage)],
+              latest.current.source ? [] : liveExtensions(),
             ),
             lockConfig.current.of([
               EditorState.readOnly.of(latest.current.locked),
@@ -428,6 +315,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
             ]),
             EditorView.updateListener.of((update) => {
               if (update.docChanged) {
+                cancelFormatting();
                 const job = imageJob.current;
                 if (job) {
                   let touched = false;
@@ -444,7 +332,7 @@ export const Editor = forwardRef<EditorHandle, Props>(
                 }
                 revision.current++;
                 changePaste(null);
-                latest.current.onChange(update.state.doc.toString());
+                latest.current.onChange(update.state.sliceDoc());
                 if (
                   update.transactions.some((transaction) =>
                     transaction.isUserEvent("input.complete"),
@@ -470,6 +358,10 @@ export const Editor = forwardRef<EditorHandle, Props>(
             }),
             Prec.highest(
               EditorView.domEventHandlers({
+                compositionstart() {
+                  cancelFormatting();
+                  return false;
+                },
                 paste(event, v) {
                   if (latest.current.locked) return true;
                   const images = Array.from(event.clipboardData?.items ?? [])
@@ -616,6 +508,8 @@ export const Editor = forwardRef<EditorHandle, Props>(
       });
       view.current = v;
       return () => {
+        formattingJob.current?.controller.abort();
+        formattingJob.current = null;
         imageJob.current = null;
         fetchJob.current?.abort();
         pasteRef.current = null;
@@ -624,25 +518,59 @@ export const Editor = forwardRef<EditorHandle, Props>(
       };
     }, []);
     useEffect(() => {
+      cancelFormatting();
       imageJob.current = null;
       changePaste(null);
       latest.current.onImageStatus?.(null);
     }, [props.documentKey, props.locked]);
     useEffect(() => {
       const v = view.current;
-      if (v && v.state.doc.toString() !== props.value) {
+      if (v && v.state.sliceDoc() !== props.value) {
+        // A narrow source edit maps a prose selection through property updates.
+        const before = v.state.doc.toString();
+        const afterText = v.state.toText(props.value);
+        const after = afterText.toString();
+        let from = 0;
+        while (
+          from < before.length &&
+          from < after.length &&
+          before[from] === after[from]
+        )
+          from++;
+        let oldEnd = before.length,
+          newEnd = after.length;
+        while (
+          oldEnd > from &&
+          newEnd > from &&
+          before[oldEnd - 1] === after[newEnd - 1]
+        ) {
+          oldEnd--;
+          newEnd--;
+        }
         v.dispatch({
-          changes: { from: 0, to: v.state.doc.length, insert: props.value },
+          changes: { from, to: oldEnd, insert: afterText.slice(from, newEnd) },
+          annotations: [
+            synchronizeDocument.of(true),
+            isolateHistory.of("full"),
+          ],
         });
       }
     }, [props.value]);
     useEffect(() => {
       view.current?.dispatch({
         effects: previewConfig.current.reconfigure(
-          props.source ? [] : [preview(), richPreview(props.readImage)],
+          props.source
+            ? []
+            : resolveEditorPlugins(props.plugins ?? builtinPlugins).flatMap(
+                (plugin) =>
+                  plugin.liveExtensions?.({
+                    readImage: props.readImage,
+                    open: (title) => latest.current.onOpen(title),
+                  }) ?? [],
+              ),
         ),
       });
-    }, [props.source, props.readImage, props.documentKey]);
+    }, [props.source, props.readImage, props.documentKey, props.plugins]);
     useEffect(() => {
       view.current?.dispatch({
         effects: lockConfig.current.reconfigure([
@@ -850,6 +778,43 @@ export const Editor = forwardRef<EditorHandle, Props>(
     return (
       <div className={"editor-wrap" + (props.source ? " source-mode" : "")}>
         <div ref={mount} />
+        {formatting && (
+          <Dialog title={formatting.label} onClose={cancelFormatting}>
+            <p>
+              변경 내용을 확인한 뒤 적용하세요. 적용 후 실행 취소할 수 있습니다.
+            </p>
+            {formatting.message && <p role="status">{formatting.message}</p>}
+            {formatting.output !== undefined && (
+              <div className="format-comparison">
+                <label>
+                  원문
+                  <textarea
+                    aria-label="정리 전 원문"
+                    readOnly
+                    value={formatting.original}
+                  />
+                </label>
+                <label>
+                  정리 결과
+                  <textarea
+                    aria-label="정리 결과"
+                    readOnly
+                    value={formatting.output}
+                  />
+                </label>
+              </div>
+            )}
+            <div className="dialog-actions">
+              <button onClick={cancelFormatting}>취소</button>
+              {formatting.output !== undefined && (
+                <button className="primary" onClick={applyFormatting}>
+                  적용
+                </button>
+              )}
+            </div>
+          </Dialog>
+        )}
+
         {paste && (
           <div
             ref={menu}

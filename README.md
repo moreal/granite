@@ -81,4 +81,16 @@ Chromatic은 합성 데모의 별도 Playwright 시각 검사로 연결합니다
 - [구현 계획](docs/superpowers/plans/2026-10-23-granite-mvp.md)
 - [리뷰 가이드](docs/review-guide.md)
 
-라이선스: [MIT](LICENSE).
+## 라이선스와 대응 소스
+
+Granite는 2026년 현재 버전부터 [GNU AGPL-3.0-or-later](LICENSE)로 배포합니다.
+이전 MIT 버전의 저작권·라이선스 고지는
+[LICENSES/MIT-legacy.txt](LICENSES/MIT-legacy.txt)에 보존했습니다.
+문서 정리에 포함한 `@hongdown/wasm@0.5.3`은 GPL-3.0-or-later입니다.
+[서드파티 고지와 소스 설명](THIRD_PARTY_NOTICES.md)에 정확한 Hongdown
+릴리스·커밋과 빌드 방법을 기록했습니다.
+
+공개 앱의 **라이선스와 소스**에서는 AGPL/GPL 전문, 배포에 사용한 Granite
+소스와 Hongdown 0.5.3 원본 소스, 파일별 SHA-256 목록을 내려받을 수 있습니다.
+로컬에서 같은 제공물을 만들려면 `yarn build` 후
+`node scripts/publish-source.mjs`를 실행합니다.

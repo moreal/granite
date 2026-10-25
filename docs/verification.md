@@ -80,3 +80,7 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 - [좁은 창](screenshots/narrow.png)
 
 이슈 재현과 수정 후 확인 내역은 [Task 2 보고서](task-2-report.md)에 기록한다.
+
+## 2026-10-25 편집기 플러그인 / 문서 정리 (S04/S17/S20)
+
+고정 Hongdown 0.5.3 실제 Node WASM과 Chromium worker를 사용한다. 원문/결과 검토, 취소, 적용과 단일 undo, 리비전/키/잠금/조합 이벤트 무효화, 유효 CRLF frontmatter 보존과 오류 거절, 위키/이미지/수식/Mermaid 보호를 검증한다. `/granite/` production build에서 worker 및 2.49 MB WASM의 같은 출처 요청을 확인한다. 화면 증거는 `docs/screenshots/formatting-{light,dark}-{1440,390}.png` 및 `editor-plugins-*`다. 전체 실행 결과는 `.superpowers/hongdown/task-2-report.md` 작업 보고에 기록한다. 테스트 저장소는 데모이며, 실제 사용자 폴더 picker/권한 또는 OS 네이티브 IME는 검증하지 않았다.
