@@ -12,6 +12,7 @@ export function NoteHeader(props: {
   source?: boolean;
   sourceEditing?: boolean;
   onSource?: () => void;
+  onOpen?: (title: string) => void;
   locked: boolean;
   wordCount: number;
   onBody: (body: string) => void;
@@ -29,6 +30,7 @@ export function NoteHeader(props: {
         source={props.source}
         sourceEditing={props.sourceEditing}
         onSource={props.onSource}
+        onOpen={props.onOpen}
         documentKey={props.documentKey}
         body={props.entry.body}
         locked={props.locked}

@@ -27,10 +27,13 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
   const [value, setValue] = createSignal(props.kind === "type" ? "Book" : "");
   const [result, setResult] = createSignal("");
   const [source, setSource] = createSignal(false);
+  const [openedNote, setOpenedNote] = createSignal("");
   const [noteBody, setNoteBody] = createSignal(
     props.kind === "mode-invalid"
       ? "---\ntype: [\n---\n본문과 원문 보존"
-      : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
+      : props.kind === "mode-links"
+        ? "---\ntype: Book\nauthor: '소개 [[작가]]와 [[대상 조직]]의 기록'\nabout:\n  - '[[대상 책]] 관련 글'\n  - 3\n  - false\ncount: 2\n---\n본문"
+        : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
   );
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
   return (
@@ -63,20 +66,37 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
         />
       )}
       {props.kind.startsWith("mode-") && (
-        <NoteProperties
-          body={noteBody()}
-          documentKey="mode-story"
-          locked={!!props.disabled}
-          mode={props.kind.startsWith("mode-yaml") ? "yaml" : "form"}
-          onSource={() => setResult("전체 원문 수정 요청")}
-          references={[
-            noteReference("대상 책", "---\ntype: Book\n---\n"),
-            noteReference("대상 조직", "---\ntype: Organization\n---\n"),
-            noteReference("대상 작가", "---\ntype: Person\n---\n"),
-            noteReference("대상 사용자", "body"),
-          ]}
-          onChange={setNoteBody}
-        />
+        <>
+          {openedNote() && (
+            <article aria-label="연결된 노트">
+              <h2>{openedNote()}</h2>
+              <p>속성 링크로 연 노트의 본문입니다.</p>
+              <button type="button" onClick={() => setOpenedNote("")}>
+                속성 노트로 돌아가기
+              </button>
+            </article>
+          )}
+          <div hidden={!!openedNote()}>
+            <NoteProperties
+              body={noteBody()}
+              documentKey="mode-story"
+              locked={!!props.disabled}
+              mode={props.kind.startsWith("mode-yaml") ? "yaml" : "form"}
+              onSource={() => setResult("전체 원문 수정 요청")}
+              onOpen={(title) => {
+                setOpenedNote(title);
+                setResult(`${title} 노트 열기`);
+              }}
+              references={[
+                noteReference("대상 책", "---\ntype: Book\n---\n"),
+                noteReference("대상 조직", "---\ntype: Organization\n---\n"),
+                noteReference("대상 작가", "---\ntype: Person\n---\n"),
+                noteReference("대상 사용자", "body"),
+              ]}
+              onChange={setNoteBody}
+            />
+          </div>
+        </>
       )}
       {props.kind === "inline-properties" && (
         <NoteProperties
@@ -308,6 +328,15 @@ const propertyModeStory = (kind: string) => ({
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByText("속성", { exact: true }));
     if (kind === "mode-type") {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "작가 노트 열기" }),
+      );
+      await expect(
+        canvas.getByRole("heading", { name: /^작가$/ }),
+      ).toBeVisible();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "속성 노트로 돌아가기" }),
+      );
       const button = canvas.getByRole("button", {
         name: "type 값 편집",
       });
@@ -318,6 +347,15 @@ const propertyModeStory = (kind: string) => ({
       await userEvent.clear(input);
       await userEvent.type(input, "Per");
       await expect(canvas.getByRole("listbox")).toBeVisible();
+      await userEvent.click(
+        canvas.getByRole("button", { name: "작가 노트 열기" }),
+      );
+      await expect(input).toHaveValue("Per");
+      await expect(input).toHaveFocus();
+      await expect(canvas.queryByRole("article")).toBeNull();
+      await expect(
+        canvas.getByText("입력 중인 값을 적용하거나 취소해 주세요."),
+      ).toBeVisible();
     } else if (kind.startsWith("mode-yaml")) {
       const input = canvas.getByRole("textbox", {
         name: "속성 YAML 원문",
@@ -397,6 +435,7 @@ const propertyModeStory = (kind: string) => ({
   },
 });
 export const PropertiesDisplay = propertyModeStory("mode-display");
+export const PropertiesLinks = propertyModeStory("mode-links");
 export const PropertiesType = propertyModeStory("mode-type");
 export const PropertiesYaml = propertyModeStory("mode-yaml");
 export const PropertiesWarning = propertyModeStory("mode-warning");

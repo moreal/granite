@@ -97,4 +97,14 @@ S24d 입력 안정성 회귀: `tests/components/yaml-caret.spec.ts`는 Storybook
 | S25e | 초기 유형/새 속성 후보가 방향키에 따라 목록 안에서 보이고 적용/취소 뒤 의미 있는 초점 유지 | U `property-controls`; C `property-ux` 17회 왕복, 문서 스크롤/입력 초점, 기존/새 속성 확정·취소 |
 | S25f | 읽지 못한 YAML에서는 불가능한 폼 추가를 숨기고 기존 전체 원문 수정을 제공. 보관한 초안은 취소 가능 | U `property-controls` invalid map/읽을 수 있는 type 안내 구분; C `properties-invalid-form`; E 기존 `property-modes` 전체 원문 왕복 |
 
+## S26 읽는 속성에서 연결 노트 열기
+
+기준: [S26](superpowers/specs/2026-10-25-property-link-navigation.md), 기존 S01/S04/S06/S10/S17/S23/S24/S25.
+
+| 기준 | 기대 동작 | 검증 |
+| --- | --- | --- |
+| S26a/b | 문자열·직접 목록의 위키링크를 일반 클릭/Enter로 열고 편집은 분리한다. 여러·이스케이프 링크와 주변 텍스트를 유지하며 없는 대상은 생성 확인, HTML/URL 모양 제목은 안전한 로컬 텍스트로 처리한다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 실제 클릭/Enter·저장/재열기/연결·목록·미완성 링크·없는 대상·안전한 표시; C [components](../tests/components/components.spec.ts) 실제 대상 화면·돌아오기·편집 초점 복원·중첩 조작 없음 |
+| S26c | 어떤 폼 초안이든 이동 전에 적용/취소로 안내하고 값·오류·입력 초점을 보존한다. 열린 유형 후보가 포인터 클릭을 방해하지 않는다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 거부된 숫자·Per 유형 초안·실제 포인터/Enter 이동 보류; C [components](../tests/components/components.spec.ts) PropertiesType 준비 완료 후 native Enter·초점 보존 |
+| S26d | 실제 앱320/390/960px와 운영 컴포넌트320/960px 라이트·다크에서 읽을 수 있는 링크 너비·첫 줄 정렬·별도 편집·초안 안내를 확인한다. | E [property-navigation](../tests/e2e/property-navigation.spec.ts) 상대 너비·넘침·작은 캡처; C [components](../tests/components/components.spec.ts) 첫 텍스트 줄 위치·작은 캡처; 직접 화면 검토와 증거는 [검증 기록](verification.md#2026-10-25-읽는-속성에서-연결-노트-열기-s26) |
+
 C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다. 데모/합성 이벤트/Chromium 근거이며 실제 폴더 picker/권한·OS IME·스크린리더 세션 검증은 아니다.

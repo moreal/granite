@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 const states = [
   "properties-display",
+  "properties-links",
   "properties-type",
   "properties-value",
   "properties-new",
@@ -34,6 +35,70 @@ const states = [
   "settings",
   "format",
 ];
+test("S26 actual property links open a target view with click and Enter; pending type draft stays intact", async ({
+  page,
+}) => {
+  await page.goto(
+    "iframe.html?id=production-components--properties-links&viewMode=story",
+  );
+  await expect(page.locator("#storybook-root")).toHaveAttribute(
+    "data-story-ready",
+    "true",
+  );
+  const surface = page.getByTestId("component");
+  await expect(surface.locator("button button, button a")).toHaveCount(0);
+  await surface
+    .getByRole("button", { name: "작가 노트 열기", exact: true })
+    .click();
+  await expect(
+    surface.getByRole("article", { name: "연결된 노트" }),
+  ).toContainText("작가");
+  await expect(
+    surface.getByRole("heading", { name: "작가", exact: true }),
+  ).toBeVisible();
+  await surface.getByRole("button", { name: "속성 노트로 돌아가기" }).click();
+  await surface
+    .getByRole("button", { name: "대상 책 노트 열기", exact: true })
+    .focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    surface.getByRole("heading", { name: "대상 책", exact: true }),
+  ).toBeVisible();
+  await surface.getByRole("button", { name: "속성 노트로 돌아가기" }).click();
+  await surface
+    .getByRole("button", { name: "author 값 편집", exact: true })
+    .click();
+  const author = surface.getByRole("combobox", {
+    name: "author 값",
+    exact: true,
+  });
+  await expect(author).toHaveValue("소개 [[작가]]와 [[대상 조직]]의 기록");
+  await surface.getByRole("button", { name: "취소", exact: true }).click();
+  await expect(
+    surface.getByRole("button", { name: "author 값 편집", exact: true }),
+  ).toBeFocused();
+
+  await page.goto(
+    "iframe.html?id=production-components--properties-type&viewMode=story",
+  );
+  await expect(page.locator("#storybook-root")).toHaveAttribute(
+    "data-story-ready",
+    "true",
+  );
+  const type = page.getByRole("combobox", { name: "type 값", exact: true });
+  await expect(type).toHaveValue("Per");
+  await page
+    .getByRole("button", { name: "작가 노트 열기", exact: true })
+    .press("Enter");
+  await expect(type).toHaveValue("Per");
+  await expect(type).toBeFocused();
+  await expect(page.getByRole("article", { name: "연결된 노트" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("status").filter({ hasText: "적용하거나 취소" }),
+  ).toBeVisible();
+});
 for (const state of states)
   test(`S22 ${state} cropped narrow production component`, async ({
     page,
@@ -135,6 +200,32 @@ for (const state of states)
       });
       expect(Math.abs(geometry.label - geometry.value)).toBeLessThanOrEqual(1);
       expect(geometry.height).toBeGreaterThanOrEqual(40);
+    }
+    if (state === "properties-links") {
+      const rows = page
+        .locator(".property-row")
+        .filter({ has: page.locator(".property-note-link") });
+      const offsets = await rows.evaluateAll((elements) =>
+        elements.map((element) => {
+          const top = (node: Element) => {
+            const walker = document.createTreeWalker(
+              node,
+              NodeFilter.SHOW_TEXT,
+            );
+            let text = walker.nextNode();
+            while (text && !text.textContent?.trim()) text = walker.nextNode();
+            const range = document.createRange();
+            range.selectNodeContents(text!);
+            return range.getBoundingClientRect().top;
+          };
+          return Math.abs(
+            top(element.querySelector("dt")!) -
+              top(element.querySelector(".property-value-text")!),
+          );
+        }),
+      );
+      expect(offsets.length).toBe(2);
+      for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
     }
     if (state === "properties-type")
       await expect(
@@ -278,6 +369,7 @@ for (const state of states)
     if (
       [
         "properties-display",
+        "properties-links",
         "properties-type",
         "properties-value",
         "properties-new",

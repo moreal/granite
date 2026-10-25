@@ -21,6 +21,7 @@ export function NoteProperties(props: {
   source?: boolean;
   sourceEditing?: boolean;
   onSource?: () => void;
+  onOpen?: (title: string) => void;
   onChange: (body: string) => void;
   locked: boolean;
 }) {
@@ -59,6 +60,16 @@ export function NoteProperties(props: {
     existing: boolean;
   } | null>(null);
   const [draftValue, setDraftValue] = createSignal("");
+  const blockDraft = () => {
+    if (!draft()) return false;
+    setDraftBlocked(true);
+    queueMicrotask(() => valueInput?.focus());
+    return true;
+  };
+  const open = (title: string) => {
+    if (props.locked || blockDraft()) return;
+    props.onOpen?.(title);
+  };
   const finish = () => {
     const pending = draft();
     setDraft(null);
@@ -90,11 +101,7 @@ export function NoteProperties(props: {
   };
   const begin = (name: string, existing = false) => {
     if (props.locked || !name.trim()) return;
-    if (draft()) {
-      setDraftBlocked(true);
-      queueMicrotask(() => valueInput?.focus());
-      return;
-    }
+    if (blockDraft()) return;
     if (metadata().present && !metadata().readable) return;
     setError(null);
     setDraftBlocked(false);
@@ -311,6 +318,7 @@ export function NoteProperties(props: {
                   onBegin={begin}
                   onPropertyKey={setKey}
                   onSource={props.onSource}
+                  onOpen={props.onOpen ? open : undefined}
                   onChange={props.onChange}
                 />
               </>

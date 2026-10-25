@@ -24,6 +24,7 @@ export function PropertyForm(props: {
   onBegin: (name: string, existing?: boolean) => void;
   onPropertyKey: (key: string) => void;
   onSource?: () => void;
+  onOpen?: (title: string) => void;
   onChange: (body: string) => void;
 }) {
   return (
@@ -69,6 +70,7 @@ export function PropertyForm(props: {
                     disabled={props.locked}
                     onEdit={() => props.onBegin(item()[0], true)}
                     onSource={props.onSource}
+                    onOpen={props.onOpen}
                   />
                 </>
               )}

@@ -149,3 +149,11 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 최종 검증 기록은 `.superpowers/property-ux/implementation.md`와 대응 로그다. 단위265개와 관련 앱 브라우저20개, 전체 운영 컴포넌트43개와 프로덕션 시각24개, 앱/E2E/Storybook 타입 검사, `/granite/` 앱 및 Storybook 빌드가 통과했다. 실제 운영 Storybook에 조용한 입력/검증 후/결과 없음/보관 초안/잘못된 폼 준비 완료 상태를 추가했고 native 입력·조합·idle·떠남·저장·접힘과320/960px 라이트·다크 화면을 확인한다. 폴더 picker/권한창·OS IME·네이티브 스크린리더·비 Chromium undo 검증을 뜻하지 않는다.
 
 대표 새 화면은 [조용한 YAML 입력](screenshots/property-ux-yaml-quiet-320-light.png), [떠난 뒤 YAML 확인](screenshots/property-ux-yaml-validated-320-dark.png), [보존된 숫자 초안](screenshots/property-ux-draft-preserved-960-light.png), [전체 원문 복구](screenshots/property-ux-invalid-form-320-light.png), [기존 노트 결과 없음](screenshots/property-ux-yaml-no-results-320-light.png)이다. 모두 최종 컴포넌트 검사의 `testInfo.outputPath`에서 생성하고 직접 열어 확인한 뒤 복사했다.
+
+## 2026-10-25 읽는 속성에서 연결 노트 열기 (S26)
+
+[S26 승인 기준](superpowers/specs/2026-10-25-property-link-navigation.md)에 따라 폼의 저장된 문자열·직접 목록 문자열에서 위키링크를 일반 클릭/Enter로 연다. 링크와 별도의 편집 버튼을 제공하고, type/@type·복잡한 맵·YAML/전체 원문의 기존 텍스트 편집을 유지한다. 같은 위키링크 파서와 앱의 기존 노트/없는 노트 생성 확인 경로를 사용한다. 미확정 폼 초안이 있으면 S25 적용/취소 안내를 보여 주고 값·오류·입력 초점을 보존한다. 열린 유형 후보가 포인터 클릭 중 사라져 링크가 움직이지 않게 입력 초점을 유지한다.
+
+수정 전 실제 앱 브라우저 회귀는 노트 열기 조작을 찾지 못해 실패했다. 최종 로컬 검사에서 단위265개, 관련 앱 브라우저21개, 전체 운영 컴포넌트45개와 앱/E2E/Storybook 타입 검사, `/granite/` 앱·Storybook 빌드가 통과했다. 스칼라/목록의 여러·이스케이프·미완성 링크, 보존된 원문과 연결, 없는 대상 확인, HTML/URL 모양 제목의 안전한 텍스트 처리와 잘못된 숫자/유형 초안 보존을 확인한다. Storybook은 실제 대상 화면과 돌아오기를 제공하며 PropertiesType은 `Per` 초안 중 링크 클릭 보류를 재현한다.
+
+작은 캡처는 `testInfo.outputPath`로 생성했다. 실제 앱320/390/960px 라이트·다크와 운영 컴포넌트320/960px 라이트·다크의 링크 첫 줄 정렬·읽을 수 있는 너비·분리된 편집 버튼·초안 안내를 확인했다. 실제 앱의 좁은 속성 영역에서는 이름·값·편집을 쌓아 링크를 한 글자씩 줄바꿈하지 않게 한다. 안정된 로컬 검토본과 상세 결과는 `.superpowers/property-link-navigation/evidence/`와 `report.md`에 있다. 데모 저장소·Chromium 검증이며 실제 폴더 picker/권한·OS IME·스크린리더 검증을 뜻하지 않는다.

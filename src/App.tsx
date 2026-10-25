@@ -733,6 +733,7 @@ export default function App() {
                         workspace()!.storage.id + ":" + current()!
                       }
                       onSource={() => setSource(true)}
+                      onOpen={openTitle}
                       titles={notes().map((note) => note.title)}
                       documentKey={workspace()!.storage.id + ":" + current()!}
                       entry={entry()!}
