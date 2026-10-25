@@ -27,7 +27,7 @@ test("S20 default automatic WASM formatting saves and reloads; undo remains undo
   await editor(page).press("ControlOrMeta+z");
   await page.waitForTimeout(2100);
   await expect(editor(page)).toContainText("[other](https://example.org)");
-  await editor(page).press("ControlOrMeta+Shift+z");
+  await editor(page).press("ControlOrMeta+Shift+Z");
   await expect(editor(page)).toContainText("[other]: https://example.org");
 });
 
@@ -123,4 +123,40 @@ test("S20 worker failure keeps normal autosave and raw text across reload withou
   );
   expect(attempts).toBe(2);
   await saved(page);
+});
+
+test("S20 selection cancels a running default automatic worker and resumes after release", async ({
+  page,
+}) => {
+  let release!: () => void;
+  let requested!: () => void;
+  const workerRequested = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let attempts = 0;
+  await page.route("**/*hongdown.worker*", async (route) => {
+    if (++attempts === 1) {
+      requested();
+      await gate;
+    }
+    await route.continue();
+  });
+  await demo(page);
+  await create(page, "선택 중 정리 대기");
+  await source(page);
+  const original = "[selected](https://example.com)";
+  await body(page, original);
+  await workerRequested;
+  await editor(page).press("ControlOrMeta+a");
+  release();
+  await page.waitForTimeout(1800);
+  await expect(editor(page)).toHaveText(original);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await editor(page).press("ArrowRight");
+  await expect(editor(page)).toContainText("[selected]: https://example.com");
+  await saved(page);
+  expect(attempts).toBe(2);
 });

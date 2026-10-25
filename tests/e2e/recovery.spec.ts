@@ -1,3 +1,4 @@
+import { disableAutomaticFormatting } from "../helpers/ui";
 import { test, expect } from "@playwright/test";
 import {
   demo,
@@ -162,6 +163,8 @@ test("S10 switching recovery candidates preserves newly edited unique text", asy
   page,
   context,
 }) => {
+  // Isolate original draft identities from optional Markdown normalization.
+  await disableAutomaticFormatting(page);
   page.on("dialog", (dialog) => dialog.accept());
   const installFailure = async (target: typeof page) =>
     target.addInitScript(() => {
@@ -182,6 +185,7 @@ test("S10 switching recovery candidates preserves newly edited unique text", asy
   await source(page);
   const other = await context.newPage();
   other.on("dialog", (dialog) => dialog.accept());
+  await disableAutomaticFormatting(other);
   await installFailure(other);
   await other.goto("/");
   await expect(

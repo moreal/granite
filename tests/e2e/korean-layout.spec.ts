@@ -5,6 +5,7 @@ import {
   demo,
   editor,
   rawNotes,
+  disableAutomaticFormatting,
   saved,
   source,
 } from "../helpers/ui";
@@ -12,6 +13,8 @@ import {
 test("S04/S12/S17 Korean headings and graph labels share their start edge", async ({
   page,
 }) => {
+  // This fixture verifies preview/layout leaves literal Markdown bytes unchanged.
+  await disableAutomaticFormatting(page);
   await demo(page);
   await create(page, "한국어 정렬 확인");
   await source(page);

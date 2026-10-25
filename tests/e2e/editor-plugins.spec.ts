@@ -7,11 +7,14 @@ import {
   saved,
   source,
   rawNotes,
+  disableAutomaticFormatting,
 } from "../helpers/ui";
 
 test("S04/S17 metadata is protected and quotes render in both themes and widths", async ({
   page,
 }) => {
+  // This fixture verifies preview/layout leaves literal Markdown bytes unchanged.
+  await disableAutomaticFormatting(page);
   await demo(page);
   await create(page, "속성과 인용문");
   await source(page);
