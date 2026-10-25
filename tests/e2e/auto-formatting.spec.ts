@@ -7,6 +7,7 @@ import {
   source,
   saved,
   rawNotes,
+  redo,
 } from "../helpers/ui";
 
 test("S20 default automatic WASM formatting saves and reloads; undo remains undone", async ({
@@ -27,7 +28,7 @@ test("S20 default automatic WASM formatting saves and reloads; undo remains undo
   await editor(page).press("ControlOrMeta+z");
   await page.waitForTimeout(2100);
   await expect(editor(page)).toContainText("[other](https://example.org)");
-  await editor(page).press("ControlOrMeta+Shift+Z");
+  await redo(page);
   await expect(editor(page)).toContainText("[other]: https://example.org");
 });
 

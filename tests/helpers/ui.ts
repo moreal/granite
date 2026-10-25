@@ -84,3 +84,11 @@ export async function disableAutomaticFormatting(page: Page) {
     );
   });
 }
+
+/** Shifted printable keys must carry their uppercase event.key on Linux too. */
+export async function redo(
+  page: Page,
+  modifier: "ControlOrMeta" | "Control" = "ControlOrMeta",
+) {
+  await editor(page).press(`${modifier}+Shift+Z`);
+}

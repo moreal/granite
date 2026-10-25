@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from "@playwright/test";
-import { demo, editor, body, paste, saved, create } from "../helpers/ui";
+import { demo, editor, body, paste, saved, create, redo } from "../helpers/ui";
 
 async function effectiveOpacity(locator: Locator) {
   return locator.evaluate((element) => {
@@ -100,7 +100,8 @@ test("S04/S06/S10/S12: edits, commands, autocomplete and note loads preserve chr
   await page.keyboard.press("ControlOrMeta+z");
   await expect(chrome).toHaveCSS("opacity", "0.3");
   await page.keyboard.press("Escape");
-  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await redo(page);
+  await expect(editor(page)).toHaveText("가나");
   await expect(chrome).toHaveCSS("opacity", "0.3");
   await page.keyboard.press("ControlOrMeta+s");
   await expect(chrome).toHaveCSS("opacity", "1");

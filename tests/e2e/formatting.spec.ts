@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { filenameFor } from "../../src/domain/notes";
 import {
   body,
   create,
@@ -7,6 +8,7 @@ import {
   source,
   saved,
   rawNotes,
+  redo,
   disableAutomaticFormatting,
 } from "../helpers/ui";
 test("S20 CmdS formats with real worker and saves without confirmation, undo remains available", async ({
@@ -23,17 +25,22 @@ test("S20 CmdS formats with real worker and saves without confirmation, undo rem
     page.getByRole("button", { name: "문서 정리", exact: true }),
   ).toHaveCount(0);
   await saved(page);
-  expect(
-    Object.values(await rawNotes(page)).some((note) =>
-      note.raw.includes("[site]: https://example.com"),
-    ),
-  ).toBe(true);
+  const filename = filenameFor("저장 정리");
+  const persisted = (await rawNotes(page))[filename].raw;
+  expect(persisted).toContain("[site]: https://example.com");
   await editor(page).press("ControlOrMeta+z");
   await expect(editor(page)).toContainText("[site](https://example.com)");
-  await editor(page).press("ControlOrMeta+Shift+z");
+  await redo(page);
+  await expect(editor(page)).toContainText("[site]: https://example.com");
   await editor(page).press("ControlOrMeta+s");
   await saved(page);
+  await expect
+    .poll(async () => (await rawNotes(page))[filename]?.raw)
+    .toBe(persisted);
   await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "저장 정리", exact: true }),
+  ).toBeVisible();
   await source(page);
   await expect(editor(page)).toContainText("[site]: https://example.com");
 });
