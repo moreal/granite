@@ -1,4 +1,3 @@
-import { disableAutomaticFormatting } from "../helpers/ui";
 import { test, expect } from "@playwright/test";
 test("S20 production subpath serves the local formatter worker and WASM", async ({
   page,
@@ -16,10 +15,9 @@ test("S20 production subpath serves the local formatter worker and WASM", async 
   await page.keyboard.insertText(
     "# 제목\n\n> 인용문\n> 다음 줄\n\n[site](https://example.com)",
   );
-  await page.getByRole("button", { name: "문서 정리", exact: true }).click();
-  await expect(page.getByLabel("정리 결과")).toHaveValue(
-    /\[site\]: https:\/\/example\.com/,
-  );
+  await editor.press("ControlOrMeta+s");
+  await expect(editor).toContainText("[site]: https://example.com");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(
     requests.some((url) =>
       /\/granite\/assets\/hongdown.worker-.*\.js/.test(url),
@@ -32,9 +30,4 @@ test("S20 production subpath serves the local formatter worker and WASM", async 
     requests.every((url) => url.startsWith("http://127.0.0.1:4175/granite/")),
   ).toBe(true);
   expect(errors).toEqual([]);
-});
-
-// Visual/manual fixtures intentionally keep their literal Markdown unchanged.
-test.beforeEach(async ({ page }) => {
-  await disableAutomaticFormatting(page);
 });

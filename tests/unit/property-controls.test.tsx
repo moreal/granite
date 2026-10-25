@@ -24,7 +24,7 @@ it("S21 offers union properties and suppresses duplicates; keyboard and IME are 
   expect(select).toHaveBeenCalledWith("birthDate");
   expect(input.getAttribute("aria-expanded")).toBe("false");
 });
-it("S21 adds a quoted empty value preserving CRLF and focuses that value", async () => {
+it("S21 stages values without insertion, commits exact CRLF and cancels", async () => {
   let body = "---\r\n# comment\r\ntype: Book\r\nunknown: x\r\n---\r\nprose";
   const change = vi.fn((next: string) => {
     body = next;
@@ -35,19 +35,50 @@ it("S21 adds a quoted empty value preserving CRLF and focuses that value", async
     locked: false,
     onChange: change,
   });
-  const details = view.container.querySelector("details")!;
-  details.open = true;
+  view.container.querySelector("details")!.open = true;
   const picker = screen.getByRole("combobox");
   fireEvent.input(picker, { target: { value: "author" } });
   fireEvent.keyDown(picker, { key: "Enter" });
   await act(async () => await Promise.resolve());
+  expect(change).not.toHaveBeenCalled();
+  const value = screen.getByLabelText("author 값");
+  expect(document.activeElement).toBe(value);
+  fireEvent.input(value, { target: { value: "[[새 저자]]" } });
+  fireEvent.keyDown(value, { key: "Enter" });
   expect(body).toBe(
-    '---\r\n# comment\r\ntype: Book\r\nunknown: x\r\n"author": ""\r\n---\r\nprose',
+    '---\r\n# comment\r\ntype: Book\r\nunknown: x\r\n"author": "[[새 저자]]"\r\n---\r\nprose',
   );
-  const yaml = screen.getByLabelText("속성 YAML 원문") as HTMLTextAreaElement;
-  expect(document.activeElement).toBe(yaml);
-  // Native textarea normalizes CRLF to LF; selection follows its actual value.
-  expect(yaml.value[yaml.selectionStart]).toBe('"');
+  fireEvent.input(picker, { target: { value: "about" } });
+  fireEvent.click(screen.getByRole("button", { name: "속성 넣기" }));
+  fireEvent.keyDown(screen.getByLabelText("about 값"), { key: "Escape" });
+  expect(change).toHaveBeenCalledTimes(1);
+});
+it("S21 rejects stale document and source drafts while preserving their values", () => {
+  const change = vi.fn();
+  const body = "---\ntype: Book\ncount: 2 # keep\n---\nprose";
+  const view = render(NoteProperties, {
+    body,
+    documentKey: "one",
+    locked: false,
+    onChange: change,
+  });
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "count 값 편집" }));
+  const input = screen.getByLabelText("count 값");
+  fireEvent.input(input, { target: { value: "3" } });
+  view.rerender({
+    body: body + "changed",
+    documentKey: "one",
+    locked: false,
+    onChange: change,
+  });
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(change).not.toHaveBeenCalled();
+  expect((input as HTMLInputElement).value).toBe("3");
+  expect(screen.getByRole("alert").textContent).toContain("문서가 변경");
+  view.rerender({ body, documentKey: "two", locked: false, onChange: change });
+  fireEvent.keyDown(input, { key: "s", ctrlKey: true });
+  expect(change).not.toHaveBeenCalled();
 });
 it("S21 refuses guided insertion into invalid YAML while retaining editable source", () => {
   const change = vi.fn();
@@ -62,7 +93,11 @@ it("S21 refuses guided insertion into invalid YAML while retaining editable sour
   });
   fireEvent.click(screen.getByRole("button", { name: "속성 넣기" }));
   expect(change).not.toHaveBeenCalled();
+  fireEvent.keyDown(screen.getByLabelText("author 값"), { key: "Enter" });
   expect(screen.getAllByRole("alert").length).toBe(2);
+  (
+    view.container.querySelector(".property-advanced") as HTMLDetailsElement
+  ).open = true;
   fireEvent.input(screen.getByLabelText("속성 YAML 원문"), {
     target: { value: "type: Book" },
   });
@@ -107,4 +142,36 @@ it("S21 stale popup cannot replace text after caret moves or a range is selected
   input.setSelectionRange(0, 4);
   fireEvent.keyDown(input, { key: "Enter" });
   expect(change).not.toHaveBeenCalled();
+});
+
+it("S21 a deleted property or removed frontmatter leaves its stale draft visible and cancellable", () => {
+  const change = vi.fn();
+  const body = "---\ntype: Book\ncount: 2\n---\nprose";
+  const view = render(NoteProperties, {
+    body,
+    documentKey: "one",
+    locked: false,
+    onChange: change,
+  });
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "count 값 편집" }));
+  fireEvent.input(screen.getByLabelText("count 값"), {
+    target: { value: "3" },
+  });
+  for (const changed of ["---\ntype: Book\n---\nprose", "prose"]) {
+    view.rerender({
+      body: changed,
+      documentKey: "one",
+      locked: false,
+      onChange: change,
+    });
+    const pending = screen.getByLabelText("count 값") as HTMLInputElement;
+    expect(pending.value).toBe("3");
+    fireEvent.keyDown(pending, { key: "Enter" });
+    expect(change).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("문서가 변경");
+  }
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  expect(screen.queryByLabelText("count 값")).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
 });

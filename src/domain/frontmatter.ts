@@ -159,3 +159,68 @@ export function propertyText(value: unknown): string {
       .join(" · ");
   return String(value);
 }
+
+/** Replace only a single-line scalar token. Comments and surrounding bytes stay exact. */
+export function patchPropertyScalar(
+  body: string,
+  name: string,
+  input: string,
+): { body?: string; error: string | null } {
+  const metadata = readFrontmatter(body);
+  if (!metadata.closed || metadata.warning)
+    return { error: "올바른 속성 원문을 먼저 확인해 주세요." };
+  const doc = parseDocument(metadata.yaml, {
+    schema: "core",
+    uniqueKeys: true,
+  });
+  if (!isMap(doc.contents)) return { error: "속성 원문을 확인해 주세요." };
+  const pair = doc.contents.items.find(
+    (item) => isScalar(item.key) && item.key.value === name,
+  );
+  const scalar = pair?.value;
+  if (
+    !isScalar(scalar) ||
+    !scalar.range ||
+    scalar.type === "BLOCK_LITERAL" ||
+    scalar.type === "BLOCK_FOLDED" ||
+    scalar.tag ||
+    scalar.anchor
+  )
+    return { error: "이 값은 YAML 원문에서 편집해 주세요." };
+  const original = metadata.yaml.slice(scalar.range[0], scalar.range[1]);
+  if (/[\r\n]/.test(original))
+    return { error: "여러 줄 값은 YAML 원문에서 편집해 주세요." };
+  let value: string;
+  if (typeof scalar.value === "string") value = JSON.stringify(input);
+  else if (typeof scalar.value === "number") {
+    if (
+      !input.trim() ||
+      !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(input.trim()) ||
+      !Number.isFinite(Number(input))
+    )
+      return { error: "숫자를 입력해 주세요." };
+    value = input.trim();
+  } else if (typeof scalar.value === "boolean") {
+    if (input !== "true" && input !== "false")
+      return { error: "true 또는 false를 입력해 주세요." };
+    value = input;
+  } else if (scalar.value === null) {
+    if (input !== "null") return { error: "null을 입력해 주세요." };
+    value = "null";
+  } else return { error: "이 값은 YAML 원문에서 편집해 주세요." };
+  const from = metadata.from + scalar.range[0],
+    to = metadata.from + scalar.range[1];
+  if (from === to) {
+    if (body[from - 1] === ":") value = " " + value;
+    if (body[to] === "#") value += " ";
+  }
+  return { body: body.slice(0, from) + value + body.slice(to), error: null };
+}
+
+export function canEditPropertyScalar(body: string, name: string): boolean {
+  const metadata = readFrontmatter(body);
+  return (
+    patchPropertyScalar(body, name, propertyText(metadata.properties.get(name)))
+      .error === null
+  );
+}

@@ -298,8 +298,24 @@ export default function App() {
       const keys = (e: KeyboardEvent) => {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
           e.preventDefault();
-          if (workspaceRef.current && currentRef.current)
-            void workspaceRef.current.flush(currentRef.current);
+          const target = workspaceRef.current;
+          const title = currentRef.current;
+          const handle = editor.current;
+          if (target && title)
+            void (async () => {
+              await Promise.resolve();
+              try {
+                await handle?.formatForSave();
+              } catch {
+                /* Save the original on formatter failure. */
+              }
+              if (
+                workspaceRef.current === target &&
+                currentRef.current === title &&
+                editor.current === handle
+              )
+                await target.flush(title);
+            })();
         }
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
           e.preventDefault();
@@ -658,7 +674,6 @@ export default function App() {
                 source={source()}
                 connections={connections()}
                 focus={focus()}
-                onFormat={() => editor.current?.requestFormatting()}
                 onSource={() => setSource(!source())}
                 onConnections={() => {
                   if (focus() || !connections()) {
@@ -689,6 +704,7 @@ export default function App() {
                 {entry()! ? (
                   <>
                     <NoteHeader
+                      documentKey={workspace()!.storage.id + ":" + current()!}
                       entry={entry()!}
                       locked={busy()}
                       wordCount={count()}

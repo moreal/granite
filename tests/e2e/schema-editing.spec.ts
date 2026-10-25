@@ -17,14 +17,22 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
     .getByRole("option")
     .filter({ has: page.locator("strong", { hasText: /^author$/ }) })
     .click();
-  await expect(yaml).toHaveValue('type: Book\n"author": ""');
-  await expect(yaml).toBeFocused();
-  await yaml.pressSequentially("[[새 저자]]");
-  await expect(yaml).toHaveValue('type: Book\n"author": "[[새 저자]]"');
+  const value = page.getByRole("textbox", { name: "author 값", exact: true });
+  await expect(value).toBeFocused();
+  await expect(yaml).toHaveValue("type: Book");
+  await value.fill("[[새 저자]]");
+  await value.press("Enter");
   await picker.fill("about");
   await picker.press("Enter");
-  await expect(yaml).toBeFocused();
-  await yaml.pressSequentially("[[주제]]");
+  await page
+    .getByRole("textbox", { name: "about 값", exact: true })
+    .fill("[[주제]]");
+  await page
+    .getByRole("textbox", { name: "about 값", exact: true })
+    .press("ControlOrMeta+s");
+  await expect(yaml).toHaveValue(
+    'type: Book\n"author": "[[새 저자]]"\n"about": "[[주제]]"',
+  );
   await page.getByText("노트 그래프", { exact: true }).click();
   await expect(page.getByRole("region", { name: "노트 그래프" })).toContainText(
     "새 저자",
@@ -44,6 +52,7 @@ test("S21 raw YAML key/type completion preserves source, dismisses and supports 
   await source(page);
   await body(page, "---\n# keep\ntype: Book\nau\n---\nprose");
   await page.getByText("속성", { exact: true }).click();
+  await page.getByText("YAML 원문 편집", { exact: true }).click();
   const yaml = page.getByLabel("속성 YAML 원문");
   await yaml.focus();
   await yaml.press("ControlOrMeta+End");
@@ -156,6 +165,7 @@ test("S21 raw YAML dismisses completion when caret moves or text is selected", a
   await source(page);
   await body(page, "---\ntype: Book\nauthor\n---\nprose");
   await page.getByText("속성", { exact: true }).click();
+  await page.getByText("YAML 원문 편집", { exact: true }).click();
   const yaml = page.getByLabel("속성 YAML 원문");
   for (const key of ["Home", "ArrowLeft", "ControlOrMeta+a"]) {
     await yaml.fill("type: Book\nauthor");

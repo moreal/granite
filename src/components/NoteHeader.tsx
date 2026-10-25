@@ -3,6 +3,7 @@ import { NoteProperties } from "./NoteProperties";
 import type { Entry } from "../storage/workspace";
 export function NoteHeader(props: {
   entry: Entry;
+  documentKey?: string;
   locked: boolean;
   wordCount: number;
   onBody: (body: string) => void;
@@ -14,6 +15,7 @@ export function NoteHeader(props: {
       </div>
       <h1>{props.entry.note.title}</h1>
       <NoteProperties
+        documentKey={props.documentKey}
         body={props.entry.body}
         locked={props.locked}
         onChange={props.onBody}

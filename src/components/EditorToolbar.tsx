@@ -5,19 +5,11 @@ export function EditorToolbar(props: {
   source: boolean;
   connections: boolean;
   focus: boolean;
-  onFormat: () => void;
   onSource: () => void;
   onConnections: () => void;
 }) {
   return (
     <div class="top-actions">
-      <button
-        class="mode-button"
-        disabled={!props.hasNote}
-        onClick={props.onFormat}
-      >
-        문서 정리
-      </button>
       {props.demo && <span class="demo-tag">DEMO</span>}
       <button
         class={"mode-button" + (props.source ? " selected" : "")}

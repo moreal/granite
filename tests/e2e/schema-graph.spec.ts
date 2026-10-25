@@ -22,6 +22,7 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
   await expect(graph).toContainText("새 저자");
   await expect(graph).toContainText("없는 노트");
   await page.screenshot({ path: "docs/screenshots/schema-graph-desktop.png" });
+  await page.getByText("YAML 원문 편집", { exact: true }).click();
   await page
     .getByLabel("속성 YAML 원문")
     .fill(
@@ -61,6 +62,7 @@ test("S17 invalid properties stay editable and safe on a narrow screen", async (
   );
   await page.getByText("속성", { exact: true }).click();
   await expect(page.locator(".note-properties [role=alert]")).toBeVisible();
+  await page.getByText("YAML 원문 편집", { exact: true }).click();
   await page
     .getByLabel("속성 YAML 원문")
     .fill('type: Person\ncustom: "<img src=x onerror=alert(1)>"');

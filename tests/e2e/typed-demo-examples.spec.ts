@@ -10,7 +10,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
 }) => {
   await demo(page);
   await openListed(page, article);
-  await page.locator(".note-properties summary").click();
+  await page.locator(".note-properties > summary").click();
   await expect(page.locator(".note-properties")).toContainText("Article");
   await page.locator(".note-graph summary").click();
   const graph = page.getByRole("region", { name: "노트 그래프" });
@@ -22,6 +22,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await expect(graph).not.toContainText("본문 링크");
   await expect(graph).toContainText("author");
   await expect(graph).toContainText("about");
+  await page.getByText("YAML 원문 편집", { exact: true }).click();
   await page
     .getByLabel("속성 YAML 원문")
     .fill(
@@ -44,7 +45,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await expect(
     page.getByRole("heading", { name: article, exact: true }),
   ).toBeVisible();
-  await page.locator(".note-properties summary").click();
+  await page.locator(".note-properties > summary").click();
   await expect(page.getByLabel("속성 YAML 원문")).toHaveValue(
     'type: Article\nauthor: "[[덤프]]"\nabout: "[[좋은 질문을 모으는 일]]"',
   );

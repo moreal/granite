@@ -1555,3 +1555,39 @@ textarea:focus-visible {
   z-index: 12;
   box-shadow: 0 4px 16px #0002;
 }
+
+.property-value-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 3px 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.property-value-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  align-items: end;
+}
+.property-value-editor label {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.property-value-editor input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.property-value-editor .property-help {
+  flex-basis: 100%;
+}
+.property-advanced {
+  margin-top: 12px;
+}

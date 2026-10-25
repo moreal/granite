@@ -10,6 +10,7 @@ import { LinkTemplateRow } from "../src/components/LinkTemplateRow";
 import { TypePicker } from "../src/components/properties/TypePicker";
 import { PropertyPicker } from "../src/components/properties/PropertyPicker";
 import { PropertyCreateForm } from "../src/components/properties/PropertyCreateForm";
+import { NoteProperties } from "../src/components/NoteProperties";
 import { PropertyRow } from "../src/components/properties/PropertyRow";
 import { YamlEditor } from "../src/components/properties/YamlEditor";
 import { UrlPasteMenu } from "../src/editor/UrlPasteMenu";
@@ -24,9 +25,20 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
   const [value, setValue] = createSignal(props.kind === "type" ? "Book" : "");
   const [result, setResult] = createSignal("");
   const [source, setSource] = createSignal(false);
+  const [noteBody, setNoteBody] = createSignal(
+    "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
+  );
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
   return (
     <section class="story-surface" data-testid="component">
+      {props.kind === "inline-properties" && (
+        <NoteProperties
+          body={noteBody()}
+          documentKey="story-note"
+          locked={!!props.disabled}
+          onChange={setNoteBody}
+        />
+      )}
       {props.kind === "today" && (
         <div class="sidebar-actions">
           <TodayShortcut disabled={!!props.disabled} onOpen={setResult} />
@@ -111,7 +123,6 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           source={source()}
           connections={false}
           focus={false}
-          onFormat={noop}
           onSource={() => setSource(!source())}
           onConnections={noop}
         />
@@ -202,3 +213,17 @@ export const PasteFailed = story("paste-failed");
 export const PasteLoading = story("paste-loading");
 export const Settings = story("settings");
 export const Format = story("format");
+
+export const InlineProperties = {
+  ...story("inline-properties"),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText("속성", { exact: true }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: "author 값 편집" }),
+    );
+    await expect(
+      canvas.getByRole("textbox", { name: "author 값" }),
+    ).toHaveValue("[[작가]]");
+  },
+};

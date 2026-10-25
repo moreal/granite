@@ -36,6 +36,7 @@ export interface EditorHandle {
   };
   focus(): void;
   requestFormatting(id?: string): void;
+  formatForSave(): Promise<void>;
 }
 interface Props {
   autoFormat?: boolean;
@@ -321,6 +322,10 @@ export function Editor(
       return { from: s?.from ?? 0, to: s?.to ?? 0 };
     },
     focus: () => view.current?.focus(),
+    formatForSave: async () => {
+      if (automaticBlocked(true)) return;
+      await requestFormatting(undefined, true);
+    },
     requestFormatting: (id) => {
       void requestFormatting(id);
     },
@@ -460,6 +465,7 @@ export function Editor(
                   update.transactions.some(
                     (transaction) =>
                       transaction.docChanged &&
+                      !transaction.isUserEvent("input.format") &&
                       ["input", "delete", "undo", "redo"].some((event) =>
                         transaction.isUserEvent(event),
                       ),

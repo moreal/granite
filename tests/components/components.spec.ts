@@ -5,6 +5,7 @@ const states = [
   "type",
   "type-disabled",
   "property",
+  "inline-properties",
   "property-disabled",
   "create",
   "create-disabled",
@@ -118,9 +119,15 @@ for (const state of states)
     };
     await capture("light");
     if (
-      ["type", "create", "recovery", "settings", "format", "row-long"].includes(
-        state,
-      )
+      [
+        "type",
+        "create",
+        "recovery",
+        "settings",
+        "format",
+        "row-long",
+        "inline-properties",
+      ].includes(state)
     ) {
       await page.evaluate(
         () => (document.documentElement.dataset.theme = "dark"),

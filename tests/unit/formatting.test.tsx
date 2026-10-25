@@ -456,3 +456,82 @@ it("S20 manual review pauses eligible automatic work and cancel resumes the quie
   await act(async () => vi.advanceTimersByTimeAsync(1500));
   expect(s.view.state.sliceDoc()).toBe("original! formatted");
 });
+it("S20 save formatting applies without review and keeps one undo unit", async () => {
+  const { ref, view } = setup(async () => "formatted");
+  await act(async () => await ref.current!.formatForSave());
+  expect(view.state.sliceDoc()).toBe("formatted");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  act(() => {
+    undo(view);
+  });
+  expect(view.state.sliceDoc()).toBe("original");
+});
+it("S20 save formatting failure leaves raw source and selection protects source", async () => {
+  const format = vi.fn(async () => {
+    throw Error("failed");
+  });
+  const { ref, view } = setup(format);
+  await act(async () => await ref.current!.formatForSave());
+  expect(view.state.sliceDoc()).toBe("original");
+  view.dispatch({ selection: { anchor: 0, head: 3 } });
+  await act(async () => await ref.current!.formatForSave());
+  expect(format).toHaveBeenCalledTimes(1);
+});
+it.each(["edit", "key", "lock", "composition"])(
+  "S20 save discards stale asynchronous result after %s",
+  async (action) => {
+    let resolve!: (value: string) => void;
+    const s = setup(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        }),
+    );
+    const pending = s.ref.current!.formatForSave();
+    if (action === "edit")
+      act(() => s.view.dispatch({ changes: { from: 0, insert: "new " } }));
+    if (action === "key" || action === "lock")
+      s.rendered.rerender({
+        ...s.props,
+        documentKey: action === "key" ? "two" : "one",
+        locked: action === "lock",
+      });
+    if (action === "composition") fireEvent.compositionStart(s.box);
+    await act(async () => {
+      resolve("stale");
+      await pending;
+    });
+    expect(s.view.state.sliceDoc()).not.toBe("stale");
+    expect(s.onChange).not.toHaveBeenCalledWith("stale");
+  },
+);
+it("S20 repeated save jobs apply only the newest result", async () => {
+  const done: ((value: string) => void)[] = [];
+  const s = setup(
+    () =>
+      new Promise((resolve) => {
+        done.push(resolve);
+      }),
+  );
+  const first = s.ref.current!.formatForSave();
+  const second = s.ref.current!.formatForSave();
+  await act(async () => {
+    done[1]("newest");
+    await second;
+  });
+  await act(async () => {
+    done[0]("stale");
+    await first;
+  });
+  expect(s.view.state.sliceDoc()).toBe("newest");
+  expect(s.onChange).toHaveBeenCalledTimes(1);
+});
+
+it("S20 applying save formatting preserves command chrome intent instead of simulating typing", async () => {
+  const s = setup(async () => "formatted");
+  const typing = vi.fn();
+  s.rendered.rerender({ ...s.props, onUserEdit: typing });
+  await act(async () => await s.ref.current!.formatForSave());
+  expect(s.view.state.sliceDoc()).toBe("formatted");
+  expect(typing).not.toHaveBeenCalled();
+});
