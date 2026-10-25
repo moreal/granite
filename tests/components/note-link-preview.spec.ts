@@ -111,6 +111,7 @@ test("S28 transient pointer passes do not open a preview and leaving cancels pen
   await page.keyboard.press("Escape");
   await link.evaluate((element: HTMLButtonElement) => element.blur());
   await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
   await link.dispatchEvent("pointerenter", { pointerType: "mouse" });
   await page.clock.fastForward(150);
   await expect(preview).toBeHidden();
@@ -120,6 +121,15 @@ test("S28 transient pointer passes do not open a preview and leaving cancels pen
   await link.dispatchEvent("pointerenter", { pointerType: "mouse" });
   await page.clock.fastForward(200);
   await expect(preview).toBeVisible();
+  await link.dispatchEvent("pointerleave", {
+    pointerType: "mouse",
+    clientX: 0,
+    clientY: 0,
+  });
+  await page.clock.fastForward(100);
+  await expect(preview).toBeVisible();
+  await page.clock.fastForward(20);
+  await expect(preview).toBeHidden();
 });
 
 test("S28 missing story preserves creation confirmation rather than pretending a missing target already exists", async ({
@@ -157,8 +167,8 @@ test("S28 real pointer can pause inside the hover gap, enter the card and select
   await page.mouse.move(x, (trigger.y + trigger.height + card.y) / 2, {
     steps: 3,
   });
-  // Deliberately spend time in the real gap: a sub-millisecond close delay cannot pass.
-  await page.waitForTimeout(60);
+  // A user may pause in the physical bridge longer than the outside-dismiss delay.
+  await page.waitForTimeout(260);
   await expect(preview).toBeVisible();
   await page.mouse.move(x, card.y + 6, { steps: 3 });
   await page.waitForTimeout(160);
@@ -220,3 +230,45 @@ for (const entry of ["iframe", "manager"] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test("S28 narrow above-link bridge holds a slow pointer and leaving its corridor dismisses without an overlay", async ({
+  page,
+}) => {
+  await story(page, "property-link-preview");
+  await page.setViewportSize({ width: 320, height: 320 });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  await page.getByTestId("component").evaluate((element) => {
+    element.style.marginTop = "180px";
+  });
+  const link = page.getByRole("button").first(),
+    preview = page.getByRole("tooltip");
+  await link.evaluate((element: HTMLButtonElement) => element.blur());
+  await page.mouse.move(0, 0);
+  await link.hover();
+  await expect(preview).toBeVisible();
+  const trigger = (await link.boundingBox())!,
+    card = (await preview.boundingBox())!;
+  expect(card.y + card.height).toBeLessThan(trigger.y);
+  const x = trigger.x + trigger.width / 2,
+    gapY = (trigger.y + card.y + card.height) / 2;
+  await page.mouse.move(x, trigger.y + 1);
+  await page.mouse.move(x, gapY, { steps: 3 });
+  await page.waitForTimeout(260);
+  await expect(preview).toBeVisible();
+  await page.mouse.move(x, card.y + card.height - 4, { steps: 3 });
+  await expect(preview).toBeVisible();
+  await page.mouse.move(1, gapY, { steps: 3 });
+  await expect(preview).toBeHidden();
+  expect(
+    await page.evaluate(
+      ({ x, y }) =>
+        document.elementFromPoint(x, y)?.closest(".note-link-preview") !== null,
+      { x: 1, y: gapY },
+    ),
+  ).toBe(false);
+});

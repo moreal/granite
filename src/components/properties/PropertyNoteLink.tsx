@@ -1,3 +1,4 @@
+import { isInNotePreviewBridge } from "./note-preview-bridge";
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { Button } from "../../design-system/Button";
 import type { NotePreview, NotePreviewLookup } from "../../domain/note-preview";
@@ -31,6 +32,7 @@ export function PropertyNoteLink(props: {
     pointerFocus = false,
     dismissed = false;
   let fingerprint = "";
+  let pointer: { x: number; y: number } | undefined;
   const clearTimer = () => {
     clearTimeout(timer);
     timer = undefined;
@@ -42,6 +44,8 @@ export function PropertyNoteLink(props: {
     document.removeEventListener("keydown", escape, true);
     document.removeEventListener("scroll", scroll, true);
     document.removeEventListener("pointerdown", outside, true);
+    document.removeEventListener("pointermove", trackPointer, true);
+    pointer = undefined;
     window.removeEventListener("resize", hide);
     if (dismissActive === hide) dismissActive = undefined;
   };
@@ -62,6 +66,21 @@ export function PropertyNoteLink(props: {
         !popup.contains(event.target as Node))
     )
       hide();
+  };
+  const inBridge = () =>
+    !!pointer &&
+    open() &&
+    isInNotePreviewBridge(
+      pointer,
+      trigger.getBoundingClientRect(),
+      popup.getBoundingClientRect(),
+    );
+  const trackPointer = (event: PointerEvent) => {
+    if (!["mouse", "pen"].includes(event.pointerType)) return;
+    pointer = { x: event.clientX, y: event.clientY };
+    if (hovered || popupHovered || focused || inBridge()) clearTimer();
+    else if (timer === undefined)
+      timer = setTimeout(hide, delay("--delay-note-preview-close"));
   };
   const delay = (name: string) =>
     cssTimeMilliseconds(getComputedStyle(popup).getPropertyValue(name));
@@ -104,6 +123,7 @@ export function PropertyNoteLink(props: {
     document.addEventListener("keydown", escape, true);
     document.addEventListener("scroll", scroll, true);
     document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("pointermove", trackPointer, true);
     window.addEventListener("resize", hide);
     // Reactive text can settle after the native top-layer surface becomes visible.
     queueMicrotask(() => {
@@ -112,7 +132,7 @@ export function PropertyNoteLink(props: {
   };
   const leave = () => {
     clearTimer();
-    if (!hovered && !popupHovered && !focused)
+    if (open() && !hovered && !popupHovered && !focused && !inBridge())
       timer = setTimeout(hide, delay("--delay-note-preview-close"));
   };
   createEffect(
@@ -171,9 +191,11 @@ export function PropertyNoteLink(props: {
           hovered = true;
           dismissed = false;
           clearTimer();
-          timer = setTimeout(show, delay("--delay-note-preview-open"));
+          if (!open())
+            timer = setTimeout(show, delay("--delay-note-preview-open"));
         }}
-        onPointerLeave={() => {
+        onPointerLeave={(event) => {
+          pointer = { x: event.clientX, y: event.clientY };
           hovered = false;
           pointerFocus = false;
           leave();
@@ -209,7 +231,8 @@ export function PropertyNoteLink(props: {
           popupHovered = true;
           clearTimer();
         }}
-        onPointerLeave={() => {
+        onPointerLeave={(event) => {
+          pointer = { x: event.clientX, y: event.clientY };
           popupHovered = false;
           leave();
         }}
