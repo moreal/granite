@@ -28,7 +28,9 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
   const [result, setResult] = createSignal("");
   const [source, setSource] = createSignal(false);
   const [noteBody, setNoteBody] = createSignal(
-    "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
+    props.kind === "mode-invalid"
+      ? "---\ntype: [\n---\n본문과 원문 보존"
+      : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
   );
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
   return (
@@ -65,7 +67,8 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           body={noteBody()}
           documentKey="mode-story"
           locked={!!props.disabled}
-          mode={props.kind === "mode-yaml" ? "yaml" : "form"}
+          mode={props.kind.startsWith("mode-yaml") ? "yaml" : "form"}
+          onSource={() => setResult("전체 원문 수정 요청")}
           references={[
             noteReference("대상 책", "---\ntype: Book\n---\n"),
             noteReference("대상 조직", "---\ntype: Organization\n---\n"),
@@ -315,13 +318,31 @@ const propertyModeStory = (kind: string) => ({
       await userEvent.clear(input);
       await userEvent.type(input, "Per");
       await expect(canvas.getByRole("listbox")).toBeVisible();
-    } else if (kind === "mode-yaml") {
+    } else if (kind.startsWith("mode-yaml")) {
       const input = canvas.getByRole("textbox", {
         name: "속성 YAML 원문",
       });
       await userEvent.clear(input);
-      await userEvent.type(input, "author: @대상");
-      await expect(canvas.getByRole("listbox")).toBeVisible();
+      if (kind === "mode-yaml") {
+        await userEvent.type(input, "author: @대상");
+        await expect(canvas.getByRole("listbox")).toBeVisible();
+      } else if (kind === "mode-yaml-empty") {
+        await userEvent.type(input, 'author: "@없는노트"');
+        (input as HTMLTextAreaElement).setSelectionRange(
+          (input as HTMLTextAreaElement).value.length - 1,
+          (input as HTMLTextAreaElement).value.length - 1,
+        );
+        await userEvent.keyboard("{Control>} {/Control}");
+        await expect(
+          canvas.getByText(/일치하는 기존 노트가 없습니다/),
+        ).toBeVisible();
+      } else {
+        await userEvent.type(input, "type: [[");
+        if (kind === "mode-yaml-validated") await userEvent.tab();
+        await expect(canvas.queryByText("확인 필요") !== null).toBe(
+          kind === "mode-yaml-validated",
+        );
+      }
     } else if (kind === "mode-value" || kind === "mode-new") {
       if (kind === "mode-new") {
         const picker = canvas.getByRole("combobox", { name: "속성 이름 검색" });
@@ -337,6 +358,27 @@ const propertyModeStory = (kind: string) => ({
       await userEvent.clear(input);
       await userEvent.type(input, "@대상");
       await expect(canvas.getByRole("listbox")).toBeVisible();
+    } else if (kind === "mode-preserved") {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "count 값 편집" }),
+      );
+      const input = canvas.getByRole("textbox", { name: "count 값" });
+      await userEvent.clear(input);
+      await userEvent.type(input, "not a number");
+      await userEvent.keyboard("{Enter}");
+      await userEvent.click(
+        canvas.getByRole("button", { name: "author 값 편집" }),
+      );
+      await expect(input).toHaveValue("not a number");
+      await expect(canvas.getByRole("alert")).toHaveTextContent("숫자");
+      await expect(
+        canvas.getByText("입력 중인 값을 적용하거나 취소해 주세요."),
+      ).toBeVisible();
+    } else if (kind === "mode-invalid") {
+      await expect(canvas.queryByRole("combobox")).toBeNull();
+      await expect(
+        canvas.getByRole("button", { name: "전체 원문에서 속성 수정" }),
+      ).toBeVisible();
     } else if (kind === "mode-warning") {
       await userEvent.click(
         canvas.getByRole("button", { name: "author 값 편집" }),
@@ -361,3 +403,9 @@ export const PropertiesWarning = propertyModeStory("mode-warning");
 
 export const PropertiesValue = propertyModeStory("mode-value");
 export const PropertiesNew = propertyModeStory("mode-new");
+
+export const PropertiesYamlQuiet = propertyModeStory("mode-yaml-quiet");
+export const PropertiesYamlValidated = propertyModeStory("mode-yaml-validated");
+export const PropertiesYamlNoResults = propertyModeStory("mode-yaml-empty");
+export const PropertiesDraftPreserved = propertyModeStory("mode-preserved");
+export const PropertiesInvalidForm = propertyModeStory("mode-invalid");

@@ -30,3 +30,5 @@ yarn test:visual
 Tests CI는 빌드·컴포넌트 검사를 실행하고 보고서/trace/탐색기 빌드를14일 보관한다. Pages CI는 앱 뒤에 Storybook을 빌드하고 전체 dist와 명시적으로 허용한 대응 소스 압축을 게시한다. Schema.org 원본 JSON-LD·생성기·파생 JSON·출처·CC BY-SA3.0 전문과 아이콘 고지는 압축에 포함된다.
 
 합성 상태 검사이며 사용자 폴더 picker/권한창, 실제 OS IME 또는 네이티브 클립보드를 검증한 것이 아니다.
+
+S25에는 실제 NoteProperties의 `PropertiesYamlQuiet`, `PropertiesYamlValidated`, `PropertiesYamlNoResults`, `PropertiesDraftPreserved`, `PropertiesInvalidForm`을 추가했다. 각각 입력 중 조용한 미완성 YAML, 떠난 뒤 검증 안내, 기존 노트 결과 없음, 거부된 숫자 초안 보존, 전체 원문 복구를 재현한다. `data-story-ready=true` 이후 native 키보드로 계속 입력하는 회귀와320/960px 라이트·다크 캡처는 `tests/components/property-ux.spec.ts`가 맡는다. 새 캡처는 모두 테스트 결과 폴더에 생성한다.

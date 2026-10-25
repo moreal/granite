@@ -1,4 +1,4 @@
-import { createSignal, createMemo } from "solid-js";
+import { createSignal, createMemo, createEffect } from "solid-js";
 import {
   readFrontmatter,
   replaceFrontmatter,
@@ -19,6 +19,7 @@ export function NoteProperties(props: {
   references?: readonly NoteReference[];
   mode?: PropertyEditorMode;
   source?: boolean;
+  sourceEditing?: boolean;
   onSource?: () => void;
   onChange: (body: string) => void;
   locked: boolean;
@@ -27,6 +28,27 @@ export function NoteProperties(props: {
   const [key, setKey] = createSignal("");
   const [initialType, setInitialType] = createSignal("Thing");
   const [error, setError] = createSignal<string | null>(null);
+  let panel!: HTMLDetailsElement;
+  const [draftBlocked, setDraftBlocked] = createSignal(false);
+  const [yamlEditing, setYamlEditing] = createSignal<{
+    identity: string | undefined;
+  } | null>(null);
+  let yamlContext: string | undefined;
+  createEffect(
+    () => JSON.stringify([props.documentKey, props.mode, props.source]),
+    (context) => {
+      if (context !== yamlContext) {
+        yamlContext = context;
+        setYamlEditing(null);
+      }
+    },
+  );
+  const warningVisible = () =>
+    !!metadata().warning &&
+    !(props.source
+      ? props.sourceEditing
+      : yamlEditing()?.identity === props.documentKey &&
+        yamlEditing() !== null);
   let valueInput: HTMLInputElement | undefined;
   const [draft, setDraft] = createSignal<{
     name: string;
@@ -37,11 +59,45 @@ export function NoteProperties(props: {
     existing: boolean;
   } | null>(null);
   const [draftValue, setDraftValue] = createSignal("");
-  const editingYaml = () =>
-    props.mode === "yaml" && !props.source && !draft() && metadata().present;
+  const finish = () => {
+    const pending = draft();
+    setDraft(null);
+    setError(null);
+    setDraftBlocked(false);
+    queueMicrotask(() => {
+      if (
+        !pending ||
+        pending.identity !== props.documentKey ||
+        props.source ||
+        !panel.isConnected
+      )
+        return;
+      if (props.mode === "yaml") {
+        panel
+          .querySelector<HTMLElement>("textarea, .property-content button")
+          ?.focus();
+        return;
+      }
+      const row = pending.existing
+        ? [
+            ...panel.querySelectorAll<HTMLButtonElement>(
+              "button[data-property]",
+            ),
+          ].find((button) => button.dataset.property === pending.name)
+        : undefined;
+      (row ?? panel.querySelector<HTMLElement>("#new-property-key"))?.focus();
+    });
+  };
   const begin = (name: string, existing = false) => {
     if (props.locked || !name.trim()) return;
+    if (draft()) {
+      setDraftBlocked(true);
+      queueMicrotask(() => valueInput?.focus());
+      return;
+    }
+    if (metadata().present && !metadata().readable) return;
     setError(null);
+    setDraftBlocked(false);
     const value = metadata().properties.get(name);
     setDraftValue(existing ? propertyText(value) : "");
     setDraft({
@@ -91,7 +147,7 @@ export function NoteProperties(props: {
           props.body.slice(edit.to),
       );
     }
-    setDraft(null);
+    finish();
     setKey("");
   };
   const valueField = () => (
@@ -122,21 +178,12 @@ export function NoteProperties(props: {
         }}
         onChange={setDraftValue}
         onCommit={commit}
-        onCancel={() => {
-          setDraft(null);
-          setError(null);
-        }}
+        onCancel={finish}
       />
       <button type="button" disabled={props.locked} onClick={commit}>
         추가 / 적용
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          setDraft(null);
-          setError(null);
-        }}
-      >
+      <button type="button" onClick={finish}>
         취소
       </button>
       <PropertyAdvice
@@ -148,19 +195,23 @@ export function NoteProperties(props: {
     </div>
   );
   return (
-    <details class="note-properties">
+    <details ref={(element) => (panel = element)} class="note-properties">
       <summary>
         <span>속성</span>
-        {metadata().present && (
+        {metadata().present && !metadata().warning && (
           <span class="schema-type">{metadata().types.join(" · ")}</span>
+        )}
+        {warningVisible() && (
+          <span class="property-validation-cue">확인 필요</span>
         )}
       </summary>
       <div class="property-content">
-        {metadata().warning && !editingYaml() && (
-          <p class="property-warning" role="alert">
-            {metadata().warning}
-          </p>
-        )}
+        {warningVisible() &&
+          !(props.mode === "yaml" && !props.source && !draft()) && (
+            <p class="property-warning" role="status">
+              {metadata().warning}
+            </p>
+          )}
         {!metadata().present &&
           initialType() !== "Thing" &&
           (props.source || props.mode === "yaml") && (
@@ -182,6 +233,11 @@ export function NoteProperties(props: {
           </>
         ) : (
           <>
+            {draftBlocked() && (
+              <p class="property-help" role="status">
+                입력 중인 값을 적용하거나 취소해 주세요.
+              </p>
+            )}
             {draft() && props.mode === "yaml" && (
               <p class="property-help" role="status">
                 입력 중인 값을 적용하거나 취소하면 YAML 편집기로 전환합니다.
@@ -195,18 +251,33 @@ export function NoteProperties(props: {
                     references={props.references}
                     contextKey={props.documentKey}
                     disabled={props.locked}
+                    invalid={warningVisible()}
+                    describedBy={
+                      warningVisible()
+                        ? "property-yaml-warning property-yaml-help"
+                        : "property-yaml-help"
+                    }
+                    onEdit={() =>
+                      setYamlEditing({ identity: props.documentKey })
+                    }
+                    onValidate={() => setYamlEditing(null)}
                     onChange={(yaml) =>
                       props.onChange(replaceFrontmatter(props.body, yaml))
                     }
                   />
-                  {metadata().warning && (
-                    <p class="property-warning" role="alert">
-                      {metadata().warning}
+                  {warningVisible() && (
+                    <p
+                      id="property-yaml-warning"
+                      class="property-warning"
+                      role="status"
+                    >
+                      {metadata().warning} 문법을 고치면 속성과 연결에
+                      반영됩니다.
                     </p>
                   )}
-                  <p class="property-help">
-                    입력한 원문은 자동 저장합니다. @ 또는 [[로 노트를
-                    연결하세요.
+                  <p id="property-yaml-help" class="property-help">
+                    이름: 값 · type: Book. 입력한 원문은 자동 저장합니다. @ 또는
+                    [[로 기존 노트를 검색하세요.
                   </p>
                   <PropertyAdvice
                     body={props.body}

@@ -80,9 +80,9 @@ it("S21 rejects stale document and source drafts while preserving their values",
   fireEvent.keyDown(input, { key: "s", ctrlKey: true });
   expect(change).not.toHaveBeenCalled();
 });
-it("S21 refuses guided insertion into invalid YAML while retaining editable source", () => {
-  const change = vi.fn();
-  const onSource = vi.fn();
+it("S25 unreadable YAML offers source repair without misleading form creation", () => {
+  const change = vi.fn(),
+    onSource = vi.fn();
   const view = render(NoteProperties, {
     body: "---\ntype: [broken\n---\nprose",
     locked: false,
@@ -90,29 +90,19 @@ it("S21 refuses guided insertion into invalid YAML while retaining editable sour
     onSource,
   });
   view.container.querySelector("details")!.open = true;
-  fireEvent.input(screen.getByRole("combobox"), {
-    target: { value: "author" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "속성 넣기" }));
-  expect(change).not.toHaveBeenCalled();
-  fireEvent.keyDown(screen.getByLabelText("author 값"), { key: "Enter" });
-  expect(screen.getAllByRole("alert").length).toBe(2);
+  expect(screen.queryByRole("combobox")).toBeNull();
+  expect(screen.queryByRole("button", { name: "속성 넣기" })).toBeNull();
+  expect(view.container.querySelector("summary")!.textContent).toContain(
+    "확인 필요",
+  );
+  expect(view.container.querySelector("summary")!.textContent).not.toContain(
+    "Thing",
+  );
   fireEvent.click(
-    screen.getByRole("button", { name: "전체 원문에서 복잡한 속성 편집" }),
+    screen.getByRole("button", { name: "전체 원문에서 속성 수정" }),
   );
   expect(onSource).toHaveBeenCalledOnce();
-  expect(screen.queryByLabelText("속성 YAML 원문")).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
-  view.rerender({
-    body: "---\ntype: [broken\n---\nprose",
-    locked: false,
-    onChange: change,
-    mode: "yaml",
-  });
-  fireEvent.input(screen.getByLabelText("속성 YAML 원문"), {
-    target: { value: "type: Book" },
-  });
-  expect(change).toHaveBeenCalledWith("---\ntype: Book\n---\nprose");
+  expect(change).not.toHaveBeenCalled();
 });
 it("S21 raw YAML completions use exact ranges, Escape dismisses, disabled guards selection", () => {
   const change = vi.fn();
@@ -349,7 +339,8 @@ it("S24d YAML warning and source echoes keep the native textarea value and selec
     expect(screen.getByLabelText("속성 YAML 원문")).toBe(input);
     expect(document.activeElement).toBe(input);
     expect([input.selectionStart, input.selectionEnd]).toEqual([start, end]);
-    expect(!!screen.queryByRole("alert")).toBe(warning);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("확인 필요")).toBeNull();
     expect(writes).not.toHaveBeenCalled();
   }
   expect(body).toBe(
@@ -364,4 +355,180 @@ it("S24d YAML warning and source echoes keep the native textarea value and selec
     body: "---\ntype: Person\n---\n別の本文",
   });
   expect(input.value).toBe("type: Person");
+});
+
+it("S25 guards row and new-property switching without losing rejected numeric draft", async () => {
+  const change = vi.fn();
+  const view = render(NoteProperties, {
+    body: "---\ntype: Book\nauthor: old\ncount: 2\n---\nbody",
+    documentKey: "one",
+    locked: false,
+    onChange: change,
+  });
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "count 값 편집" }));
+  const input = screen.getByLabelText("count 값") as HTMLInputElement;
+  fireEvent.input(input, { target: { value: "invalid" } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  const error = screen.getByRole("alert").textContent;
+  fireEvent.click(screen.getByRole("button", { name: "author 값 편집" }));
+  expect(screen.getByLabelText("count 값")).toBe(input);
+  expect(input.value).toBe("invalid");
+  expect(screen.getByRole("alert").textContent).toBe(error);
+  expect(screen.getByRole("status").textContent).toContain("적용하거나 취소");
+  const picker = screen.getByRole("combobox", { name: "속성 이름 검색" });
+  for (const name of ["count", "about"]) {
+    fireEvent.input(picker, { target: { value: name } });
+    fireEvent.keyDown(picker, { key: "Enter" });
+    expect(input.value).toBe("invalid");
+    expect(screen.getByRole("alert").textContent).toBe(error);
+  }
+  await act(async () => await Promise.resolve());
+  expect(screen.getByLabelText("count 값")).toBe(input);
+  expect(input.value).toBe("invalid");
+  expect(document.activeElement).toBe(input);
+  expect(change).not.toHaveBeenCalled();
+});
+it("S25 apply and cancel return focus to the existing row or new-property picker", async () => {
+  let body = "---\ntype: Book\nauthor: old\n---\nbody";
+  const props = {
+    body,
+    documentKey: "one",
+    locked: false,
+    onChange: (next: string) => {
+      body = next;
+      view.rerender({ ...props, body });
+    },
+  };
+  const view = render(NoteProperties, props);
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "author 값 편집" }));
+  fireEvent.input(screen.getByLabelText("author 값"), {
+    target: { value: "new" },
+  });
+  fireEvent.keyDown(screen.getByLabelText("author 값"), { key: "Enter" });
+  await act(async () => await Promise.resolve());
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "author 값 편집" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "author 값 편집" }));
+  fireEvent.keyDown(screen.getByLabelText("author 값"), { key: "Escape" });
+  await act(async () => await Promise.resolve());
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "author 값 편집" }),
+  );
+  const picker = screen.getByRole("combobox", { name: "속성 이름 검색" });
+  fireEvent.input(picker, { target: { value: "custom" } });
+  fireEvent.keyDown(picker, { key: "Enter" });
+  fireEvent.keyDown(screen.getByLabelText("custom 값"), { key: "Escape" });
+  await act(async () => await Promise.resolve());
+  expect(document.activeElement).toBe(picker);
+});
+it("S25 YAML warnings wait for blur or save, stay discoverable collapsed, and reset on edit", () => {
+  let body = "---\ntype: Book\n---\nbody";
+  const props = {
+    body,
+    documentKey: "one",
+    mode: "yaml" as const,
+    locked: false,
+    onChange: (next: string) => {
+      body = next;
+      view.rerender({ ...props, body });
+    },
+  };
+  const view = render(NoteProperties, props);
+  view.container.querySelector("details")!.open = true;
+  const input = screen.getByLabelText("속성 YAML 원문");
+  fireEvent.input(input, { target: { value: "type: [" } });
+  expect(screen.queryByText("확인 필요")).toBeNull();
+  expect(view.container.querySelector(".property-warning")).toBeNull();
+  fireEvent.blur(input);
+  expect(
+    view.container.querySelector(".property-warning")!.getAttribute("role"),
+  ).not.toBe("alert");
+  expect(screen.getByText("확인 필요")).toBeTruthy();
+  view.container.querySelector("details")!.open = false;
+  expect(view.container.querySelector("summary")!.textContent).toContain(
+    "확인 필요",
+  );
+  fireEvent.input(input, { target: { value: "type: [b" } });
+  expect(screen.queryByText("확인 필요")).toBeNull();
+  fireEvent.keyDown(input, { key: "s", ctrlKey: true });
+  expect(screen.getByText("확인 필요")).toBeTruthy();
+  fireEvent.input(input, { target: { value: "type: Book" } });
+  expect(screen.queryByText("확인 필요")).toBeNull();
+  view.rerender({
+    ...props,
+    body: "---\ntype: [\n---\nbody",
+    documentKey: "two",
+  });
+  expect(screen.getByText("확인 필요")).toBeTruthy();
+  view.rerender({
+    ...props,
+    body: "---\ntype: [\n---\nbody",
+    documentKey: "one",
+  });
+  expect(screen.getByText("확인 필요")).toBeTruthy();
+});
+it("S25 recognized YAML note misses explain results while unsupported contexts stay quiet", () => {
+  const view = render(YamlEditor, {
+    value: 'author: "@missing"',
+    references: [],
+    onChange: vi.fn(),
+  });
+  const input = screen.getByLabelText("속성 YAML 원문") as HTMLTextAreaElement;
+  input.setSelectionRange(17, 17);
+  fireEvent.click(input);
+  expect(screen.getByRole("status").textContent).toContain(
+    "일치하는 기존 노트가 없습니다",
+  );
+  expect(screen.queryByRole("option")).toBeNull();
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(screen.queryByRole("status")).toBeNull();
+  view.rerender({
+    value: 'nested: {author: "@missing"}',
+    references: [],
+    onChange: vi.fn(),
+  });
+  input.setSelectionRange(25, 25);
+  fireEvent.click(input);
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+it("S25 unreadable source retains prior numeric draft/error/cancel, while a readable type advisory permits custom properties", () => {
+  const change = vi.fn();
+  const props = {
+    body: "---\ntype: Book\ncount: 2\n---\nbody",
+    documentKey: "one",
+    locked: false,
+    onChange: change,
+  };
+  const view = render(NoteProperties, props);
+  view.container.querySelector("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "count 값 편집" }));
+  fireEvent.input(screen.getByLabelText("count 값"), {
+    target: { value: "not a number" },
+  });
+  fireEvent.keyDown(screen.getByLabelText("count 값"), { key: "Enter" });
+  const error = screen.getByRole("alert").textContent;
+  view.rerender({ ...props, body: "---\ntype: [\n---\nbody" });
+  expect((screen.getByLabelText("count 값") as HTMLInputElement).value).toBe(
+    "not a number",
+  );
+  expect(screen.getByRole("alert").textContent).toBe(error);
+  expect(screen.queryByRole("combobox", { name: "속성 이름 검색" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  expect(screen.queryByLabelText("count 값")).toBeNull();
+  view.rerender({ ...props, body: "---\ntype: 2\ncustom: keep\n---\nbody" });
+  expect(screen.getByRole("combobox", { name: "속성 이름 검색" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "custom 값 편집" }));
+  expect((screen.getByLabelText("custom 값") as HTMLInputElement).value).toBe(
+    "keep",
+  );
+  expect(change).not.toHaveBeenCalled();
+  fireEvent.input(screen.getByLabelText("custom 값"), {
+    target: { value: "new" },
+  });
+  fireEvent.keyDown(screen.getByLabelText("custom 값"), { key: "Enter" });
+  expect(change).toHaveBeenCalledWith('---\ntype: 2\ncustom: "new"\n---\nbody');
 });

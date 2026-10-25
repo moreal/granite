@@ -84,3 +84,17 @@ S23 — [속성 값 노트 연결 기준](superpowers/specs/2026-10-25-save-prop
 S24 — [속성 편집 방식과 유형 안내 기준](superpowers/specs/2026-10-25-property-editor-modes.md). `property-recommendations.test.ts`는 범위 대안·상속·URL·여러 유형·미지정/사용자 정의 유형·불일치 순서를 검사한다. `yaml-note-completion.test.ts`와 `schema-editing.test.ts`는 YAML/전체 원문의 scalar/직접 목록·이스케이프·CRLF·정확한 교체와 제외 범위를 검사한다. `property-modes.spec.ts`는 실제 키 입력·선택·undo/redo·저장/재열기·그래프·유형 변경 반영, 설정 유지, 오류/오래된 초안/다른 탭 설정과 전체 원문 전환을 검사한다. 기존 S21/S23 회귀는 한 번에 한 편집기 계약에 맞춰 같은 저장/연결 동작을 유지한다. PropertiesDisplay/Type/Value/New/Yaml/Warning Storybook은 실제 운영 컴포넌트이며 준비 완료 후 컴포넌트 검사에서40px 입력/버튼·읽기/편집 텍스트 정렬, 도움말 아래 배치, 열린 메뉴 상태의 취소 클릭과 새 초안 label 표시를 확인한다.320px/960px 라이트·다크 작은 캡처를 생성한다. 합성 데모/이벤트 증거로, 실제 사용자 폴더 권한창·OS IME 검증과 구분한다.
 
 S24d 입력 안정성 회귀: `tests/components/yaml-caret.spec.ts`는 Storybook play 완료 뒤 실제 Chromium 키보드로 첫 줄 `type: Book`을 입력하고 매 글자의 DOM 동일성·초점·커서·입력창 위치를 확인한다. `property-controls.test.tsx`는 같은 원문의 재대입 방지·CRLF·경고 전환·선택 범위·다른 문서 반영, `property-modes.spec.ts`는 같은 운영 앱 입력과 선택 교체·native undo/redo·저장/재열기를 확인한다. 오류는 숨기지 않고 YAML 입력 아래에 표시한다.
+
+## S25 차분한 속성 편집
+
+기준: [S25](superpowers/specs/2026-10-25-property-editor-ux.md), 기존 S01/S04/S10/S12/S21/S22/S24.
+
+| 기준 | 사용자 기대 | 회귀 근거 |
+| --- | --- | --- |
+| S25a/b | YAML/전체 원문 입력·조합·대기 중 문법 경고를 감추고 떠남/저장 후 차분하게 표시한다. 접혀도 `확인 필요`로 발견하며 고치면 사라진다. | U `property-controls` 경고/재열기/textarea 동일 값 대입 방지; E `property-modes` source 입력/저장/정확한 invalid autosave/reload; C `yaml-caret`, `property-ux` post-play native 키보드/합성 조합/idle/접힘/설명 연결 |
+| S25c | 지원하는 YAML 노트 검색이 비면 결과 없음; 유형 검색은 사용자 정의 유형 안내 | U `property-controls`, `property-value-input`; C `property-ux` 실제 결과 없음 |
+| S25d | 다른/같은 속성 요청은 현재 초안·오류를 유지하며 적용/취소로 안내 | U `property-controls` 거부된 숫자/기존·신규·동일 행 요청/잘못된 원문; C `property-ux` mouse/keyboard 요청 |
+| S25e | 초기 유형/새 속성 후보가 방향키에 따라 목록 안에서 보이고 적용/취소 뒤 의미 있는 초점 유지 | U `property-controls`; C `property-ux` 17회 왕복, 문서 스크롤/입력 초점, 기존/새 속성 확정·취소 |
+| S25f | 읽지 못한 YAML에서는 불가능한 폼 추가를 숨기고 기존 전체 원문 수정을 제공. 보관한 초안은 취소 가능 | U `property-controls` invalid map/읽을 수 있는 type 안내 구분; C `properties-invalid-form`; E 기존 `property-modes` 전체 원문 왕복 |
+
+C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다. 데모/합성 이벤트/Chromium 근거이며 실제 폴더 picker/권한·OS IME·스크린리더 세션 검증은 아니다.

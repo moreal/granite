@@ -102,6 +102,7 @@ export default function App() {
     [busy, setBusy] = createSignal(false),
     [query, setQuery] = createSignal(""),
     [source, setSource] = createSignal(false),
+    [metadataEditing, setMetadataEditing] = createSignal<string | null>(null),
     [chromeIntent, setChromeIntent] = createSignal<
       "clear" | "typing" | "pointer"
     >("clear"),
@@ -146,6 +147,12 @@ export default function App() {
     if (!storage()!) return Promise.reject(new Error("저장소가 없습니다."));
     return storage()!.readImage(path);
   };
+  createEffect(
+    () => [current(), workspace(), source()],
+    () => {
+      setMetadataEditing(null);
+    },
+  );
   createEffect(
     () => [current()!, workspace()!],
     () =>
@@ -300,6 +307,7 @@ export default function App() {
       const keys = (e: KeyboardEvent) => {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
           e.preventDefault();
+          setMetadataEditing(null);
           const target = workspaceRef.current;
           const title = currentRef.current;
           const handle = editor.current;
@@ -720,6 +728,10 @@ export default function App() {
                       references={references()}
                       propertyMode={settings().propertyEditor}
                       source={source()}
+                      sourceEditing={
+                        metadataEditing() ===
+                        workspace()!.storage.id + ":" + current()!
+                      }
                       onSource={() => setSource(true)}
                       titles={notes().map((note) => note.title)}
                       documentKey={workspace()!.storage.id + ":" + current()!}
@@ -803,6 +815,10 @@ export default function App() {
                           onChange={(body) =>
                             workspace()!.edit(current()!, body)
                           }
+                          onEditStart={() => {
+                            if (source()) setMetadataEditing(identity);
+                          }}
+                          onEditLeave={() => setMetadataEditing(null)}
                           onUserEdit={() => setChromeIntent("typing")}
                           onCommand={revealChrome}
                           onMenuChange={(open) => {

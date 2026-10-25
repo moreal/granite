@@ -1056,6 +1056,10 @@ span.cm-rich-math {
 .note-properties summary > span + span {
   margin-left: 10px;
 }
+.property-validation-cue {
+  color: var(--muted);
+  font-size: 12px;
+}
 .schema-type {
   font-size: 11px;
   border: 1px solid var(--line, #e5e4df);

@@ -173,3 +173,21 @@ it("S24 bounds rendered typed recommendations after ranking and refinement finds
     "Book · 권장 유형과 다름",
   );
 });
+
+it("S25 type misses identify custom types rather than notes", () => {
+  const view = render(PropertyValueInput, {
+    label: "type 값",
+    value: "MyCustomType",
+    titles: [],
+    typeValue: true,
+    linkable: false,
+    onChange: vi.fn(),
+    onCommit: vi.fn(),
+    onCancel: vi.fn(),
+  });
+  fireEvent.focus(screen.getByLabelText("type 값"));
+  expect(screen.getByRole("status").textContent).toContain(
+    "일치하는 유형이 없습니다",
+  );
+  expect(screen.getByRole("status").textContent).not.toContain("노트");
+});

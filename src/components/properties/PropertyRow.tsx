@@ -20,6 +20,7 @@ export function PropertyRow(props: PropertyRowProps) {
               type="button"
               disabled={props.disabled}
               class="property-value-button"
+              data-property={props.name}
               onClick={() =>
                 props.editable ? props.onEdit?.() : props.onSource?.()
               }

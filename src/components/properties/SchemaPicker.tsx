@@ -18,6 +18,19 @@ export function SchemaPicker(props: SchemaPickerProps) {
   const [open, setOpen] = createSignal(false);
   const [active, setActive] = createSignal(0);
   let composing = false;
+  let list: HTMLUListElement | undefined;
+  const revealActive = () =>
+    queueMicrotask(() => {
+      if (!open() || props.disabled || !list?.isConnected) return;
+      const row = list.children[active()] as HTMLElement | undefined;
+      if (!row) return;
+      const viewport = list.getBoundingClientRect(),
+        bounds = row.getBoundingClientRect();
+      const top = viewport.top + list.clientTop,
+        bottom = top + list.clientHeight;
+      if (bounds.top < top) list.scrollTop += bounds.top - top;
+      else if (bounds.bottom > bottom) list.scrollTop += bounds.bottom - bottom;
+    });
   const choose = (value: string) => {
     if (!props.disabled && !composing) {
       props.onSelect(value);
@@ -41,7 +54,10 @@ export function SchemaPicker(props: SchemaPickerProps) {
             ? `${props.id}-option-${active()}`
             : undefined
         }
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true);
+          revealActive();
+        }}
         onBlur={() => setOpen(false)}
         onCompositionStart={() => {
           composing = true;
@@ -53,6 +69,7 @@ export function SchemaPicker(props: SchemaPickerProps) {
           props.onChange(e.target.value);
           setActive(0);
           setOpen(true);
+          revealActive();
         }}
         onKeyDown={(e) => {
           if (composing || e.isComposing || props.disabled) return;
@@ -62,15 +79,15 @@ export function SchemaPicker(props: SchemaPickerProps) {
           } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
             setOpen(true);
-            setActive((value) =>
-              Math.max(
-                0,
-                Math.min(
-                  props.options.length - 1,
-                  value + (e.key === "ArrowDown" ? 1 : -1),
-                ),
+            const next = Math.max(
+              0,
+              Math.min(
+                props.options.length - 1,
+                active() + (e.key === "ArrowDown" ? 1 : -1),
               ),
             );
+            setActive(next);
+            revealActive();
           } else if (e.key === "Enter" && open()) {
             e.preventDefault();
             choose(props.options[active()]?.id ?? props.value);
@@ -78,7 +95,12 @@ export function SchemaPicker(props: SchemaPickerProps) {
         }}
       />
       {open() && !props.disabled && (
-        <ul id={`${props.id}-options`} role="listbox" class="schema-options">
+        <ul
+          ref={(element) => (list = element)}
+          id={`${props.id}-options`}
+          role="listbox"
+          class="schema-options"
+        >
           <For each={props.options} keyed={(option) => option.id}>
             {(option, index) => (
               <li

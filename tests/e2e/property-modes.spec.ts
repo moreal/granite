@@ -377,8 +377,7 @@ test("S24d first-line YAML typing keeps focus, selection, history and position a
       start: prefix.length,
       end: prefix.length,
     });
-    if (prefix === "t")
-      await expect(page.locator(".property-warning")).toBeVisible();
+    await expect(page.locator(".property-warning")).toHaveCount(0);
   }
   await expect(page.locator(".property-warning")).toHaveCount(0);
   await yaml.evaluate((element: HTMLTextAreaElement) =>
@@ -398,4 +397,33 @@ test("S24d first-line YAML typing keeps focus, selection, history and position a
   await page.reload();
   await page.getByText("속성", { exact: true }).click();
   await expect(yaml).toHaveValue("type: Person\nauthor: old # keep");
+});
+
+test("S25 source typing stays quiet until blur/save and invalid raw autosaves and reopens", async ({
+  page,
+}) => {
+  await disableAutomaticFormatting(page);
+  await demo(page);
+  await create(page, "S25 원문 검증");
+  await source(page);
+  await body(page, "---\ntype: Book\n---\n# 보존");
+  await saved(page);
+  await page.getByText("속성", { exact: true }).click();
+  await body(page, "---\ntype: [\n---\n# 보존");
+  await expect(page.locator(".property-warning")).toHaveCount(0);
+  await expect(page.getByText("확인 필요", { exact: true })).toHaveCount(0);
+  await saved(page);
+  expect((await rawNotes(page))[filenameFor("S25 원문 검증")].raw).toContain(
+    "---\ntype: [\n---\n# 보존",
+  );
+  await editor(page).press("ControlOrMeta+s");
+  await expect(page.locator(".property-warning")).toBeVisible();
+  await expect(page.getByText("확인 필요", { exact: true })).toBeVisible();
+  await body(page, "---\ntype: [b\n---\n# 보존");
+  await expect(page.locator(".property-warning")).toHaveCount(0);
+  await page.getByText("속성", { exact: true }).click();
+  await expect(page.getByText("확인 필요", { exact: true })).toBeVisible();
+  await saved(page);
+  await page.reload();
+  await expect(page.getByText("확인 필요", { exact: true })).toBeVisible();
 });

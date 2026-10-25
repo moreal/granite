@@ -28,8 +28,7 @@ test("S24d YAML first-line typing retains its caret after Storybook play", async
     prefix += character;
     await expect(yaml).toHaveValue(`${prefix}\nauthor: old`);
     expect((await yaml.boundingBox())!.y).toBe(top);
-    if (prefix === "t")
-      await expect(page.locator(".property-warning")).toBeVisible();
+    await expect(page.locator(".property-warning")).toHaveCount(0);
     expect(
       await yaml.evaluate(
         (element: HTMLTextAreaElement, initial) => ({
@@ -70,6 +69,8 @@ test("S24d YAML first-line typing retains its caret after Storybook play", async
       element.setSelectionRange(6, 12),
     );
     await page.keyboard.insertText("[");
+    await expect(page.locator(".property-warning")).toHaveCount(0);
+    await yaml.press("ControlOrMeta+s");
     await expect(page.locator(".property-warning")).toBeVisible();
     expect((await yaml.boundingBox())!.y).toBe(narrowTop);
     await page

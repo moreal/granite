@@ -28,6 +28,8 @@ export interface Frontmatter {
   types: string[];
   properties: Map<string, unknown>;
   warning: string | null;
+  /** Whether the top-level property map was safely read for form editing. */
+  readable: boolean;
 }
 
 /** Shared delimiter classification for source projection and Markdown grammar. */
@@ -58,6 +60,7 @@ export function readFrontmatter(body: string): Frontmatter {
     types: ["Thing"],
     properties: new Map(),
     warning: null,
+    readable: !opening,
   };
   if (!opening) return result;
   result.from = opening[0].length;
@@ -115,6 +118,7 @@ export function readFrontmatter(body: string): Frontmatter {
         result.properties.set(key, value);
       }
     }
+    result.readable = true;
     const declared =
       result.properties.get("type") ?? result.properties.get("@type");
     if (declared !== undefined) {
@@ -167,7 +171,7 @@ export function patchPropertyScalar(
   input: string,
 ): { body?: string; error: string | null } {
   const metadata = readFrontmatter(body);
-  if (!metadata.closed || metadata.warning)
+  if (!metadata.closed || !metadata.readable)
     return { error: "올바른 속성 원문을 먼저 확인해 주세요." };
   const doc = parseDocument(metadata.yaml, {
     schema: "core",

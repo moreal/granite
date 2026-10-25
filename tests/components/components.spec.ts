@@ -324,7 +324,12 @@ for (const state of states)
       }
       await expect(page.getByRole("listbox")).toBeVisible();
       await page.getByRole("button", { name: "취소", exact: true }).click();
-      await expect(page.getByRole("listbox")).toHaveCount(0);
+      await expect(page.locator(".property-value-input")).toHaveCount(0);
+      if (state === "properties-new")
+        await expect(
+          page.getByRole("combobox", { name: "속성 이름 검색" }),
+        ).toBeFocused();
+      else await expect(page.getByRole("listbox")).toHaveCount(0);
       await expect(
         page.getByRole("button", { name: "type 값 편집", exact: true }),
       ).toHaveText("Book");

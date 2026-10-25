@@ -38,7 +38,17 @@ export function PropertyForm(props: {
           {props.error}
         </p>
       )}
-      {props.metadata.present ? (
+      {props.metadata.present && !props.metadata.readable ? (
+        <>
+          <p class="property-help">
+            속성을 읽을 수 없어 폼 편집을 잠시 멈췄습니다. 입력한 원문은
+            보관됩니다.
+          </p>
+          <button type="button" onClick={props.onSource}>
+            전체 원문에서 속성 수정
+          </button>
+        </>
+      ) : props.metadata.present ? (
         <>
           <dl class="property-list">
             <For

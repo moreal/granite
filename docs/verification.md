@@ -139,3 +139,13 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 실제 Storybook play 이후 첫 줄 연속 입력·경고 전환·DOM/초점/커서/위치·선택 교체·native undo/redo와 운영 앱 저장/재열기 회귀를 추가했다. 좁은320px 라이트/다크의 정상/오류 화면은 새로운 `testInfo.outputPath`에 생성한다. 상세 결과와 한계는 `.superpowers/yaml-caret-fix/report.md`에 기록한다. 데모 저장소·Chromium 검증이며 폴더 picker/권한·OS IME 검증을 뜻하지 않는다.
 
 최종 로컬 검증은 단위258개, S24 앱 브라우저6개, 전체 운영 컴포넌트34개 통과와 앱/E2E/Storybook 타입 검사·`/granite/` 앱 및 Storybook 빌드 성공이다. 첫 줄 Storybook 회귀는 수정 전 커서 기대1/실제13으로 실패한 뒤 같은 사용자 흐름으로 통과했다. 기존 전체 앱 브라우저와 시각 검사는 이 작은 수정에서 중복 실행하지 않았으며 관련 전체 S24와 전체 컴포넌트를 실행했다.
+
+## 2026-10-25 차분한 속성 입력과 초안 보존 (S25)
+
+[S25 승인 기준](superpowers/specs/2026-10-25-property-editor-ux.md)에 따라 YAML/전체 원문 입력·조합·대기 중에는 문법 경고를 감추고 떠남/CmdS 후 차분하게 표시한다. 검증되었거나 처음 열린 오류는 접힌 요약에도 `확인 필요`로 남으며, 입력 원문은 그대로 자동 저장한다. 기존 textarea 커서/초점/undo 보존을 유지한다.
+
+폼의 기존/새/같은 속성 요청은 미확정 값과 오류를 유지하고 적용/취소로 안내한다. 확정/취소 뒤 기존 값 버튼 또는 새 속성 이름 입력으로 초점을 돌린다. 초기 유형/이름 후보는 방향키 이동과 닫기/재열기에도 목록 안에서 보인다. 읽지 못한 YAML은 불가능한 폼 추가 대신 전체 원문 수정을 제공하며, 읽을 수 있는 사용자 속성은 관련 없는 유형 안내 때문에 막지 않는다. 유형/기존 노트 결과 없음 문구도 구분한다.
+
+최종 검증 기록은 `.superpowers/property-ux/implementation.md`와 대응 로그다. 단위265개와 관련 앱 브라우저20개, 전체 운영 컴포넌트43개와 프로덕션 시각24개, 앱/E2E/Storybook 타입 검사, `/granite/` 앱 및 Storybook 빌드가 통과했다. 실제 운영 Storybook에 조용한 입력/검증 후/결과 없음/보관 초안/잘못된 폼 준비 완료 상태를 추가했고 native 입력·조합·idle·떠남·저장·접힘과320/960px 라이트·다크 화면을 확인한다. 폴더 picker/권한창·OS IME·네이티브 스크린리더·비 Chromium undo 검증을 뜻하지 않는다.
+
+대표 새 화면은 [조용한 YAML 입력](screenshots/property-ux-yaml-quiet-320-light.png), [떠난 뒤 YAML 확인](screenshots/property-ux-yaml-validated-320-dark.png), [보존된 숫자 초안](screenshots/property-ux-draft-preserved-960-light.png), [전체 원문 복구](screenshots/property-ux-invalid-form-320-light.png), [기존 노트 결과 없음](screenshots/property-ux-yaml-no-results-320-light.png)이다. 모두 최종 컴포넌트 검사의 `testInfo.outputPath`에서 생성하고 직접 열어 확인한 뒤 복사했다.

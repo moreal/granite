@@ -11,6 +11,10 @@ export interface YamlEditorProps {
   id?: string;
   value: string;
   disabled?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
+  onEdit?: () => void;
+  onValidate?: () => void;
   contextKey?: string;
   references?: readonly NoteReference[];
   onChange: (value: string) => void;
@@ -119,6 +123,8 @@ export function YamlEditor(props: YamlEditorProps) {
         id={id()}
         aria-label="속성 YAML 원문"
         spellcheck={false}
+        aria-invalid={props.invalid ? "true" : undefined}
+        aria-describedby={props.describedBy}
         disabled={props.disabled}
         aria-autocomplete="list"
         aria-controls={`${id()}-options`}
@@ -129,6 +135,7 @@ export function YamlEditor(props: YamlEditorProps) {
             : undefined
         }
         onInput={(event) => {
+          props.onEdit?.();
           props.onChange(
             textareaChange(props.value, event.currentTarget.value),
           );
@@ -138,9 +145,13 @@ export function YamlEditor(props: YamlEditorProps) {
         onSelect={() => {
           if (!sameCaret()) setScope(null);
         }}
-        onBlur={() => setScope(null)}
+        onBlur={() => {
+          setScope(null);
+          props.onValidate?.();
+        }}
         onCompositionStart={() => {
           composing = true;
+          props.onEdit?.();
           setScope(null);
         }}
         onCompositionEnd={() => {
@@ -159,6 +170,7 @@ export function YamlEditor(props: YamlEditorProps) {
             event.key.toLowerCase() === "s"
           ) {
             setScope(null);
+            props.onValidate?.();
             return;
           }
           if (event.key === "Escape") {
@@ -199,6 +211,11 @@ export function YamlEditor(props: YamlEditorProps) {
           }
         }}
       />
+      {current()?.kind === "note" && !options().length && (
+        <p class="property-help" role="status">
+          일치하는 기존 노트가 없습니다. 다른 검색어를 입력해 주세요.
+        </p>
+      )}
       {current() && allOptions().length > 20 && (
         <p class="property-help" role="status">
           처음 20개를 표시합니다. 검색어를 더 입력해 주세요.

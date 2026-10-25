@@ -10,6 +10,7 @@ export function NoteHeader(props: {
   references?: readonly NoteReference[];
   propertyMode?: PropertyEditorMode;
   source?: boolean;
+  sourceEditing?: boolean;
   onSource?: () => void;
   locked: boolean;
   wordCount: number;
@@ -26,6 +27,7 @@ export function NoteHeader(props: {
         references={props.references}
         mode={props.propertyMode}
         source={props.source}
+        sourceEditing={props.sourceEditing}
         onSource={props.onSource}
         documentKey={props.documentKey}
         body={props.entry.body}

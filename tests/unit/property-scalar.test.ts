@@ -51,3 +51,19 @@ it.each([
     expect(readFrontmatter(result.body!).properties.get("x")).toBe(null);
   },
 );
+
+it("S25 edits a trusted custom scalar despite an unrelated type advisory without coercion", () => {
+  const body =
+    "---\r\ntype: 2 # advisory stays\r\ncustom: keep # comment\r\n---\r\nbody";
+  expect(patchPropertyScalar(body, "custom", "new")).toEqual({
+    body: '---\r\ntype: 2 # advisory stays\r\ncustom: "new" # comment\r\n---\r\nbody',
+    error: null,
+  });
+  expect(
+    patchPropertyScalar(
+      "---\ntype: [\ncustom: keep\n---\nbody",
+      "custom",
+      "new",
+    ).body,
+  ).toBeUndefined();
+});

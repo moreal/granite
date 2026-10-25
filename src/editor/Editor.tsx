@@ -59,6 +59,8 @@ interface Props {
   titles: string[];
   onChange: (body: string) => void;
   onUserEdit?: () => void;
+  onEditStart?: () => void;
+  onEditLeave?: () => void;
   onCommand?: () => void;
   onMenuChange?: (open: boolean) => void;
   onSelection: (size: number) => void;
@@ -457,8 +459,10 @@ export function Editor(
                       transaction.docChanged &&
                       !transaction.annotation(synchronizeDocument),
                   )
-                )
+                ) {
+                  latest.current.onEditStart?.();
                   latest.current.onChange(update.state.sliceDoc());
+                }
                 if (
                   update.transactions.some((transaction) =>
                     transaction.isUserEvent("input.complete"),
@@ -490,7 +494,12 @@ export function Editor(
             }),
             Prec.highest(
               EditorView.domEventHandlers({
+                blur() {
+                  latest.current.onEditLeave?.();
+                  return false;
+                },
                 compositionstart() {
+                  latest.current.onEditStart?.();
                   composing.current = true;
                   pauseAutomatic();
                   cancelFormatting();

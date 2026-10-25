@@ -311,7 +311,9 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
           class="schema-options property-note-options property-help"
           role="status"
         >
-          일치하는 노트가 없습니다. 값을 직접 입력할 수 있습니다.
+          {props.typeValue
+            ? "일치하는 유형이 없습니다. 사용자 정의 유형을 입력할 수 있습니다."
+            : "일치하는 노트가 없습니다. 값을 직접 입력할 수 있습니다."}
         </p>
       )}
     </div>
