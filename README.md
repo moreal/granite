@@ -71,7 +71,25 @@ E2E는 로컬 개발 서버를 시작하거나 이미 실행 중인 4173 포트�
 
 이 변경을 GitHub에 반영하면 모든 PR에서 [Tests 워크플로](.github/workflows/tests.yml)가 Ubuntu와 Node.js 24로 단위·타입·빌드 검사 및 Chromium 브라우저·디스크 검사를 실행합니다. 두 작업은 독립 실행하므로 단위 검사 실패로 브라우저 증거 수집이 생략되지 않습니다. GitHub의 PR **Checks → Tests → 실행 요약 → Artifacts**에서 `playwright-chromium-<run_id>-<run_attempt>`를 내려받을 수 있습니다. 생성된 HTML 보고서와 성공·실패 trace는 14일 보관합니다. 압축을 푼 폴더에서 `yarn playwright show-report playwright-report` 또는 `yarn playwright show-trace test-results/<테스트>/trace.zip`으로 확인합니다. [CI 검증 기록과 한계](docs/ci-verification.md)를 참고하세요.
 
-Chromatic은 합성 데모의 별도 Playwright 시각 검사로 연결합니다. 로컬 실행은 `VITE_BASE_PATH=/granite/ yarn build` 후 `yarn test:visual`이며, 원격 게시에는 `CHROMATIC_PROJECT_TOKEN` Actions secret이 필요합니다. [설정 안내](docs/chromatic.md)를 참고하세요.
+Chromatic은 합성 데모의 별도 Playwright 시각 검사로 연결합니다. 로컬 실행은 `VITE_BASE_PATH=/granite/ yarn build`, `yarn build:storybook` 후 `yarn test:visual`이며, 원격 게시에는 `CHROMATIC_PROJECT_TOKEN` Actions secret이 필요합니다. [설정 안내](docs/chromatic.md)를 참고하세요.
+
+## 작은 컴포넌트 검토
+
+`yarn storybook`으로 실제 운영 Solid 2 컴포넌트를 `http://localhost:6006`에서 확인합니다.
+배포된 탐색기는 [Storybook](https://moreal.github.io/granite/storybook/)에 있습니다.
+유형·속성 검색, YAML 편집, 저장·복구, 설정·메뉴를 합성 데이터로 독립 렌더링합니다.
+
+```sh
+VITE_BASE_PATH=/granite/ yarn build
+yarn build:storybook
+yarn test:components
+yarn test:visual
+```
+
+컴포넌트 검사는 320px에서 팝업·포커스 테두리까지 확대 캡처하고 레이블 겹침과 가로 넘침을 검사합니다.
+`component-report/index.html`과 `component-results/`에서 화면과 실패 trace를 확인합니다.
+CI는 이 보고서와 빌드된 탐색기를 보관하고 Pages에 `/granite/storybook/`을 배포합니다.
+[재현 절차와 검증 범위](docs/storybook.md)를 참고하세요.
 
 ## 피드백과 구현 기준
 
@@ -92,7 +110,7 @@ Granite는 2026년 현재 버전부터 [GNU AGPL-3.0-or-later](LICENSE)로 배�
 
 공개 앱의 **라이선스와 소스**에서는 AGPL/GPL 전문, 배포에 사용한 Granite
 소스와 Hongdown 0.5.3 원본 소스, 파일별 SHA-256 목록을 내려받을 수 있습니다.
-로컬에서 같은 제공물을 만들려면 `yarn build` 후
+로컬에서 같은 제공물을 만들려면 `yarn build`, `yarn build:storybook` 후
 `node scripts/publish-source.mjs`를 실행합니다.
 
 자동 문서 정리는 기본으로 켜져 있습니다. 본문 입력을 1.5초 멈추면 로컬 Hongdown으로 형식을 정리하며, 열기만 한 노트는 바꾸지 않습니다. 설정 → 글쓰기에서 끌 수 있고, 정리 결과는 실행 취소할 수 있습니다. 수동 문서 정리의 미리보기·취소·적용도 유지합니다. 정리 실패는 원문과 일반 자동 저장을 막지 않습니다.

@@ -1,5 +1,5 @@
 import { it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, act } from "@testing-library/react";
+import { render, screen, cleanup, act } from "./solid-render";
 import { EditorView } from "@codemirror/view";
 import { Editor } from "../../src/editor/Editor";
 afterEach(() => {
@@ -38,14 +38,21 @@ it("S13 releases image URLs on source mode and ignores a destroyed widget's pend
         resolve = done;
       }),
   };
-  const rendered = render(<Editor {...props} />);
+  const rendered = render(Editor, {
+    ...props,
+  });
   await act(async () => {
     resolve(new Blob(["image"]));
   });
   expect(screen.getByRole("img").getAttribute("src")).toBe("blob:local-image");
-  rendered.rerender(<Editor {...props} source />);
+  rendered.rerender({
+    ...props,
+    source: true,
+  });
   expect(revokeObjectURL).toHaveBeenCalledWith("blob:local-image");
-  rendered.rerender(<Editor {...props} />);
+  rendered.rerender({
+    ...props,
+  });
   rendered.unmount();
   await act(async () => {
     resolve(new Blob(["late"]));
@@ -62,7 +69,9 @@ it("S14 preserves a widget during composing updates and refreshes at composition
     onOpen: () => {},
     onSelection: () => {},
   };
-  render(<Editor {...props} />);
+  render(Editor, {
+    ...props,
+  });
   const box = screen.getByRole("textbox"),
     view = EditorView.findFromDOM(box)!;
   const widget = box.querySelector(".cm-rich-math");

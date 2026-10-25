@@ -1,7 +1,12 @@
 import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react";
+import solid from "@solidjs/vite-plugin";
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
-  plugins: [react()],
-  test: { environment: "jsdom", include: ["tests/unit/**/*.test.{ts,tsx}"] },
+  plugins: [solid()],
+  resolve: { conditions: ["browser", "development"] },
+  test: {
+    environment: "jsdom",
+    server: { deps: { inline: true } },
+    include: ["tests/unit/**/*.test.{ts,tsx}"],
+  },
 });

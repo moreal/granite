@@ -1,3 +1,4 @@
+import { schemaPlugin } from "./schema";
 import { hongdownPlugin } from "../formatting/hongdown";
 import { localDate, wikiLink } from "../../domain/links";
 import { preview } from "../live-preview";
@@ -6,6 +7,7 @@ import { frontmatterPresentation } from "./frontmatter";
 import type { EditorPlugin } from "./types";
 export const builtinPlugins: readonly EditorPlugin[] = [
   hongdownPlugin,
+  schemaPlugin,
   {
     id: "granite.frontmatter",
     liveExtensions: () => frontmatterPresentation(),

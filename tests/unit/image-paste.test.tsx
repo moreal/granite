@@ -1,11 +1,5 @@
 import { it, expect, vi, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-  act,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "./solid-render";
 import { EditorView } from "@codemirror/view";
 import { Editor } from "../../src/editor/Editor";
 afterEach(cleanup);
@@ -37,7 +31,9 @@ function setup() {
         }),
     ),
   };
-  const rendered = render(<Editor {...props} />);
+  const rendered = render(Editor, {
+    ...props,
+  });
   const box = screen.getByRole("textbox");
   const view = EditorView.findFromDOM(box)!;
   act(() => view.dispatch({ selection: { anchor: 7, head: 15 } }));
@@ -88,8 +84,15 @@ it.each(["edit", "note", "lock", "unmount"])(
         }),
       );
     if (action === "note")
-      rendered.rerender(<Editor {...props} documentKey="B" />);
-    if (action === "lock") rendered.rerender(<Editor {...props} locked />);
+      rendered.rerender({
+        ...props,
+        documentKey: "B",
+      });
+    if (action === "lock")
+      rendered.rerender({
+        ...props,
+        locked: true,
+      });
     if (action === "unmount") rendered.unmount();
     await finish();
     expect(view.state.doc.toString()).not.toContain("assets/");
@@ -110,19 +113,17 @@ it.each([false, true])(
       });
     };
     const onImageStatus = vi.fn();
-    render(
-      <Editor
-        value="keep"
-        source
-        locked={false}
-        titles={[]}
-        onChange={() => {}}
-        onOpen={() => {}}
-        onSelection={() => {}}
-        onPasteImage={onPasteImage}
-        onImageStatus={onImageStatus}
-      />,
-    );
+    render(Editor, {
+      value: "keep",
+      source: true,
+      locked: false,
+      titles: [],
+      onChange: () => {},
+      onOpen: () => {},
+      onSelection: () => {},
+      onPasteImage: onPasteImage,
+      onImageStatus: onImageStatus,
+    });
     const box = screen.getByRole("textbox"),
       view = EditorView.findFromDOM(box)!;
     act(() => view.dispatch({ selection: { anchor: 0, head: 4 } }));

@@ -260,9 +260,14 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     } else {
       await expect
         .poll(() =>
-          chrome.evaluate((element) => element.getAnimations().length),
+          chrome.evaluate((element) => {
+            const animation = element.getAnimations()[0];
+            return (
+              animation?.playState === "paused" && animation.currentTime === 60
+            );
+          }),
         )
-        .toBe(1);
+        .toBe(true);
       const frame = await chrome.evaluate((element) => ({
         opacity: Number(getComputedStyle(element).opacity),
         duration: element.getAnimations()[0].effect!.getTiming().duration,

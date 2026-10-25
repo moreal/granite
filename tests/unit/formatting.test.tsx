@@ -1,12 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
-import { createRef } from "react";
+import { act, cleanup, fireEvent, render, screen } from "./solid-render";
+const createRef = <T,>() => ({ current: null as T | null });
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { undo } from "@codemirror/commands";
@@ -66,12 +60,19 @@ it("S20 references resolve full/collapsed/shortcut case-insensitively without co
   expect(links.filter((l) => !l.external).map((l) => l.target)).toEqual(["id"]);
 });
 function setup(
-  format: (s: string, c: { signal: AbortSignal }) => Promise<string>,
+  format: (
+    s: string,
+    c: {
+      signal: AbortSignal;
+    },
+  ) => Promise<string>,
 ) {
   const ref = createRef<EditorHandle>(),
     onChange = vi.fn();
   const props = {
-    ref,
+    ref: (handle: EditorHandle) => {
+      ref.current = handle;
+    },
     value: "original",
     source: true,
     locked: false,
@@ -87,7 +88,9 @@ function setup(
       },
     ],
   };
-  const rendered = render(<Editor {...props} />);
+  const rendered = render(Editor, {
+    ...props,
+  });
   const box = screen.getByRole("textbox", { name: "노트 본문" }),
     view = EditorView.findFromDOM(box)!;
   return { ref, props, rendered, box, view, onChange };
@@ -117,13 +120,11 @@ it.each(["edit", "key", "lock", "composition", "cancel"])(
     if (action === "edit")
       act(() => s.view.dispatch({ changes: { from: 0, insert: "new " } }));
     if (action === "key" || action === "lock")
-      s.rendered.rerender(
-        <Editor
-          {...s.props}
-          documentKey={action === "key" ? "two" : "one"}
-          locked={action === "lock"}
-        />,
-      );
+      s.rendered.rerender({
+        ...s.props,
+        documentKey: action === "key" ? "two" : "one",
+        locked: action === "lock",
+      });
     if (action === "composition") fireEvent.compositionStart(s.box);
     if (action === "cancel")
       fireEvent.click(screen.getByRole("button", { name: "취소" }));
@@ -176,17 +177,15 @@ it("S20 worker timeout and abort terminate computation", async () => {
 it("S20 reference labels remain editable and modifier navigation opens only safe URL", () => {
   const open = vi.spyOn(window, "open").mockReturnValue(null);
   const text = "앞 [출처][ref] 뒤\n\n[ref]: https://example.com\n\nend";
-  render(
-    <Editor
-      value={text}
-      source={false}
-      locked={false}
-      titles={[]}
-      onChange={() => {}}
-      onOpen={() => {}}
-      onSelection={() => {}}
-    />,
-  );
+  render(Editor, {
+    value: text,
+    source: false,
+    locked: false,
+    titles: [],
+    onChange: () => {},
+    onOpen: () => {},
+    onSelection: () => {},
+  });
   const box = screen.getByRole("textbox", { name: "노트 본문" }),
     view = EditorView.findFromDOM(box)!;
   const label = box.querySelector<HTMLElement>(".cm-note-link")!;
@@ -222,7 +221,6 @@ it("S20 preview traps Tab, Escape cancels, and restores invoking focus", async (
   expect(document.activeElement).toBe(trigger);
   trigger.remove();
 });
-
 it("S20 auto formats only real edits after 1500ms and undo stays undone", async () => {
   vi.useFakeTimers();
   const s = setup(async (text) => text + " formatted");
@@ -253,7 +251,6 @@ it("S20 auto formats only real edits after 1500ms and undo stays undone", async 
   await act(async () => vi.advanceTimersByTimeAsync(4000));
   expect(s.view.state.sliceDoc()).toBe("original!?");
 });
-
 it.each(["cursor", "selection", "edit", "off", "key", "lock", "unmount"])(
   "S20 running auto job cancels on %s and preserves pending edits when appropriate",
   async (action) => {
@@ -289,14 +286,12 @@ it.each(["cursor", "selection", "edit", "off", "key", "lock", "unmount"])(
         }),
       );
     if (["off", "key", "lock"].includes(action))
-      s.rendered.rerender(
-        <Editor
-          {...s.props}
-          autoFormat={action !== "off"}
-          documentKey={action === "key" ? "two" : "one"}
-          locked={action === "lock"}
-        />,
-      );
+      s.rendered.rerender({
+        ...s.props,
+        autoFormat: action !== "off",
+        documentKey: action === "key" ? "two" : "one",
+        locked: action === "lock",
+      });
     if (action === "unmount") s.rendered.unmount();
     expect(jobs[0].signal.aborted).toBe(true);
     await act(async () => jobs[0].resolve("stale"));
@@ -366,16 +361,21 @@ it("S20 synthetic composition waits until composition ends and automatic formatt
   expect(document.activeElement).toBe(button);
   button.remove();
 });
-
 it("S20 source changes, synchronized values, and enabling never create eligible edits", async () => {
   vi.useFakeTimers();
   const s = setup(async () => "unexpected");
-  s.rendered.rerender(
-    <Editor {...s.props} autoFormat={false} source={false} value="external" />,
-  );
-  s.rendered.rerender(
-    <Editor {...s.props} autoFormat source value="external" />,
-  );
+  s.rendered.rerender({
+    ...s.props,
+    autoFormat: false,
+    source: false,
+    value: "external",
+  });
+  s.rendered.rerender({
+    ...s.props,
+    autoFormat: true,
+    source: true,
+    value: "external",
+  });
   await act(async () => vi.advanceTimersByTimeAsync(4000));
   expect(s.view.state.sliceDoc()).toBe("external");
   act(() =>
@@ -384,30 +384,29 @@ it("S20 source changes, synchronized values, and enabling never create eligible 
       userEvent: "input.paste",
     }),
   );
-  s.rendered.rerender(
-    <Editor {...s.props} autoFormat={false} value="external!" />,
-  );
+  s.rendered.rerender({
+    ...s.props,
+    autoFormat: false,
+    value: "external!",
+  });
   await act(async () => vi.advanceTimersByTimeAsync(4000));
   expect(s.view.state.sliceDoc()).toBe("external!");
 });
-
 it("S20 completion menu defers automatic work until dismissal", async () => {
   vi.useFakeTimers();
   const { startCompletion, closeCompletion, completionStatus } =
     await import("@codemirror/autocomplete");
   const s = setup(async (text) => text + " formatted");
-  s.rendered.rerender(
-    <Editor
-      {...s.props}
-      plugins={[
-        ...s.props.plugins,
-        {
-          id: "menu",
-          completions: [{ id: "choice", complete: () => [{ label: "today" }] }],
-        },
-      ]}
-    />,
-  );
+  s.rendered.rerender({
+    ...s.props,
+    plugins: [
+      ...s.props.plugins,
+      {
+        id: "menu",
+        completions: [{ id: "choice", complete: () => [{ label: "today" }] }],
+      },
+    ],
+  });
   act(() => {
     s.view.dispatch({
       changes: { from: 8, insert: " @" },
@@ -441,7 +440,6 @@ it("S20 paste choices defer automatic work until dismissal", async () => {
   await act(async () => vi.advanceTimersByTimeAsync(1500));
   expect(s.view.state.sliceDoc()).toContain("formatted");
 });
-
 it("S20 manual review pauses eligible automatic work and cancel resumes the quiet wait", async () => {
   vi.useFakeTimers();
   const s = setup(async (text) => text + " formatted");

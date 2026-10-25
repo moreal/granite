@@ -41,7 +41,7 @@ function schemaType(value: unknown): string | null {
   const name = value
     .replace(/^https?:\/\/schema\.org\//, "")
     .replace(/\/$/, "");
-  return /^[A-Z][A-Za-z0-9]*$/.test(name) ? name : null;
+  return /^[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(name) ? name : null;
 }
 
 /** Metadata is a projection of text: parsing never rewrites the note. */

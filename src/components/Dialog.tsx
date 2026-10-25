@@ -1,38 +1,53 @@
-import { useEffect, useRef, type ReactNode } from "react";
-export function Dialog({
-  title,
-  onClose,
-  children,
-}: {
+import { createSignal, createEffect, onSettled, untrack } from "solid-js";
+import type { JSX } from "@solidjs/web";
+export function Dialog(props: {
   title: string;
+  focusKey?: unknown;
   onClose: () => void;
-  children: ReactNode;
+  children: JSX.Element;
 }) {
-  const panel = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
-    panel.current
-      ?.querySelector<HTMLElement>("input,button,textarea,select")
-      ?.focus();
-    return () => previous?.focus();
-  }, []);
+  const panel = { current: null } as {
+    current: HTMLDivElement | null;
+  };
+  onSettled(() =>
+    untrack(() => {
+      const previous = document.activeElement as HTMLElement;
+      queueMicrotask(() =>
+        panel.current
+          ?.querySelector<HTMLElement>("input,button,textarea,select")
+          ?.focus(),
+      );
+      return () => previous?.focus();
+    }),
+  );
+  createEffect(
+    () => props.focusKey,
+    () =>
+      untrack(() => {
+        queueMicrotask(() =>
+          panel.current
+            ?.querySelector<HTMLElement>("input,button,textarea,select")
+            ?.focus(),
+        );
+      }),
+  );
   return (
     <div
-      className="modal-backdrop"
+      class="modal-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) props.onClose();
       }}
     >
       <div
-        className="dialog"
+        class="dialog"
         role="dialog"
         aria-modal="true"
-        aria-label={title}
-        ref={panel}
+        aria-label={props.title}
+        ref={(element) => (panel.current = element)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
             e.stopPropagation();
-            onClose();
+            props.onClose();
           }
           if (e.key === "Tab") {
             const els = panel.current?.querySelectorAll<HTMLElement>(
@@ -51,8 +66,8 @@ export function Dialog({
           }
         }}
       >
-        <h2>{title}</h2>
-        {children}
+        <h2>{props.title}</h2>
+        {props.children}
       </div>
     </div>
   );

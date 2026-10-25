@@ -88,3 +88,21 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 ## 2026-10-25 기본 자동 문서 정리 (S20)
 
 [승인 기준](superpowers/specs/2026-10-25-auto-formatting.md)에 따라 기본 활성화, 설정 → 글쓰기의 비활성화, 입력 후 1500ms 대기, 선택·조합·메뉴 대기, 오래된 결과 취소, undo 억제와 수동 정리 공존을 추가했다. 최종 단위 158개, 기존·자동 정리 브라우저 74개, 프로덕션 `/granite/` 시각 검증 9개, 타입 검사와 빌드가 통과했다. 라이트/다크 1440/390 설정 화면을 `docs/screenshots/auto-format-*.png`에 보존했다. 합성 IME·데모 저장과 디스크 어댑터 검증이며 실제 폴더 권한창·네이티브 IME 검증은 아니다. 추가한 실제 worker 요청 실패·정상 저장·재열기 회귀를 포함한 자동 정리 3개도 별도로 통과했다(전체 브라우저 검사 항목은 75개). 상세 실행 기록은 `.superpowers/auto-format/report.md`에 있다.
+
+## 2026-10-25 스키마 편집 (S21/S22)
+
+[승인 기준](superpowers/specs/2026-10-25-solid-schema-storybook.md)에 따라 오프라인 카탈로그의 유형·속성 검색, 여러 유형의 추천 합집합, 중복 키 제외, 정확한 문자열 패치와 빈 값 포커스를 추가했다. YAML 패널과 전체 원문/드러난 라이브 frontmatter는 동일한 범위 계획을 사용한다. 댓글·중첩 값·본문에 키를 넣지 않으며 잘못된 YAML은 그대로 편집 가능하다. 후보를 연 뒤 커서 이동·범위 선택 시 오래된 후보를 적용하지 않는다.
+
+단위 202개, 앱/E2E 타입 검사, production 및 `/granite/` 빌드가 통과했다. 새 schema 브라우저 8개와 기존 애니메이션 2개의 집중 검사, 최종 전체 브라우저 87개와 프로덕션 시각 검사 9개가 통과했다. 첫 전체 실행의 기존 애니메이션 한 프레임 표본 실패(기대 `opacity > 0.3`, 실제 `0.3`)는 같은 소스의 집중 재검사에서 재현되지 않았으며 최종 전체 실행 결과는 `.superpowers/solid-schema/task3-report.md`에 기록한다.
+
+`docs/screenshots/property-{create,open}-{320,390}-{light,dark}.png`는 실제 운영 컨트롤의 확대 캡처다. 생성 폼의 포커스와 열린 목록 전체를 직접 검토했고 레이블/컨트롤 겹침과 문서 가로 넘침이 없었다. Storybook 독립 fixture 검증은 별도 기록이다. 데모와 합성 composition 이벤트를 사용했으며, 실제 사용자 폴더 picker/권한창·OS IME 또는 Chromium 이외 엔진의 textarea undo를 검증했다고 주장하지 않는다.
+
+## 2026-10-25 독립 컴포넌트 검토 (S22)
+
+실제 운영 Solid2 컴포넌트의 Storybook23개와 Chromium 검사23개가 통과했다.320px에서 라이트/다크·열림·포커스·오류·disabled·긴 한글29개를 컴포넌트와 absolute 팝업의 전체 범위로 캡처하고 직접 검토했다. 레이블/컨트롤 겹침과 가로 넘침을 자동 검사하며 날짜 경계·유형 선택·ISBN 완성·편집모드·설정 스위치의 실제 상호작용을 확인했다. 대표 증거는 `screenshots/storybook-{create-open,property-open,recovery-dark,format}-320.png`다.
+
+[재현 안내](storybook.md): `VITE_BASE_PATH=/granite/ yarn build` 뒤 `yarn build:storybook`을 실행하고 `yarn test:components`, `yarn test:visual`을 실행한다. 개발 탐색기는 `yarn storybook`의6006포트, 배포 경로는 `/granite/storybook/`이다. Storybook iframe6개의 Chromatic Playwright 아카이브 검사가 별도로 통과했으며 기존 앱 프로젝트와 같은 업로드에 합친다. CI는 보고서·trace·빌드된 탐색기를 보관한다. 대응 소스 압축을 추출해 immutable 설치와 앱/Storybook 빌드도 확인했다. 원격 Pages/Chromatic 게시는 commit/push 뒤 exact-head Actions로 별도 확인한다.
+
+최종 통합에서 기존 opacity 전환 검사가 `transitionrun` 이전에 animation 객체의 존재만 확인해 시작값0.3을 읽는 타이밍 경쟁을 재현했다. 테스트만 paused/currentTime60 조건까지 기다리도록 수정했으며120ms·중간 opacity·중단/역전·reduced-motion 기준은 유지했다. 두 모드 각5회10개와 최종 전체87개가 통과했다. 운영 애니메이션은 바꾸지 않았다.
+
+같은 최종 빌드의 통합 시각 검사15개(앱9+Storybook iframe6)가9.4초에 통과했고 하나의 기존 Chromatic Playwright 아카이브에 기록됐다. 로컬 Pages 경로 `/granite/storybook/` 관리 화면과 실제 Property iframe도 열어 combobox 렌더링과 pageerror0개를 확인했다. 최종 소스 제공물은136개 허용 입력과310개 배포 파일의 SHA-256를 대조했으며, 추출본 immutable 설치와 앱/Storybook 재빌드가 통과했다.

@@ -115,7 +115,7 @@ test("S19 theme is available before the application module loads", async ({
       JSON.stringify({ version: 1, theme: "dark", linkTemplates: [] }),
     ),
   );
-  await page.route("**/src/main.tsx", (route) => route.abort());
+  await page.route("**/src/main.tsx*", (route) => route.abort());
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveCSS(

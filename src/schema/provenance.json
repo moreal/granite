@@ -1,0 +1,15 @@
+{
+  "release": "30.1",
+  "published": "2026-09-16",
+  "commit": "e5133e06d01e9acb677dd42370b82d3feccf7aca",
+  "source": "https://raw.githubusercontent.com/schemaorg/schemaorg/e5133e06d01e9acb677dd42370b82d3feccf7aca/data/releases/30.1/schemaorg-current-https.jsonld",
+  "sourceSha256": "0a4b8c4c910fc831ec8695196510973390906a5ee34dc6b862dfec4d21a12f74",
+  "catalogSha256": "2a39d2b427f7780be871784f4b7191afcc89360f0e9246240e60e78ed342fae0",
+  "generatorVersion": 1,
+  "types": 939,
+  "properties": 1538,
+  "bytes": 535562,
+  "gzipBytes": 132968,
+  "license": "CC-BY-SA-3.0",
+  "policy": "Current schema namespace classes and properties; all direct parents/domains/ranges; descriptions shortened to 240 plain-text characters. Enumeration instances excluded. Datatypes retained; reflection types excluded only from picker."
+}

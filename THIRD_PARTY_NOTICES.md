@@ -55,3 +55,17 @@ explicit source/build inputs and excludes private notes, environment files,
 `node_modules`, and temporary test artifacts. The manifest's per-file hashes
 identify the actual input bytes, including local uncommitted edits; its Git
 revision alone is not a claim that a locally edited build matches that commit.
+
+## Schema.org vocabulary
+
+The vendored Schema.org 30.1 vocabulary and derived offline catalog are by the
+Schema.org community, licensed under CC BY-SA 3.0 Unported. This data retains
+its own license. Granite shortened descriptions and generated sorted local
+records; exact upstream commit and hashes are in `src/schema/provenance.json`.
+See [attribution](src/schema/ATTRIBUTION.md) and the complete
+[license](public/licenses/CC-BY-SA-3.0.txt). Regenerate offline with
+`node scripts/schema/generate.mjs`. The corresponding source archive includes
+the original JSON-LD, generator, provenance, and derived catalog.
+
+The public component explorer is built with `yarn build:storybook` after the
+application build and is served at `/granite/storybook/`.

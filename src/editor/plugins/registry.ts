@@ -7,6 +7,7 @@ export function resolveEditorPlugins(plugins: readonly EditorPlugin[]) {
   for (const plugin of plugins) {
     for (const id of [
       plugin.id,
+      ...(plugin.completionSources ?? []).map((p) => p.id),
       ...(plugin.completions ?? []).map((p) => p.id),
       ...(plugin.formatters ?? []).map((p) => p.id),
     ]) {
@@ -22,6 +23,13 @@ export function pluginCompletions(
   getTitles: () => readonly string[],
 ) {
   return (context: CompletionContext) => {
+    if (context.view?.composing || context.state.readOnly) return null;
+    for (const plugin of getPlugins()) {
+      for (const source of plugin.completionSources ?? []) {
+        const result = source.complete(context);
+        if (result) return result;
+      }
+    }
     const text = context.state.doc.toString();
     const { metadataEnd } = documentContext(text);
     if (context.pos < metadataEnd) return null;

@@ -30,6 +30,8 @@ const files = [
   "package.json",
   "playwright.config.ts",
   "playwright.visual.config.ts",
+  "playwright.components.config.ts",
+  "tsconfig.storybook.json",
   "README.md",
   "THIRD_PARTY_NOTICES.md",
   "tsconfig.e2e.json",
@@ -38,10 +40,15 @@ const files = [
   "yarn.lock",
 ];
 const trees = [
-  ["src", /\.(?:ts|tsx|css|png|jpe?g|gif|webp|svg|woff2?|wasm)$/i],
+  [
+    "src",
+    /\.(?:ts|tsx|css|json|md|LICENSE|png|jpe?g|gif|webp|svg|woff2?|wasm)$/i,
+  ],
   ["tests", /\.(?:ts|tsx|css|png|jpe?g|gif|webp|svg)$/i],
   ["public", /\.(?:html|txt|md|png|jpe?g|gif|webp|svg|woff2?|wasm|gz)$/i],
-  ["scripts", /\.mjs$/i],
+  ["scripts", /\.(?:mjs|jsonld|txt)$/i],
+  [".storybook", /\.(?:ts|tsx|css)$/i],
+  ["stories", /\.(?:ts|tsx|css)$/i],
 ];
 
 function sha256(path) {
@@ -201,7 +208,7 @@ try {
       source: sourceName,
       sourceSha256: sha256(archive),
       buildCommand:
-        "yarn install --immutable && VITE_BASE_PATH=/granite/ yarn build",
+        "yarn install --immutable && VITE_BASE_PATH=/granite/ yarn build && yarn build:storybook",
       node: "24",
       yarn: pkg.packageManager,
       buildInputs: sourceFiles,

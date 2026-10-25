@@ -39,8 +39,19 @@ jobs:
           yarn --version
       - run: yarn install --immutable
       - run: yarn build
+      - run: yarn build:storybook
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:visual
+      - run: yarn test:components
+      - name: Preserve component review captures and traces
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: component-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            component-report/
+            component-results/
+          retention-days: 14
       - name: Check project token configuration
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

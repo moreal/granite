@@ -17,8 +17,8 @@ test("S20 production subpath serves the local formatter worker and WASM", async 
     "# 제목\n\n> 인용문\n> 다음 줄\n\n[site](https://example.com)",
   );
   await page.getByRole("button", { name: "문서 정리", exact: true }).click();
-  await expect(page.getByLabel("정리 결과")).toContainText(
-    "[site]: https://example.com",
+  await expect(page.getByLabel("정리 결과")).toHaveValue(
+    /\[site\]: https:\/\/example\.com/,
   );
   expect(
     requests.some((url) =>

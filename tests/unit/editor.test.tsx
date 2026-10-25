@@ -1,11 +1,5 @@
 import { it, expect, vi, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-  act,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "./solid-render";
 import { EditorView } from "@codemirror/view";
 import { Editor } from "../../src/editor/Editor";
 afterEach(() => {
@@ -22,17 +16,15 @@ Object.defineProperty(Range.prototype, "getBoundingClientRect", {
   configurable: true,
 });
 function setup(value = "", onOpen = () => {}) {
-  render(
-    <Editor
-      value={value}
-      source={false}
-      locked={false}
-      titles={[]}
-      onChange={() => {}}
-      onOpen={onOpen}
-      onSelection={() => {}}
-    />,
-  );
+  render(Editor, {
+    value: value,
+    source: false,
+    locked: false,
+    titles: [],
+    onChange: () => {},
+    onOpen: onOpen,
+    onSelection: () => {},
+  });
   const box = screen.getByRole("textbox", { name: "노트 본문" });
   const view = EditorView.findFromDOM(box)!;
   return { box, view };
@@ -80,7 +72,6 @@ it("keeps multiline Markdown links editable without crashing live preview", () =
   ).toBe(false);
   expect(view.state.doc.toString()).toContain("[first\nsecond]");
 });
-
 // S04 / writing-focus 1: link reveal follows the whole node, not its line.
 it("reveals only the link intersecting the selection, including both boundaries", () => {
   const text = "앞 [[하나]] 중간 [둘](https://example.com) 뒤";
@@ -104,7 +95,6 @@ it("reveals only the link intersecting the selection, including both boundaries"
   }
   expect(view.state.doc.toString()).toBe(text);
 });
-
 // S04/S06 / writing-focus 2–3: labels stay editable, navigation requires a modifier.
 it("renders editable labels and navigates safe links only with Cmd/Ctrl click", () => {
   const onOpen = vi.fn();
@@ -128,7 +118,6 @@ it("renders editable labels and navigates safe links only with Cmd/Ctrl click", 
   expect(box.querySelectorAll(".cm-note-link")).toHaveLength(2);
   expect(view.state.doc.toString()).toContain("[위험](javascript:alert)");
 });
-
 it("leaves code links and multiline links as source without navigation targets", () => {
   const text =
     "앞 `[[코드]] [코드](https://example.com)`\n\n```md\n[[블록]] [블록](https://example.com)\n```\n\n[여러\n줄](https://example.com)\n\n끝";
@@ -137,7 +126,6 @@ it("leaves code links and multiline links as source without navigation targets",
   expect(box.querySelectorAll(".cm-note-link")).toHaveLength(0);
   expect(view.state.doc.toString()).toBe(text);
 });
-
 it("shows escaped link labels without changing their persisted source", () => {
   const text = "앞 [[대괄호\\[제목\\]]] [별칭\\]](https://example.com) 뒤";
   const { box, view } = setup(text);
@@ -147,7 +135,6 @@ it("shows escaped link labels without changing their persisted source", () => {
   expect(labels).toEqual(["대괄호[제목]", "별칭]"]);
   expect(view.state.doc.toString()).toBe(text);
 });
-
 it("S04/S12: reports user document edits but not value synchronization or selection", () => {
   const onUserEdit = vi.fn();
   const props = {
@@ -160,11 +147,16 @@ it("S04/S12: reports user document edits but not value synchronization or select
     onSelection: vi.fn(),
     onUserEdit,
   };
-  const rendered = render(<Editor {...props} />);
+  const rendered = render(Editor, {
+    ...props,
+  });
   const view = EditorView.findFromDOM(
     screen.getByRole("textbox", { name: "노트 본문" }),
   )!;
-  rendered.rerender(<Editor {...props} value="loaded externally" />);
+  rendered.rerender({
+    ...props,
+    value: "loaded externally",
+  });
   act(() => view.dispatch({ selection: { anchor: 2 } }));
   expect(onUserEdit).not.toHaveBeenCalled();
   for (const userEvent of [
@@ -179,23 +171,20 @@ it("S04/S12: reports user document edits but not value synchronization or select
   }
   expect(onUserEdit).toHaveBeenCalledTimes(6);
 });
-
 it("S06/S07/S12: completion is an explicit command rather than ordinary typing", () => {
   const onUserEdit = vi.fn();
   const onCommand = vi.fn();
-  render(
-    <Editor
-      value="[[덤"
-      source={true}
-      locked={false}
-      titles={[]}
-      onChange={() => {}}
-      onSelection={() => {}}
-      onOpen={() => {}}
-      onUserEdit={onUserEdit}
-      onCommand={onCommand}
-    />,
-  );
+  render(Editor, {
+    value: "[[덤",
+    source: true,
+    locked: false,
+    titles: [],
+    onChange: () => {},
+    onSelection: () => {},
+    onOpen: () => {},
+    onUserEdit: onUserEdit,
+    onCommand: onCommand,
+  });
   const view = EditorView.findFromDOM(
     screen.getByRole("textbox", { name: "노트 본문" }),
   )!;
@@ -215,7 +204,6 @@ it("S06/S07/S12: completion is an explicit command rather than ordinary typing",
   );
   expect(onUserEdit).toHaveBeenCalledTimes(1);
 });
-
 it("S08/S19 keyboard paste choices wrap and alias leaves the caret inside empty brackets", () => {
   const { box, view } = setup();
   fireEvent.paste(box, {
@@ -254,7 +242,6 @@ it.each([
   fireEvent.paste(box, { clipboardData: { getData: () => text } });
   expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
 });
-
 it("S08 menu-focused Escape dismisses and returns to the editor", () => {
   const { box } = setup();
   fireEvent.paste(box, {
@@ -262,6 +249,13 @@ it("S08 menu-focused Escape dismisses and returns to the editor", () => {
   });
   const button = screen.getByRole("button", { name: "별칭 달기" });
   act(() => button.focus());
+  expect(document.activeElement).toBe(button);
+  expect(button.isConnected).toBe(true);
+  fireEvent.keyDown(button, { key: "ArrowDown" });
+  const next = screen.getByRole("button", { name: "제목 가져오기" });
+  expect(document.activeElement).toBe(next);
+  fireEvent.keyDown(next, { key: "ArrowUp" });
+  expect(document.activeElement).toBe(button);
   fireEvent.keyDown(button, { key: "Escape" });
   expect(screen.queryByRole("group", { name: "붙여넣은 링크" })).toBeNull();
   expect(document.activeElement).toBe(box);
@@ -283,7 +277,6 @@ it("S08 title retrieval prefers normalized OG title and escapes remote Markdown"
     "[A \\[title\\] & \\*text\\*](https://example.com/)",
   );
 });
-
 it.each(["## 제목  안쪽 공백", "###\t\t제목", "  ##   제목", "## 제목 ##  "])(
   "S04 hides only the opening heading delimiter spacing: %s",
   (heading) => {
@@ -302,7 +295,6 @@ it.each(["## 제목  안쪽 공백", "###\t\t제목", "  ##   제목", "## 제�
     expect(view.state.doc.toString()).toBe(value);
   },
 );
-
 it("S04 leaves escaped hashes and code spacing intact", () => {
   const value =
     "\\##   평문\n\n    ##   들여쓴 코드\n\n```md\n##   코드\n```\n\n끝";
@@ -314,7 +306,6 @@ it("S04 leaves escaped hashes and code spacing intact", () => {
   expect(box.textContent).toContain("##   코드");
   expect(view.state.doc.toString()).toBe(value);
 });
-
 it("S17 hides valid frontmatter and reveals before a destructive boundary edit", () => {
   const value = "---\ntitle: secret\n---\nBody";
   const { box, view } = setup(value);
@@ -330,7 +321,6 @@ it("S17 hides valid frontmatter and reveals before a destructive boundary edit",
   expect(view.state.doc.toString()).toBe(value);
   expect(box.textContent).toContain("secret");
 });
-
 it("S04 styles inactive nested and lazy quote lines without styling escaped markers", () => {
   const { box, view } = setup(
     "> quote\n> > nested\nlazy continuation\n\n\\> escaped\n\nlast",
@@ -345,7 +335,6 @@ it("S04 styles inactive nested and lazy quote lines without styling escaped mark
   ).toBe("2");
   expect(box.textContent).toContain("\\> escaped");
 });
-
 it.each(["---\n---\n", "---\ntitle: secret\n---\n"])(
   "S17 metadata-only %j retains an editable body position and protects its bytes",
   (value) => {
@@ -361,7 +350,6 @@ it.each(["---\n---\n", "---\ntitle: secret\n---\n"])(
     expect(view.state.doc.toString()).toBe(value + "Body");
   },
 );
-
 it("S17 select-all reveals metadata and allows an intentional edit with undo", async () => {
   const { undo } = await import("@codemirror/commands");
   const value = "---\ntitle: secret\n---\nBody";
@@ -379,7 +367,6 @@ it("S17 select-all reveals metadata and allows an intentional edit with undo", a
   });
   expect(view.state.doc.toString()).toBe(value);
 });
-
 it.each(["---\ntitle: [bad\n---\nBody", "---\ntitle: secret\nBody"])(
   "S17 malformed metadata %j stays visible",
   (value) => {
@@ -387,21 +374,18 @@ it.each(["---\ntitle: [bad\n---\nBody", "---\ntitle: secret\nBody"])(
     expect(box.textContent).toContain("title:");
   },
 );
-
 it("S17 editing CRLF prose preserves original line separators", () => {
   const value = "---\r\ntitle: secret\r\n---\r\nBody";
   const onChange = vi.fn();
-  render(
-    <Editor
-      value={value}
-      source={false}
-      locked={false}
-      titles={[]}
-      onChange={onChange}
-      onOpen={() => {}}
-      onSelection={() => {}}
-    />,
-  );
+  render(Editor, {
+    value: value,
+    source: false,
+    locked: false,
+    titles: [],
+    onChange: onChange,
+    onOpen: () => {},
+    onSelection: () => {},
+  });
   const view = EditorView.findFromDOM(
     screen.getByRole("textbox", { name: "노트 본문" }),
   )!;
@@ -414,43 +398,39 @@ it("S17 editing CRLF prose preserves original line separators", () => {
   );
   expect(onChange).toHaveBeenLastCalledWith(value + "!");
 });
-
 it("S20 a registered live extension adds presentation without host changes", async () => {
   const { Decoration, ViewPlugin } = await import("@codemirror/view");
   const { builtinPlugins } = await import("../../src/editor/plugins/builtins");
-  render(
-    <Editor
-      value="Hello"
-      source={false}
-      locked={false}
-      titles={[]}
-      onChange={() => {}}
-      onOpen={() => {}}
-      onSelection={() => {}}
-      plugins={[
-        ...builtinPlugins,
-        {
-          id: "example.format",
-          liveExtensions: () =>
-            ViewPlugin.fromClass(
-              class {
-                decorations = Decoration.set([
-                  Decoration.mark({ class: "example-format" }).range(0, 5),
-                ]);
-              },
-              { decorations: (plugin) => plugin.decorations },
-            ),
-        },
-      ]}
-    />,
-  );
+  render(Editor, {
+    value: "Hello",
+    source: false,
+    locked: false,
+    titles: [],
+    onChange: () => {},
+    onOpen: () => {},
+    onSelection: () => {},
+    plugins: [
+      ...builtinPlugins,
+      {
+        id: "example.format",
+        liveExtensions: () =>
+          ViewPlugin.fromClass(
+            class {
+              decorations = Decoration.set([
+                Decoration.mark({ class: "example-format" }).range(0, 5),
+              ]);
+            },
+            { decorations: (plugin) => plugin.decorations },
+          ),
+      },
+    ],
+  });
   expect(
     screen
       .getByRole("textbox", { name: "노트 본문" })
       .querySelector(".example-format")?.textContent,
   ).toBe("Hello");
 });
-
 it("S17 metadata-only document without final newline creates prose after the closing fence", () => {
   const value = "---\ntitle: secret\n---";
   const { view } = setup(value);
@@ -464,7 +444,6 @@ it("S17 metadata-only document without final newline creates prose after the clo
   expect(view.state.doc.toString()).toBe(value + "\nBody");
   expect(view.state.selection.main.head).toBe(value.length + 5);
 });
-
 it("S17 trusted property synchronization preserves a body caret and undo history", async () => {
   const { undo, redo } = await import("@codemirror/commands");
   const initial = "---\ntitle: first\n---\nBody";
@@ -477,13 +456,19 @@ it("S17 trusted property synchronization preserves a body caret and undo history
     onOpen: () => {},
     onSelection: () => {},
   };
-  const { rerender } = render(<Editor {...props} value={initial} />);
+  const { rerender } = render(Editor, {
+    ...props,
+    value: initial,
+  });
   const box = screen.getByRole("textbox", { name: "노트 본문" });
   const view = EditorView.findFromDOM(box)!;
   act(() =>
     view.dispatch({ selection: { anchor: view.state.doc.length - 2 } }),
   );
-  rerender(<Editor {...props} value={updated} />);
+  rerender({
+    ...props,
+    value: updated,
+  });
   expect(view.state.doc.toString()).toBe(updated);
   expect(view.state.selection.main.head).toBe(updated.length - 2);
   act(() => {
@@ -496,7 +481,6 @@ it("S17 trusted property synchronization preserves a body caret and undo history
   });
   expect(view.state.doc.toString()).toBe(updated);
 });
-
 it("S17 CRLF property line additions preserve logical lines, bytes, caret and history", async () => {
   const { undo, redo } = await import("@codemirror/commands");
   const initial = "---\r\ntype: Book\r\n---\r\nBody";
@@ -510,31 +494,38 @@ it("S17 CRLF property line additions preserve logical lines, bytes, caret and hi
     onOpen: () => {},
     onSelection: () => {},
   };
-  const { rerender } = render(<Editor {...props} value={initial} />);
+  const { rerender } = render(Editor, {
+    ...props,
+    value: initial,
+  });
   const view = EditorView.findFromDOM(
     screen.getByRole("textbox", { name: "노트 본문" }),
   )!;
   act(() =>
     view.dispatch({ selection: { anchor: view.state.doc.length - 2 } }),
   );
-  rerender(<Editor {...props} value={updated} />);
+  rerender({
+    ...props,
+    value: updated,
+  });
   expect(view.state.sliceDoc()).toBe(updated);
   expect(view.state.doc.lines).toBe(5);
   expect(view.state.doc.line(3).text).toBe("author: Person");
   expect(view.state.selection.main.head).toBe(view.state.doc.length - 2);
-  expect(onChange).toHaveBeenLastCalledWith(updated);
+  expect(onChange).not.toHaveBeenCalled();
   act(() => {
     undo(view);
   });
   expect(view.state.sliceDoc()).toBe(initial);
   expect(view.state.doc.lines).toBe(4);
+  expect(onChange).toHaveBeenLastCalledWith(initial);
   act(() => {
     redo(view);
   });
   expect(view.state.sliceDoc()).toBe(updated);
   expect(view.state.doc.lines).toBe(5);
+  expect(onChange).toHaveBeenLastCalledWith(updated);
 });
-
 it("S17 CRLF metadata-only body insertion creates a logical CRLF line", () => {
   const value = "---\r\ntitle: secret\r\n---";
   const { view } = setup(value);
@@ -548,7 +539,6 @@ it("S17 CRLF metadata-only body insertion creates a logical CRLF line", () => {
   expect(view.state.doc.lines).toBe(4);
   expect(view.state.doc.line(4).text).toBe("Body");
 });
-
 it("S04/S17 YAML literal fences cannot swallow body Markdown syntax", () => {
   const value = "---\nexample: |\n  ```\n---\n# Heading\n\n> quote\n\nBody";
   const { box, view } = setup(value);

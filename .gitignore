@@ -8,3 +8,7 @@ test-results/
 .yarn/
 .pnp.*
 chromatic-results/
+
+component-results/
+component-report/
+storybook-static/

@@ -1,5 +1,9 @@
 import type { Extension } from "@codemirror/state";
-import type { Completion, CompletionContext } from "@codemirror/autocomplete";
+import type {
+  Completion,
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
 import type { menuTrigger } from "../../domain/links";
 export interface EditorServices {
   readImage?: (path: string) => Promise<Blob>;
@@ -22,6 +26,10 @@ export interface EditorFormatter {
 export interface EditorPlugin {
   readonly id: string;
   readonly liveExtensions?: (services: EditorServices) => Extension;
+  readonly completionSources?: readonly {
+    readonly id: string;
+    complete(context: CompletionContext): CompletionResult | null;
+  }[];
   readonly completions?: readonly EditorCompletionProvider[];
   readonly formatters?: readonly EditorFormatter[];
 }

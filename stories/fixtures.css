@@ -1,0 +1,23 @@
+html,
+body,
+#storybook-root {
+  min-height: 100%;
+}
+.story-surface {
+  width: min(100%, 480px);
+  padding: 20px;
+  background: var(--paper);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.story-surface > output {
+  display: block;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.story-surface .paste-menu {
+  position: static !important;
+}
+.story-surface .property-create {
+  width: 100%;
+}

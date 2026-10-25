@@ -1464,3 +1464,94 @@ textarea:focus-visible {
   line-height: 1.5;
   margin: 0.75rem 0;
 }
+
+/* S21: each field owns its row; long identifiers can never cover controls. */
+.property-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.65rem;
+}
+.schema-picker,
+.yaml-editor {
+  position: relative;
+  min-width: 0;
+}
+.schema-picker label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.schema-picker input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.yaml-editor textarea {
+  display: block;
+  width: 100%;
+  min-height: 8rem;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+  font-family: var(--font-mono, monospace);
+}
+.schema-options {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.25rem;
+  max-height: 16rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--paper);
+}
+.schema-options li {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.schema-options li[aria-selected="true"] {
+  background: var(--hover);
+  border-radius: 0.25rem;
+}
+.schema-options small,
+.schema-options span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.property-row dt,
+.property-row dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.schema-picker input:focus-visible,
+.yaml-editor textarea:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+@media (max-width: 420px) {
+  .property-create {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .property-create > button {
+    justify-self: start;
+  }
+}
+
+.yaml-editor textarea,
+.schema-picker input {
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  padding: 8px;
+  background: transparent;
+  color: inherit;
+}
+.schema-picker .schema-options {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  z-index: 12;
+  box-shadow: 0 4px 16px #0002;
+}

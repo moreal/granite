@@ -12,8 +12,8 @@ test("S20 real worker previews, cancels, applies and undoes safely", async ({
   await body(page, text);
   await page.getByRole("button", { name: "문서 정리", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "문서 정리" });
-  await expect(dialog.getByLabel("정리 결과")).toContainText(
-    "[site]: https://example.com",
+  await expect(dialog.getByLabel("정리 결과")).toHaveValue(
+    /\[site\]: https:\/\/example\.com/,
   );
   for (const theme of ["light", "dark"]) {
     await page.evaluate(
