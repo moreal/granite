@@ -1,3 +1,4 @@
+import { Button } from "./design-system/Button";
 import { noteReference } from "./schema/references";
 import { SidebarNoteRow } from "./components/SidebarNoteRow";
 import { RecoveryPanel } from "./components/RecoveryPanel";
@@ -82,7 +83,8 @@ export default function App() {
       />
     ) : null;
   const settingsButton = () => (
-    <button
+    <Button
+      layout="icon"
       class="icon-button"
       aria-label="설정"
       title="설정"
@@ -92,7 +94,7 @@ export default function App() {
       }}
     >
       <Settings size={18} />
-    </button>
+    </Button>
   );
   const [workspace, setWorkspace] = createSignal<Workspace | null>(null),
     [notes, setNotes] = createSignal<Note[]>([]),
@@ -519,26 +521,28 @@ export default function App() {
             <div class="welcome-copy">
               <h1>나의 노트</h1>
               <p>로컬 폴더의 Markdown 노트를 읽고 씁니다.</p>
-              <button
-                class="primary start-button"
+              <Button
+                variant="primary"
+                size="comfortable"
+                class="start-button"
                 onClick={() => void runStart("folder")}
                 disabled={loading()}
               >
                 <FolderOpen size={18} />내 폴더 열기
                 <ArrowUpRight size={18} />
-              </button>
-              <button
+              </Button>
+              <Button
                 class="demo-button"
                 onClick={() => void runStart("demo")}
                 disabled={loading()}
               >
                 데모 둘러보기 <ChevronRight size={16} />
-              </button>
+              </Button>
               <p class="start-hint">
                 폴더의 최상위 .md 파일만 엽니다. 노트는 이 기기에 저장됩니다.
               </p>
               {folders().map((f) => (
-                <button
+                <Button
                   class="reconnect"
                   onClick={() => {
                     setLoading(true);
@@ -550,11 +554,11 @@ export default function App() {
                 >
                   <RefreshCw size={15} />
                   {f.handle.name} 다시 연결
-                </button>
+                </Button>
               ))}
               {loading() && <p role="status">노트를 여는 중…</p>}
               {error() && (
-                <p class="error" role="alert">
+                <p class="ui-feedback ui-feedback--error error" role="alert">
                   {error()}
                 </p>
               )}
@@ -580,7 +584,7 @@ export default function App() {
         >
           <aside class="sidebar">
             <div class="brand">granite</div>
-            <button
+            <Button
               class="workspace-switch"
               onClick={() => void leave()}
               disabled={busy()}
@@ -597,10 +601,11 @@ export default function App() {
                 </small>
               </span>
               <ChevronRight size={15} />
-            </button>
+            </Button>
             <div class="search-box">
               <Search size={16} />
               <input
+                class="ui-input"
                 ref={(element) => (search.current = element)}
                 aria-label="노트 검색"
                 placeholder="생각 찾아보기"
@@ -609,18 +614,22 @@ export default function App() {
               />
               <kbd>⌘ K</kbd>
             </div>
-            <button class="new-note" onClick={beginCreate} disabled={busy()}>
+            <Button class="new-note" onClick={beginCreate} disabled={busy()}>
               <Plus size={17} />새 노트
-            </button>
+            </Button>
             <nav class="quick-nav" aria-label="빠른 노트">
               <TodayShortcut
                 disabled={busy()}
                 onOpen={(date) => void daily(date)}
               />
-              <button onClick={() => void daily("덤프")} disabled={busy()}>
+              <Button
+                class="quick-nav-action"
+                onClick={() => void daily("덤프")}
+                disabled={busy()}
+              >
                 <Inbox size={17} />
                 덤프
-              </button>
+              </Button>
             </nav>
             <div class="section-label">
               {query() ? "검색 결과" : "최근 노트"}
@@ -670,7 +679,8 @@ export default function App() {
             <header class="topbar">
               {focus() && settingsButton()}
               <div class="breadcrumb">
-                <button
+                <Button
+                  layout="icon"
                   class="icon-button focus-toggle"
                   title={focus() ? "집중 모드 끝내기" : "집중 모드"}
                   aria-label={focus() ? "집중 모드 끝내기" : "집중 모드"}
@@ -682,7 +692,7 @@ export default function App() {
                   ) : (
                     <PanelLeftClose size={18} />
                   )}
-                </button>
+                </Button>
                 <span>나의 노트</span>
                 <ChevronRight size={13} />
                 <span class="breadcrumb-current">
@@ -707,17 +717,17 @@ export default function App() {
             {error() && (
               <div class="notice error" role="alert">
                 {error()}
-                <button onClick={() => setError("")} aria-label="오류 닫기">
+                <Button onClick={() => setError("")} aria-label="오류 닫기">
                   <X size={15} />
-                </button>
+                </Button>
               </div>
             )}
             {message() && (
               <div class="notice" role="status">
                 {message()}
-                <button onClick={() => setMessage("")} aria-label="안내 닫기">
+                <Button onClick={() => setMessage("")} aria-label="안내 닫기">
                   <X size={15} />
-                </button>
+                </Button>
               </div>
             )}
             <div class="writing-layout">
@@ -745,9 +755,10 @@ export default function App() {
                       <div class="draft-notice">
                         이전에 저장하지 못한 초안을 복구했습니다.
                         {recoveryDrafts().length > 1 && (
-                          <label class="draft-choices">
+                          <label class="ui-action-row draft-choices">
                             보관된 초안 {recoveryDrafts().length}개
                             <select
+                              class="ui-select"
                               aria-label="복구할 초안"
                               value={
                                 recoveryDrafts().find(
@@ -855,9 +866,13 @@ export default function App() {
                   <div class="empty-state">
                     <h1>노트가 없습니다</h1>
                     <p>새 노트를 만들거나 오늘의 노트를 여세요.</p>
-                    <button class="primary" onClick={beginCreate}>
+                    <Button
+                      variant="primary"
+                      size="comfortable"
+                      onClick={beginCreate}
+                    >
                       <Plus size={17} />새 노트
-                    </button>
+                    </Button>
                   </div>
                 )}
               </main>
@@ -881,7 +896,8 @@ export default function App() {
                   {linked().length ? (
                     <For each={linked()} keyed={(note) => note.filename}>
                       {(n) => (
-                        <button
+                        <Button
+                          layout="list"
                           class="backlink-card"
                           onClick={() =>
                             void openNote(
@@ -898,7 +914,7 @@ export default function App() {
                           <small>
                             이 노트로 이어지는 연결 <ArrowUpRight size={12} />
                           </small>
-                        </button>
+                        </Button>
                       )}
                     </For>
                   ) : (
@@ -910,17 +926,19 @@ export default function App() {
                     <div class="connection-heading">
                       <Compass size={16} />
                       <h2>다시 발견</h2>
-                      <button
+                      <Button
+                        layout="icon"
                         class="icon-button"
                         onClick={() => setDiscovery((x) => x + 1)}
                         aria-label="다른 노트 발견"
                         disabled={others().length < 2}
                       >
                         <Shuffle size={14} />
-                      </button>
+                      </Button>
                     </div>
                     {rediscovered()! ? (
-                      <button
+                      <Button
+                        layout="list"
                         class="rediscovery-card"
                         onClick={() => void openNote(rediscovered()!)}
                         disabled={busy()}
@@ -931,7 +949,7 @@ export default function App() {
                             .body.replace(/[#*`>\[\]]/g, "")
                             .slice(0, 110)}
                         </p>
-                      </button>
+                      </Button>
                     ) : (
                       <p class="connection-empty">다른 노트가 없습니다.</p>
                     )}
@@ -969,17 +987,22 @@ export default function App() {
                     현재 편집 중인 초안은 지워집니다. 필요하다면 먼저 다운로드해
                     보관하세요.
                   </p>
-                  <div class="dialog-actions">
-                    <button onClick={() => setModal(null)} disabled={busy()}>
+                  <div class="ui-action-row dialog-actions">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setModal(null)}
+                      disabled={busy()}
+                    >
                       취소
-                    </button>
-                    <button
-                      class="primary"
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="comfortable"
                       onClick={() => void submitModal()}
                       disabled={busy()}
                     >
                       초안 버리고 다시 읽기
-                    </button>
+                    </Button>
                   </div>
                 </>
               ) : (
@@ -1005,6 +1028,7 @@ export default function App() {
                   </p>
                   <label for="note-title">새 노트 제목</label>
                   <input
+                    class="ui-input"
                     id="note-title"
                     value={modal()!.title}
                     onInput={(e) =>
@@ -1015,21 +1039,30 @@ export default function App() {
                   />
                   <p class="field-hint">만든 후에는 제목을 바꿀 수 없습니다.</p>
                   {modalError() && (
-                    <p class="error" role="alert">
+                    <p
+                      class="ui-feedback ui-feedback--error error"
+                      role="alert"
+                    >
                       {modalError()}
                     </p>
                   )}
-                  <div class="dialog-actions">
-                    <button
+                  <div class="ui-action-row dialog-actions">
+                    <Button
+                      variant="secondary"
                       type="button"
                       onClick={() => setModal(null)}
                       disabled={busy()}
                     >
                       취소
-                    </button>
-                    <button class="primary" type="submit" disabled={busy()}>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="comfortable"
+                      type="submit"
+                      disabled={busy()}
+                    >
                       {busy() ? "저장 중…" : "만들기"}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               )}

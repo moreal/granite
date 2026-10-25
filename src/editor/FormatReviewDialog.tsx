@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { Dialog } from "../components/Dialog";
 export interface FormatReview {
   label: string;
@@ -12,6 +13,7 @@ export function FormatReviewDialog(props: {
 }) {
   return (
     <Dialog
+      width={props.review.output !== undefined ? "comparison" : "default"}
       focusKey={props.review.output}
       title={props.review.label}
       onClose={props.onClose}
@@ -23,6 +25,7 @@ export function FormatReviewDialog(props: {
           <label>
             원문
             <textarea
+              class="ui-textarea ui-textarea--comparison"
               aria-label="정리 전 원문"
               readonly
               value={props.review.original}
@@ -31,6 +34,7 @@ export function FormatReviewDialog(props: {
           <label>
             정리 결과
             <textarea
+              class="ui-textarea ui-textarea--comparison"
               aria-label="정리 결과"
               readonly
               value={props.review.output}
@@ -38,12 +42,14 @@ export function FormatReviewDialog(props: {
           </label>
         </div>
       )}
-      <div class="dialog-actions">
-        <button onClick={props.onClose}>취소</button>
+      <div class="ui-action-row dialog-actions">
+        <Button variant="secondary" onClick={props.onClose}>
+          취소
+        </Button>
         {props.review.output !== undefined && (
-          <button class="primary" onClick={props.onApply}>
+          <Button variant="primary" size="comfortable" onClick={props.onApply}>
             적용
-          </button>
+          </Button>
         )}
       </div>
     </Dialog>

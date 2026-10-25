@@ -114,3 +114,5 @@ Granite는 2026년 현재 버전부터 [GNU AGPL-3.0-or-later](LICENSE)로 배�
 `node scripts/publish-source.mjs`를 실행합니다.
 
 자동 문서 정리는 기본으로 켜져 있습니다. 본문 입력을 1.5초 멈추면 로컬 Hongdown으로 형식을 정리하며, 열기만 한 노트는 바꾸지 않습니다. 설정 → 글쓰기에서 끌 수 있고, 정리 결과는 실행 취소할 수 있습니다. Cmd/Ctrl+S는 같은 설정에 따라 정리한 뒤 저장하며, 정리를 끄면 원문을 저장합니다. 정리 실패는 원문과 일반 자동 저장을 막지 않습니다.
+
+디자인 변경은 [디자인 수정 안내](docs/design-system.md)와 Storybook의 Design System 영역에서 시작합니다.

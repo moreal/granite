@@ -31,7 +31,9 @@ export function NoteGraph(props: {
       <section aria-label="노트 그래프">
         <p class="graph-current">
           {currentNode()?.title}
-          <span class="schema-type">{currentNode()?.types.join(" · ")}</span>
+          <span class="ui-badge ui-badge--compact schema-type">
+            {currentNode()?.types.join(" · ")}
+          </span>
         </p>
         <For
           each={[

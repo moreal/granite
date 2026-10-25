@@ -1,3 +1,4 @@
+import { Button } from "../../design-system/Button";
 import { createSignal } from "solid-js";
 import { TypePicker } from "./TypePicker";
 export interface PropertyCreateFormProps {
@@ -19,7 +20,9 @@ export function PropertyCreateForm(props: PropertyCreateFormProps) {
         onChange={change}
         onSelect={change}
       />
-      <button
+      <Button
+        class="property-create-action"
+        variant="secondary"
         type="button"
         disabled={
           props.disabled || !/^[A-Za-z0-9_][A-Za-z0-9_-]*$/.test(value())
@@ -27,7 +30,7 @@ export function PropertyCreateForm(props: PropertyCreateFormProps) {
         onClick={() => props.onCreate(value())}
       >
         속성 추가
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { Trash2 } from "../icons";
 import type { LinkTemplate } from "../settings";
 import {
@@ -16,6 +17,7 @@ export function LinkTemplateRow(props: {
       <legend>양식 {props.index + 1}</legend>
       <label for={`name-${props.template.id}`}>이름</label>
       <input
+        class="ui-input"
         id={`name-${props.template.id}`}
         value={props.template.name}
         maxlength={80}
@@ -23,6 +25,7 @@ export function LinkTemplateRow(props: {
       />
       <label for={`template-${props.template.id}`}>Markdown 양식</label>
       <textarea
+        class="ui-textarea"
         id={`template-${props.template.id}`}
         rows={3}
         value={props.template.template}
@@ -31,7 +34,10 @@ export function LinkTemplateRow(props: {
         onInput={(e) => props.onChange({ template: e.target.value })}
       />
       {props.error && (
-        <p class="error" id={`template-error-${props.template.id}`}>
+        <p
+          class="ui-feedback ui-feedback--error error"
+          id={`template-error-${props.template.id}`}
+        >
           {props.error}
         </p>
       )}
@@ -46,7 +52,8 @@ export function LinkTemplateRow(props: {
               hostname: "example.com",
             })}
       </pre>
-      <button
+      <Button
+        variant="danger"
         class="template-remove"
         type="button"
         aria-label={`양식 ${props.index + 1} 삭제`}
@@ -54,7 +61,7 @@ export function LinkTemplateRow(props: {
       >
         <Trash2 size={15} />
         삭제
-      </button>
+      </Button>
     </fieldset>
   );
 }

@@ -56,3 +56,40 @@ for (const state of [
     await takeSnapshot(page, `S22 ${state} narrow production component`, info);
   });
 }
+
+for (const [story, theme] of [
+  ["foundations--colors", "light"],
+  ["primitives--buttons", "dark"],
+  ["primitives--fields", "light"],
+  ["primitives--navigation", "dark"],
+  ["primitives--suggestions", "light"],
+] as const) {
+  test(`S27 design system ${story} ${theme}`, async ({ page }, info) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(
+      `storybook/iframe.html?id=design-system-${story}&viewMode=story&globals=theme:${theme}`,
+    );
+    await expect(page.locator("#storybook-root")).toHaveAttribute(
+      "data-story-ready",
+      "true",
+    );
+    const surface = page.getByTestId("design-system");
+    if (story === "primitives--suggestions") {
+      await page.getByRole("combobox").focus();
+      await page.keyboard.press("ArrowDown");
+      await expect(page.getByRole("listbox")).toBeVisible();
+    }
+    await page.evaluate(() => document.fonts.ready);
+    const bottom = await surface.evaluate((element) =>
+      Math.max(
+        element.getBoundingClientRect().bottom,
+        ...Array.from(
+          element.querySelectorAll(".schema-options"),
+          (node) => node.getBoundingClientRect().bottom,
+        ),
+      ),
+    );
+    await page.setViewportSize({ width: 320, height: Math.ceil(bottom) + 8 });
+    await takeSnapshot(page, `S27 ${story} ${theme} narrow`, info);
+  });
+}

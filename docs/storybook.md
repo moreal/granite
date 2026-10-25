@@ -21,14 +21,16 @@ yarn test:visual
 
 `test:components`는4176에서 빌드된 `/granite/storybook/`을 열고, 기존 앱 시각 검사는4175를 사용한다. 각각 전용 서버를 시작하며 다른 개발 서버를 덮어쓰지 않는다. `dist/storybook/index.html`과 iframe의 상대 자산 경로는 Pages 하위 경로에서도 동작한다. 공개 주소는 [컴포넌트 탐색기](https://moreal.github.io/granite/storybook/)다. 로컬 빌드 성공과 실제 원격 게시 확인은 별도의 증거다.
 
-23개 story는 TodayShortcut, 유형/속성 검색과 생성/행, YAML 편집, 저장/충돌복구, 그래프 항목, 편집 도구, 설정 스위치, 링크 양식 오류, URL 메뉴, 정리 검토를 운영 props와 합성 데이터로 렌더링한다. Type story의 Play 버튼은 실제 키보드 선택을 실행한다. 자동 검사는 좁은320px, 긴 한글, 비활성화/오류/열림/포커스와 라이트/다크를 포함한29개 캡처를 만든다. 선택 결과, 날짜 변경, YAML ISBN 입력과 설정 스위치 변경을 확인한다.
+Production story는 TodayShortcut, 유형/속성 검색과 생성/행, YAML 편집, 저장/충돌복구, 그래프 항목, 편집 도구, 설정 스위치, 링크 양식 오류, URL 메뉴, 정리 검토를 운영 props와 합성 데이터로 렌더링한다. Type story의 Play 버튼은 실제 키보드 선택을 실행한다. 자동 검사는 좁은320px, 긴 한글, 비활성화/오류/열림/포커스와 라이트/다크를 포함한 캡처를 만든다. 선택 결과, 날짜 변경, YAML ISBN 입력과 설정 스위치 변경을 확인한다.
 
 팝업은 실제 absolute 배치를 유지한다. 캡처 범위는 컴포넌트와 팝업의 합집합에 포커스 여백을 더한다. `component-report/index.html`은 확대 PNG를 포함하고 `component-results/`는 원본 캡처와 실패 trace를 보관한다. `yarn playwright show-report component-report`로 보고서를 열 수 있다. 네 가지 대표 캡처는 `docs/screenshots/storybook-*.png`다.
 
-기존 Chromatic Playwright 프로젝트는 앱9개와 Storybook iframe6개의15개 검사를 함께 아카이브한다. 컴포넌트 화면은 높이를 실제 컴포넌트·팝업에 맞춰 줄여 검토한다. 서로 다른 프로젝트가 필요한 native Storybook 업로드와 Playwright 업로드를 한 토큰에 섞지 않는다. 로컬 캡처만으로 원격 업로드가 성공했다고 주장하지 않는다.
+기존 Playwright 시각 검토 프로젝트는 앱·운영 Storybook iframe과 Design System의 작은 예제를 함께 아카이브한다. 컴포넌트 화면은 높이를 실제 컴포넌트·팝업에 맞춰 줄여 검토한다. 서로 다른 프로젝트가 필요한 native Storybook 업로드와 Playwright 업로드를 한 토큰에 섞지 않는다. 로컬 캡처만으로 원격 업로드가 성공했다고 주장하지 않는다.
 
 Tests CI는 빌드·컴포넌트 검사를 실행하고 보고서/trace/탐색기 빌드를14일 보관한다. Pages CI는 앱 뒤에 Storybook을 빌드하고 전체 dist와 명시적으로 허용한 대응 소스 압축을 게시한다. Schema.org 원본 JSON-LD·생성기·파생 JSON·출처·CC BY-SA3.0 전문과 아이콘 고지는 압축에 포함된다.
 
 합성 상태 검사이며 사용자 폴더 picker/권한창, 실제 OS IME 또는 네이티브 클립보드를 검증한 것이 아니다.
 
 S25에는 실제 NoteProperties의 `PropertiesYamlQuiet`, `PropertiesYamlValidated`, `PropertiesYamlNoResults`, `PropertiesDraftPreserved`, `PropertiesInvalidForm`을 추가했다. 각각 입력 중 조용한 미완성 YAML, 떠난 뒤 검증 안내, 기존 노트 결과 없음, 거부된 숫자 초안 보존, 전체 원문 복구를 재현한다. `data-story-ready=true` 이후 native 키보드로 계속 입력하는 회귀와320/960px 라이트·다크 캡처는 `tests/components/property-ux.spec.ts`가 맡는다. 새 캡처는 모두 테스트 결과 폴더에 생성한다.
+
+S27의 **Design System → Foundations / Primitives**는 운영 토큰/컨트롤의 색·글자·간격·변형·상태를 한곳에서 보여 준다. 상단 테마 도구는 앱 설정을 저장하지 않는다. 수정 위치·선택 기준·네이티브 동작 경계·검사 추가법은 [디자인 수정 안내](design-system.md)를 따른다.

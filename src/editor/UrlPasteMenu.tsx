@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { For } from "solid-js";
 export interface PasteMenuState {
   url: string;
@@ -65,26 +66,26 @@ export function UrlPasteMenu(props: {
               keyed={false}
             >
               {(label, index) => (
-                <button
+                <Button
                   data-active={props.paste.active === index ? "true" : "false"}
                   onFocus={() => props.onActive(index)}
                   onClick={() => props.onChoose(index)}
                 >
                   {label()}
-                </button>
+                </Button>
               )}
             </For>
           </div>
         </>
       )}
-      <button
+      <Button
         class="text-button"
         onClick={() => {
           props.onClose();
         }}
       >
         닫기 · Esc
-      </button>
+      </Button>
     </div>
   );
 }

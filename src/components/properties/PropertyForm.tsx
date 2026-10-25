@@ -1,3 +1,4 @@
+import { Button } from "../../design-system/Button";
 import { For } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
@@ -35,19 +36,22 @@ export function PropertyForm(props: {
           !props.metadata.properties.has(props.draft!.name)) &&
         props.valueEditor()}
       {props.error && (
-        <p class="property-warning" role="alert">
+        <p
+          class="ui-feedback ui-feedback--warning property-warning"
+          role="alert"
+        >
           {props.error}
         </p>
       )}
       {props.metadata.present && !props.metadata.readable ? (
         <>
-          <p class="property-help">
+          <p class="ui-field-help property-help">
             속성을 읽을 수 없어 폼 편집을 잠시 멈췄습니다. 입력한 원문은
             보관됩니다.
           </p>
-          <button type="button" onClick={props.onSource}>
+          <Button type="button" onClick={props.onSource}>
             전체 원문에서 속성 수정
-          </button>
+          </Button>
         </>
       ) : props.metadata.present ? (
         <>
@@ -85,7 +89,9 @@ export function PropertyForm(props: {
               onChange={props.onPropertyKey}
               onSelect={(name) => props.onBegin(name)}
             />
-            <button
+            <Button
+              class="property-create-action"
+              variant="secondary"
               type="button"
               disabled={
                 props.locked ||
@@ -95,7 +101,7 @@ export function PropertyForm(props: {
               onClick={() => props.onBegin(props.propertyKey)}
             >
               속성 넣기
-            </button>
+            </Button>
           </div>
           <PropertyAdvice
             body={props.body}
@@ -105,19 +111,19 @@ export function PropertyForm(props: {
             [...props.metadata.properties.keys()].some(
               (name) => !canEditPropertyScalar(props.body, name),
             )) && (
-            <button type="button" onClick={props.onSource}>
+            <Button type="button" onClick={props.onSource}>
               전체 원문에서 복잡한 속성 편집
-            </button>
+            </Button>
           )}
           {!props.metadata.closed && (
-            <p class="property-help">
+            <p class="ui-field-help property-help">
               본문의 원문 보기에서 속성 마지막에 ---를 추가해 주세요.
             </p>
           )}
         </>
       ) : (
         <>
-          <p class="property-help">
+          <p class="ui-field-help property-help">
             이 노트에 유형과 속성을 붙일 수 있습니다. 본문 맨 앞에 YAML로
             저장됩니다.
           </p>

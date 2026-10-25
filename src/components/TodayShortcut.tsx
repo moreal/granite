@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { createSignal, onSettled } from "solid-js";
 import { CalendarDays } from "../icons";
 import { localDate } from "../domain/links";
@@ -31,7 +32,8 @@ export function TodayShortcut(props: {
     };
   });
   return (
-    <button
+    <Button
+      class="quick-nav-action"
       onClick={() => props.onOpen(localDate())}
       disabled={props.disabled}
       aria-label={`오늘의 노트 ${localDate(0, today())}`}
@@ -41,6 +43,6 @@ export function TodayShortcut(props: {
       <span>
         {today().getMonth() + 1}월 {today().getDate()}일
       </span>
-    </button>
+    </Button>
   );
 }

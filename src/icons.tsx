@@ -13,6 +13,7 @@ export function ArrowUpRight(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -33,6 +34,7 @@ export function BookOpen(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -53,6 +55,7 @@ export function CalendarDays(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -81,6 +84,7 @@ export function Check(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -100,6 +104,7 @@ export function ChevronRight(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -119,6 +124,7 @@ export function Code2(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -140,6 +146,7 @@ export function Compass(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -160,6 +167,7 @@ export function Download(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -181,6 +189,7 @@ export function FolderOpen(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -200,6 +209,7 @@ export function Inbox(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -220,6 +230,7 @@ export function Link2(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -241,6 +252,7 @@ export function LoaderCircle(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -260,6 +272,7 @@ export function PanelLeftClose(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -281,6 +294,7 @@ export function PanelLeftOpen(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -302,6 +316,7 @@ export function PanelRightClose(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -323,6 +338,7 @@ export function PanelRightOpen(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -344,6 +360,7 @@ export function Plus(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -364,6 +381,7 @@ export function RefreshCw(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -386,6 +404,7 @@ export function Search(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -406,6 +425,7 @@ export function Settings(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -426,6 +446,7 @@ export function Shuffle(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -449,6 +470,7 @@ export function Trash2(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -472,6 +494,7 @@ export function TriangleAlert(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >
@@ -493,6 +516,7 @@ export function X(props: IconProps) {
       stroke-linejoin="round"
       aria-hidden="true"
       {...props}
+      class={`ui-icon${props.class ? ` ${props.class}` : ""}`}
       width={props.size ?? 24}
       height={props.size ?? 24}
     >

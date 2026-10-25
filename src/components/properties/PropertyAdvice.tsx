@@ -19,7 +19,9 @@ export function PropertyAdvice(props: {
       : linkWarnings(props.value ?? "", props.property ?? "", props.references);
   return (
     <For each={warnings()} keyed={(text) => text}>
-      {(text) => <p class="property-advice">{text()}</p>}
+      {(text) => (
+        <p class="ui-feedback ui-feedback--muted property-advice">{text()}</p>
+      )}
     </For>
   );
 }

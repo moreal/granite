@@ -2,6 +2,7 @@ import { createSignal, createEffect, onSettled, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 export function Dialog(props: {
   title: string;
+  width?: "default" | "settings" | "comparison";
   focusKey?: unknown;
   onClose: () => void;
   children: JSX.Element;
@@ -39,7 +40,7 @@ export function Dialog(props: {
       }}
     >
       <div
-        class="dialog"
+        class={`dialog dialog--${props.width ?? "default"}`}
         role="dialog"
         aria-modal="true"
         aria-label={props.title}

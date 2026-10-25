@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { Code2, PanelRightClose, PanelRightOpen } from "../icons";
 export function EditorToolbar(props: {
   hasNote: boolean;
@@ -10,16 +11,17 @@ export function EditorToolbar(props: {
 }) {
   return (
     <div class="top-actions">
-      {props.demo && <span class="demo-tag">DEMO</span>}
-      <button
+      {props.demo && <span class="ui-badge demo-tag">DEMO</span>}
+      <Button
         class={"mode-button" + (props.source ? " selected" : "")}
         onClick={props.onSource}
         aria-pressed={props.source ? "true" : "false"}
       >
         <Code2 size={15} />
         {props.source ? "라이브 프리뷰" : "원문 보기"}
-      </button>
-      <button
+      </Button>
+      <Button
+        layout="icon"
         class="icon-button"
         onClick={props.onConnections}
         aria-expanded={props.connections && !props.focus ? "true" : "false"}
@@ -39,7 +41,7 @@ export function EditorToolbar(props: {
         ) : (
           <PanelRightOpen size={18} />
         )}
-      </button>
+      </Button>
     </div>
   );
 }

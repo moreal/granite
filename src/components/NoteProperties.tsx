@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { createSignal, createMemo, createEffect } from "solid-js";
 import {
   readFrontmatter,
@@ -158,9 +159,12 @@ export function NoteProperties(props: {
     setKey("");
   };
   const valueField = () => (
-    <div class="property-value-editor">
+    <div
+      class={`property-value-editor${draft()?.existing ? " property-value-editor--existing" : ""}`}
+    >
       <PropertyValueInput
         label={`${draft()?.name} 값`}
+        hideLabel={!!draft()?.existing}
         value={draftValue()}
         titles={props.titles ?? []}
         references={props.references}
@@ -187,7 +191,7 @@ export function NoteProperties(props: {
         onCommit={commit}
         onCancel={finish}
       />
-      <button
+      <Button
         type="button"
         disabled={props.locked}
         // Keep the menu from moving this button before its click completes.
@@ -195,20 +199,22 @@ export function NoteProperties(props: {
         onClick={commit}
       >
         추가 / 적용
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={finish}
       >
         취소
-      </button>
+      </Button>
       <PropertyAdvice
         property={draft()?.name}
         value={draftValue()}
         references={props.references ?? []}
       />
-      <span class="property-help">확정 전에는 저장되지 않습니다.</span>
+      <span class="ui-field-help property-help">
+        확정 전에는 저장되지 않습니다.
+      </span>
     </div>
   );
   return (
@@ -216,7 +222,9 @@ export function NoteProperties(props: {
       <summary>
         <span>속성</span>
         {metadata().present && !metadata().warning && (
-          <span class="schema-type">{metadata().types.join(" · ")}</span>
+          <span class="ui-badge ui-badge--compact schema-type">
+            {metadata().types.join(" · ")}
+          </span>
         )}
         {warningVisible() && (
           <span class="property-validation-cue">확인 필요</span>
@@ -225,14 +233,17 @@ export function NoteProperties(props: {
       <div class="property-content">
         {warningVisible() &&
           !(props.mode === "yaml" && !props.source && !draft()) && (
-            <p class="property-warning" role="status">
+            <p
+              class="ui-feedback ui-feedback--warning property-warning"
+              role="status"
+            >
               {metadata().warning}
             </p>
           )}
         {!metadata().present &&
           initialType() !== "Thing" &&
           (props.source || props.mode === "yaml") && (
-            <p class="property-help">
+            <p class="ui-field-help property-help">
               입력한 유형은 보관되어 있습니다. 속성 폼에서 이어서 편집할 수
               있습니다.
             </p>
@@ -243,7 +254,7 @@ export function NoteProperties(props: {
               body={props.body}
               references={props.references ?? []}
             />
-            <p class="property-help">
+            <p class="ui-field-help property-help">
               전체 원문에서 속성을 편집하고 있습니다.
               {draft() && " 입력 중인 폼 값은 보관되어 있습니다."}
             </p>
@@ -251,12 +262,12 @@ export function NoteProperties(props: {
         ) : (
           <>
             {draftBlocked() && (
-              <p class="property-help" role="status">
+              <p class="ui-field-help property-help" role="status">
                 입력 중인 값을 적용하거나 취소해 주세요.
               </p>
             )}
             {draft() && props.mode === "yaml" && (
-              <p class="property-help" role="status">
+              <p class="ui-field-help property-help" role="status">
                 입력 중인 값을 적용하거나 취소하면 YAML 편집기로 전환합니다.
               </p>
             )}
@@ -285,14 +296,17 @@ export function NoteProperties(props: {
                   {warningVisible() && (
                     <p
                       id="property-yaml-warning"
-                      class="property-warning"
+                      class="ui-feedback ui-feedback--warning property-warning"
                       role="status"
                     >
                       {metadata().warning} 문법을 고치면 속성과 연결에
                       반영됩니다.
                     </p>
                   )}
-                  <p id="property-yaml-help" class="property-help">
+                  <p
+                    id="property-yaml-help"
+                    class="ui-field-help property-help"
+                  >
                     이름: 값 · type: Book. 입력한 원문은 자동 저장합니다. @ 또는
                     [[로 기존 노트를 검색하세요.
                   </p>
@@ -302,7 +316,7 @@ export function NoteProperties(props: {
                   />
                 </>
               ) : (
-                <button
+                <Button
                   type="button"
                   disabled={props.locked}
                   onClick={() =>
@@ -310,7 +324,7 @@ export function NoteProperties(props: {
                   }
                 >
                   속성 YAML 추가
-                </button>
+                </Button>
               )
             ) : (
               <>

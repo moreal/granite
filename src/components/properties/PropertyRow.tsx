@@ -1,3 +1,4 @@
+import { Button } from "../../design-system/Button";
 import type { JSX } from "@solidjs/web";
 import { createMemo } from "solid-js";
 import { propertyText } from "../../domain/frontmatter";
@@ -33,8 +34,9 @@ export function PropertyRow(props: PropertyRowProps) {
     for (const link of parseWikiLinks(value)) {
       pieces.push(value.slice(from, link.from));
       pieces.push(
-        <button
+        <Button
           type="button"
+          layout="inline"
           class="property-note-link"
           disabled={props.disabled}
           aria-label={`${link.title} 노트 열기`}
@@ -43,7 +45,7 @@ export function PropertyRow(props: PropertyRowProps) {
           onClick={() => props.onOpen?.(link.title)}
         >
           {link.title}
-        </button>,
+        </Button>,
       );
       from = link.to;
     }
@@ -64,7 +66,7 @@ export function PropertyRow(props: PropertyRowProps) {
                 ])}
               </span>
               {props.onEdit && (
-                <button
+                <Button
                   type="button"
                   class="property-edit-button"
                   disabled={props.disabled}
@@ -73,20 +75,21 @@ export function PropertyRow(props: PropertyRowProps) {
                   aria-label={`${props.name} ${props.editable ? "값 편집" : "원문 편집"}`}
                 >
                   {props.editable ? "편집" : "원문 편집"}
-                </button>
+                </Button>
               )}
             </div>
           ) : props.onEdit ? (
-            <button
+            <Button
               type="button"
               disabled={props.disabled}
+              layout="list"
               class="property-value-button"
               data-property={props.name}
               onClick={edit}
               aria-label={`${props.name} ${props.editable ? "값 편집" : "원문 편집"}`}
             >
               {propertyText(props.value)}
-            </button>
+            </Button>
           ) : (
             propertyText(props.value)
           ))}

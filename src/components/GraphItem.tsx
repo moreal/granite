@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import type { NoteGraph } from "../domain/note-graph";
 export function GraphItem(props: {
   node: NoteGraph["nodes"][number];
@@ -7,7 +8,8 @@ export function GraphItem(props: {
   onOpen: (title: string) => void;
 }) {
   return (
-    <button
+    <Button
+      layout="list"
       class="graph-node"
       disabled={props.locked}
       onClick={() => props.onOpen(props.node.title)}
@@ -22,6 +24,6 @@ export function GraphItem(props: {
           ? "없는 노트 · 만들기"
           : props.node.types.join(" · ")}
       </small>
-    </button>
+    </Button>
   );
 }

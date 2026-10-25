@@ -39,8 +39,11 @@ export function SchemaPicker(props: SchemaPickerProps) {
   };
   return (
     <div class="schema-picker">
-      <label for={props.id}>{props.label}</label>
+      <label class="ui-field-label" for={props.id}>
+        {props.label}
+      </label>
       <input
+        class="ui-input ui-input--subtle"
         id={props.id}
         role="combobox"
         autocomplete="off"
@@ -99,11 +102,12 @@ export function SchemaPicker(props: SchemaPickerProps) {
           ref={(element) => (list = element)}
           id={`${props.id}-options`}
           role="listbox"
-          class="schema-options"
+          class="ui-menu schema-options"
         >
           <For each={props.options} keyed={(option) => option.id}>
             {(option, index) => (
               <li
+                class="ui-menu-option"
                 id={`${props.id}-option-${index()}`}
                 role="option"
                 aria-selected={active() === index() ? "true" : "false"}
@@ -117,7 +121,7 @@ export function SchemaPicker(props: SchemaPickerProps) {
             )}
           </For>
           {!props.options.length && (
-            <li class="property-help">
+            <li class="ui-field-help property-help">
               일치하는 추천이 없습니다. 사용자 정의 이름을 입력할 수 있습니다.
             </li>
           )}

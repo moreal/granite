@@ -16,6 +16,7 @@ import type { PropertyNoteContext } from "./property-note-completion";
 export interface PropertyValueInputProps {
   id?: string;
   label: string;
+  hideLabel?: boolean;
   value: string;
   titles: readonly string[];
   references?: readonly NoteReference[];
@@ -139,9 +140,12 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
     setMenu(null);
   };
   return (
-    <div class="property-value-input">
-      <label for={id()}>{props.label}</label>
+    <div class="ui-field property-value-input">
+      <label class={props.hideLabel ? "sr-only" : "ui-field-label"} for={id()}>
+        {props.label}
+      </label>
       <input
+        class="ui-input ui-input--subtle"
         ref={(element) => {
           input = element;
           untrack(() => props.onReady?.(element));
@@ -265,7 +269,7 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
         }}
       />
       {props.linkable && (
-        <span id={`${id()}-help`} class="property-help">
+        <span id={`${id()}-help`} class="ui-field-help property-help">
           @ 또는 [[로 기존 노트를 연결하세요.
           {props.property &&
             expectedTypes(props.property).length > 0 &&
@@ -278,13 +282,14 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
             list = element;
           }}
           id={`${id()}-notes`}
-          class="schema-options property-note-options"
+          class="ui-menu schema-options property-note-options"
           role="listbox"
           aria-label={props.typeValue ? "Schema.org 유형" : "기존 노트"}
         >
           <For each={options()} keyed={(title) => title}>
             {(title, index) => (
               <li
+                class="ui-menu-option"
                 id={`${id()}-note-${index()}`}
                 role="option"
                 aria-label={title()}
@@ -302,13 +307,13 @@ export function PropertyValueInput(props: PropertyValueInputProps) {
         </ul>
       )}
       {scope() && allOptions().length > 20 && (
-        <span class="property-help" role="status">
+        <span class="ui-field-help property-help" role="status">
           처음 20개를 표시합니다. 검색어를 더 입력해 주세요.
         </span>
       )}
       {scope() && !options().length && (
         <p
-          class="schema-options property-note-options property-help"
+          class="ui-menu schema-options property-note-options property-help"
           role="status"
         >
           {props.typeValue

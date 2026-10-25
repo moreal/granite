@@ -1,0 +1,72 @@
+/* Neutral native reset; visual control contracts are opt-in. */
+:root {
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  font-weight: 400;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  background: var(--color-canvas);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  cursor: default;
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--focus-offset);
+}
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+.ui-icon {
+  flex-shrink: 0;
+  stroke-width: var(--icon-stroke);
+}
+html {
+  color-scheme: light;
+  scrollbar-color: var(--color-control-border) var(--color-canvas);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

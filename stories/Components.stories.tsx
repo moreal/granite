@@ -1,3 +1,4 @@
+import { Button } from "../src/design-system/Button";
 import { expect, userEvent, within } from "storybook/test";
 import { createSignal } from "solid-js";
 import { TodayShortcut } from "../src/components/TodayShortcut";
@@ -71,9 +72,9 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
             <article aria-label="연결된 노트">
               <h2>{openedNote()}</h2>
               <p>속성 링크로 연 노트의 본문입니다.</p>
-              <button type="button" onClick={() => setOpenedNote("")}>
+              <Button type="button" onClick={() => setOpenedNote("")}>
                 속성 노트로 돌아가기
-              </button>
+              </Button>
             </article>
           )}
           <div hidden={!!openedNote()}>

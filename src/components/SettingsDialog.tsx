@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { LinkTemplateRow } from "./LinkTemplateRow";
 import { createSignal, untrack, For } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -44,7 +45,7 @@ export function SettingsDialog(props: {
       ),
     });
   return (
-    <Dialog title="설정" onClose={props.onClose}>
+    <Dialog width="settings" title="설정" onClose={props.onClose}>
       <form
         class="settings-form"
         onSubmit={(event) => {
@@ -72,27 +73,27 @@ export function SettingsDialog(props: {
           이 브라우저에서 사용할 화면과 글쓰기 방식을 정합니다.
         </p>
         <nav class="settings-nav" aria-label="설정 분류">
-          <button
+          <Button
             type="button"
             aria-pressed={section() === "appearance" ? "true" : "false"}
             onClick={() => setSection("appearance")}
           >
             화면
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             aria-pressed={section() === "writing" ? "true" : "false"}
             onClick={() => setSection("writing")}
           >
             글쓰기
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             aria-pressed={section() === "links" ? "true" : "false"}
             onClick={() => setSection("links")}
           >
             링크 붙여넣기
-          </button>
+          </Button>
         </nav>
         {section() === "appearance" ? (
           <section aria-label="화면 설정">
@@ -109,6 +110,7 @@ export function SettingsDialog(props: {
               ).map(([value, label]) => (
                 <label class={draft().theme === value ? "selected" : ""}>
                   <input
+                    class="ui-choice"
                     type="radio"
                     name="theme"
                     value={value}
@@ -127,9 +129,10 @@ export function SettingsDialog(props: {
               한 번에 한 편집 방식만 표시합니다. 입력 중인 값은 적용하거나
               취소한 뒤 전환합니다.
             </p>
-            <label class="property-mode-setting">
+            <label class="ui-field property-mode-setting">
               속성 편집 방식
               <select
+                class="ui-select ui-select--subtle"
                 aria-label="속성 편집 방식"
                 value={draft().propertyEditor}
                 onChange={(event) =>
@@ -151,6 +154,7 @@ export function SettingsDialog(props: {
             </p>
             <label class="auto-format-option">
               <input
+                class="ui-choice"
                 type="checkbox"
                 checked={draft().autoFormat}
                 onInput={(event) =>
@@ -193,7 +197,7 @@ export function SettingsDialog(props: {
                 />
               )}
             </For>
-            <button
+            <Button
               type="button"
               class="template-add"
               onClick={() =>
@@ -212,21 +216,21 @@ export function SettingsDialog(props: {
             >
               <Plus size={16} />
               양식 추가
-            </button>
+            </Button>
           </section>
         )}
         {error() && (
-          <p class="error" role="alert">
+          <p class="ui-feedback ui-feedback--error error" role="alert">
             {error()}
           </p>
         )}
-        <div class="dialog-actions">
-          <button type="button" onClick={props.onClose}>
+        <div class="ui-action-row dialog-actions">
+          <Button variant="secondary" type="button" onClick={props.onClose}>
             취소
-          </button>
-          <button class="primary" type="submit">
+          </Button>
+          <Button variant="primary" size="comfortable" type="submit">
             적용
-          </button>
+          </Button>
         </div>
         <footer>
           <a href={`${import.meta.env.BASE_URL}licenses/`}>라이선스와 소스</a>

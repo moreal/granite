@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { TriangleAlert, Download } from "../icons";
 import type { Entry } from "../storage/workspace";
 export function RecoveryPanel(props: {
@@ -18,18 +19,18 @@ export function RecoveryPanel(props: {
             : "저장을 마치지 못했습니다."}
         </strong>
         <p>{props.error} 편집한 내용은 이 브라우저에 보관합니다.</p>
-        <div class="recovery-actions">
-          <button
+        <div class="ui-action-row recovery-actions">
+          <Button
             onClick={props.onRetry}
             disabled={props.busy || props.status === "conflict"}
           >
             다시 저장
-          </button>
-          <button onClick={props.onDownload}>
+          </Button>
+          <Button onClick={props.onDownload}>
             <Download size={14} />
             초안 다운로드
-          </button>
-          <button onClick={props.onReload}>디스크 내용 다시 읽기</button>
+          </Button>
+          <Button onClick={props.onReload}>디스크 내용 다시 읽기</Button>
         </div>
       </div>
     </div>

@@ -1,0 +1,67 @@
+/* Showcase layout only. All demonstrated control styles come from production CSS. */
+.ds-showcase {
+  padding: var(--space-6);
+  max-width: 900px;
+  margin-inline: auto;
+  line-height: var(--leading-ui);
+  overflow-wrap: anywhere;
+}
+.ds-showcase h1 {
+  font-size: var(--text-title);
+}
+.ds-showcase h2 {
+  font-size: var(--text-base);
+}
+.ds-section {
+  margin-block: var(--space-8);
+}
+.ds-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--space-3);
+}
+.ds-color {
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+.ds-color > span {
+  display: block;
+  height: 40px;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  margin-bottom: var(--space-1);
+}
+.ds-title {
+  font-size: var(--text-title);
+  font-weight: 650;
+}
+.ds-reading {
+  font-family: var(--font-reading);
+  font-size: var(--text-body);
+  line-height: var(--leading-reading);
+  word-break: keep-all;
+}
+.ds-ui {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+  color: var(--color-text-muted);
+}
+.ds-code {
+  font-family: var(--font-code);
+  white-space: pre-wrap;
+  background: var(--color-surface);
+  padding: var(--space-3);
+}
+.ds-space {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block: var(--space-2);
+}
+.ds-space code {
+  width: 80px;
+}
+.ds-space span {
+  height: 12px;
+  background: var(--color-link);
+}

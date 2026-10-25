@@ -1,3 +1,4 @@
+import { Button } from "../design-system/Button";
 import { BookOpen } from "../icons";
 export function SidebarNoteRow(props: {
   title: string;
@@ -7,7 +8,9 @@ export function SidebarNoteRow(props: {
   onOpen: () => void;
 }) {
   return (
-    <button
+    <Button
+      layout="list"
+      size="compact"
       class={props.active ? "note-item active" : "note-item"}
       onClick={props.onOpen}
       disabled={props.disabled}
@@ -21,6 +24,6 @@ export function SidebarNoteRow(props: {
           {props.excerpt || "아직 비어 있는 노트"}
         </span>
       )}
-    </button>
+    </Button>
   );
 }

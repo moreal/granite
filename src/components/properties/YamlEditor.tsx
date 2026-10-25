@@ -116,6 +116,7 @@ export function YamlEditor(props: YamlEditorProps) {
         속성 YAML 원문
       </label>
       <textarea
+        class="ui-textarea ui-textarea--subtle"
         ref={(element) => {
           textarea = element;
           untrack(() => props.onReady?.(element));
@@ -212,12 +213,12 @@ export function YamlEditor(props: YamlEditorProps) {
         }}
       />
       {current()?.kind === "note" && !options().length && (
-        <p class="property-help" role="status">
+        <p class="ui-field-help property-help" role="status">
           일치하는 기존 노트가 없습니다. 다른 검색어를 입력해 주세요.
         </p>
       )}
       {current() && allOptions().length > 20 && (
-        <p class="property-help" role="status">
+        <p class="ui-field-help property-help" role="status">
           처음 20개를 표시합니다. 검색어를 더 입력해 주세요.
         </p>
       )}
@@ -226,13 +227,14 @@ export function YamlEditor(props: YamlEditorProps) {
           ref={(element) => {
             list = element;
           }}
-          class="schema-options"
+          class="ui-menu schema-options"
           role="listbox"
           id={`${id()}-options`}
         >
           <For each={options()} keyed={(option) => option.id}>
             {(option, index) => (
               <li
+                class="ui-menu-option"
                 role="option"
                 id={`${id()}-option-${index()}`}
                 aria-selected={active() === index() ? "true" : "false"}
