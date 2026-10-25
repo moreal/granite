@@ -283,3 +283,34 @@ it("S08 title retrieval prefers normalized OG title and escapes remote Markdown"
     "[A \\[title\\] & \\*text\\*](https://example.com/)",
   );
 });
+
+it.each(["## 제목  안쪽 공백", "###\t\t제목", "  ##   제목", "## 제목 ##  "])(
+  "S04 hides only the opening heading delimiter spacing: %s",
+  (heading) => {
+    const value = `${heading}\n\n끝`;
+    const { box, view } = setup(value);
+    act(() => view.dispatch({ selection: { anchor: value.length } }));
+    const expected = heading
+      .replace(/^( {0,3})#{1,6}[ \t]+/, "$1")
+      .replace(/##(?=  $)/, "");
+    expect(box.querySelector(".cm-heading")?.textContent).toBe(expected);
+    expect(view.state.doc.toString()).toBe(value);
+    act(() =>
+      view.dispatch({ selection: { anchor: heading.indexOf("제목") } }),
+    );
+    expect(box.querySelector(".cm-heading")?.textContent).toBe(heading);
+    expect(view.state.doc.toString()).toBe(value);
+  },
+);
+
+it("S04 leaves escaped hashes and code spacing intact", () => {
+  const value =
+    "\\##   평문\n\n    ##   들여쓴 코드\n\n```md\n##   코드\n```\n\n끝";
+  const { box, view } = setup(value);
+  act(() => view.dispatch({ selection: { anchor: value.length } }));
+  expect(box.querySelectorAll(".cm-heading")).toHaveLength(0);
+  expect(box.textContent).toContain("##   평문");
+  expect(box.textContent).toContain("    ##   들여쓴 코드");
+  expect(box.textContent).toContain("##   코드");
+  expect(view.state.doc.toString()).toBe(value);
+});

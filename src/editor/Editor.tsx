@@ -151,16 +151,19 @@ function preview() {
         syntaxTree(view.state).iterate({
           enter(node) {
             const line = doc.lineAt(node.from);
-            if (node.name === "FencedCode") {
+            if (node.name === "FencedCode" || node.name === "CodeBlock") {
               for (
                 let number = line.number;
                 number <= doc.lineAt(node.to).number;
                 number++
               ) {
                 ranges.push(
-                  Decoration.line({ class: "cm-fenced-code" }).range(
-                    doc.line(number).from,
-                  ),
+                  Decoration.line({
+                    class:
+                      node.name === "FencedCode"
+                        ? "cm-fenced-code cm-code-layout"
+                        : "cm-code-layout",
+                  }).range(doc.line(number).from),
                 );
               }
             }
@@ -171,13 +174,33 @@ function preview() {
                 }).range(line.from),
               );
             }
+            if (node.name === "InlineCode") {
+              ranges.push(
+                Decoration.mark({ class: "cm-code-layout" }).range(
+                  node.from,
+                  node.to,
+                ),
+              );
+            }
             if (activeLines.has(line.number)) return;
             if (
               ["HeaderMark", "EmphasisMark", "CodeMark", "CodeInfo"].includes(
                 node.name,
               )
             ) {
-              ranges.push(Decoration.replace({}).range(node.from, node.to));
+              // The opening ATX marker owns its separator; indentation and
+              // closing-marker whitespace remain untouched document text.
+              const openingHeading =
+                node.name === "HeaderMark" &&
+                /^ATXHeading[1-6]$/.test(node.node.parent?.name ?? "") &&
+                node.node.parent?.firstChild?.from === node.from;
+              const separator = openingHeading
+                ? (doc.sliceString(node.to, line.to).match(/^[ \t]+/)?.[0]
+                    .length ?? 0)
+                : 0;
+              ranges.push(
+                Decoration.replace({}).range(node.from, node.to + separator),
+              );
             }
             const classes: Record<string, string> = {
               StrongEmphasis: "cm-strong",
