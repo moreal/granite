@@ -32,7 +32,13 @@ for (const state of [
       "data-story-ready",
       "true",
     );
-    if (state === "create" || state === "property") {
+    if (state === "create") {
+      await expect(
+        page.getByRole("combobox", { name: "customField 값", exact: true }),
+      ).toBeFocused();
+      await expect(page.locator(".property-row")).toHaveCount(0);
+    }
+    if (state === "property") {
       await page.getByRole("combobox").focus();
       await page.keyboard.press("ArrowDown");
       await expect(page.getByRole("listbox")).toBeVisible();

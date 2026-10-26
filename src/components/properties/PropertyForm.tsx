@@ -1,21 +1,17 @@
 import type { NotePreviewLookup } from "../../domain/note-preview";
 import { Button } from "../../design-system/Button";
-import { For } from "solid-js";
+import { For, createSignal } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import {
   canEditPropertyScalar,
-  replaceFrontmatter,
   type Frontmatter,
 } from "../../domain/frontmatter";
 import type { NoteReference } from "../../schema/references";
 import { PropertyRow } from "./PropertyRow";
 import { PropertyPicker } from "./PropertyPicker";
-import { PropertyCreateForm } from "./PropertyCreateForm";
 import { PropertyAdvice } from "./PropertyAdvice";
 export function PropertyForm(props: {
   body: string;
-  initialType: string;
-  onInitialTypeChange: (type: string) => void;
   metadata: Frontmatter;
   locked: boolean;
   propertyKey: string;
@@ -29,15 +25,23 @@ export function PropertyForm(props: {
   onPropertyKey: (key: string) => void;
   onSource?: () => void;
   onOpen?: (title: string) => void;
-  onChange: (body: string) => void;
 }) {
+  const [adding, setAdding] = createSignal(false);
+  const begin = (name: string) => {
+    if (!name.trim()) return;
+    props.onBegin(name);
+    setAdding(false);
+  };
+  const add = () => {
+    if (props.draft) {
+      props.onBegin(props.draft.name, props.draft.existing);
+      return;
+    }
+    setAdding(true);
+    queueMicrotask(() => document.getElementById("new-property-key")?.focus());
+  };
   return (
     <>
-      {" "}
-      {props.draft &&
-        (!props.draft?.existing ||
-          !props.metadata.properties.has(props.draft!.name)) &&
-        props.valueEditor()}
       {props.error && (
         <p
           class="ui-feedback ui-feedback--warning property-warning"
@@ -48,6 +52,7 @@ export function PropertyForm(props: {
       )}
       {props.metadata.present && !props.metadata.readable ? (
         <>
+          {props.draft && props.valueEditor()}
           <p class="ui-field-help property-help">
             속성을 읽을 수 없어 폼 편집을 잠시 멈췄습니다. 입력한 원문은
             보관됩니다.
@@ -56,7 +61,7 @@ export function PropertyForm(props: {
             전체 원문에서 속성 수정
           </Button>
         </>
-      ) : props.metadata.present ? (
+      ) : (
         <>
           <dl class="property-list">
             <For
@@ -85,29 +90,52 @@ export function PropertyForm(props: {
               )}
             </For>
           </dl>
-          <div class="property-create">
-            <PropertyPicker
-              value={props.propertyKey}
-              types={props.metadata.types}
-              existingKeys={[...props.metadata.properties.keys()]}
-              disabled={props.locked || !props.metadata.closed}
-              onChange={props.onPropertyKey}
-              onSelect={(name) => props.onBegin(name)}
-            />
+          {props.draft &&
+            (!props.draft.existing ||
+              !props.metadata.properties.has(props.draft.name)) && (
+              <div class="property-new-row">{props.valueEditor()}</div>
+            )}
+          {adding() && !props.draft && (
+            <div class="property-create property-create--inline">
+              <PropertyPicker
+                value={props.propertyKey}
+                types={props.metadata.types}
+                existingKeys={[...props.metadata.properties.keys()]}
+                disabled={props.locked}
+                onChange={props.onPropertyKey}
+                onSelect={begin}
+                advanceOnTab
+              />
+              <Button
+                size="compact"
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                  queueMicrotask(() =>
+                    document.getElementById("add-property")?.focus(),
+                  );
+                }}
+              >
+                취소
+              </Button>
+            </div>
+          )}
+          {!adding() && (
             <Button
-              class="property-create-action"
-              variant="secondary"
+              id="add-property"
+              aria-label="속성 추가"
+              size="compact"
+              class="property-add"
               type="button"
               disabled={
                 props.locked ||
-                !props.propertyKey.trim() ||
-                !props.metadata.closed
+                (props.metadata.present && !props.metadata.closed)
               }
-              onClick={() => props.onBegin(props.propertyKey)}
+              onClick={add}
             >
-              속성 넣기
+              속성 추가
             </Button>
-          </div>
+          )}
           <PropertyAdvice
             body={props.body}
             references={props.references ?? []}
@@ -120,26 +148,11 @@ export function PropertyForm(props: {
               전체 원문에서 복잡한 속성 편집
             </Button>
           )}
-          {!props.metadata.closed && (
+          {props.metadata.present && !props.metadata.closed && (
             <p class="ui-field-help property-help">
               본문의 원문 보기에서 속성 마지막에 ---를 추가해 주세요.
             </p>
           )}
-        </>
-      ) : (
-        <>
-          <p class="ui-field-help property-help">
-            이 노트에 유형과 속성을 붙일 수 있습니다. 본문 맨 앞에 YAML로
-            저장됩니다.
-          </p>
-          <PropertyCreateForm
-            value={props.initialType}
-            onChange={props.onInitialTypeChange}
-            disabled={props.locked}
-            onCreate={(type) =>
-              props.onChange(replaceFrontmatter(props.body, `type: ${type}`))
-            }
-          />
         </>
       )}
     </>

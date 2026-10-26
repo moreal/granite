@@ -2,7 +2,7 @@ import { createSignal, createEffect, onSettled, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 export function Dialog(props: {
   title: string;
-  width?: "default" | "settings" | "comparison";
+  width?: "default" | "settings";
   focusKey?: unknown;
   onClose: () => void;
   children: JSX.Element;

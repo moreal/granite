@@ -142,9 +142,7 @@ test("S25 form retains rejected draft across mouse/key requests and restores app
   await expect(page.locator(".property-help[role=status]")).toContainText(
     "적용하거나 취소",
   );
-  const picker = page.getByRole("combobox", { name: "속성 이름 검색" });
-  await picker.fill("about");
-  await picker.press("Enter");
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
   await expect(count).toHaveValue("not a number");
   await expect(count).toBeFocused();
   await expect(page.getByRole("alert")).toContainText("숫자");
@@ -159,11 +157,15 @@ test("S25 form retains rejected draft across mouse/key requests and restores app
   await expect(
     page.getByRole("button", { name: "author 값 편집" }),
   ).toBeFocused();
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
+  const picker = page.getByRole("combobox", { name: "속성 이름 검색" });
   await picker.fill("custom");
   await picker.press("Enter");
   await page.getByLabel("custom 값", { exact: true }).fill("value");
   await page.getByLabel("custom 값", { exact: true }).press("Enter");
-  await expect(picker).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "속성 추가", exact: true }),
+  ).toBeFocused();
 });
 
 for (const name of [

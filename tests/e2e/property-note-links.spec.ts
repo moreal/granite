@@ -50,6 +50,7 @@ test("S23 author/about existing-note selection persists escaped links and refres
     page.getByRole("button", { name: "author 값 편집" }),
   ).toHaveCount(0);
   await input.press("Enter");
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
   const picker = page.getByRole("combobox", { name: "속성 이름 검색" });
   await picker.fill("about");
   await picker.press("Enter");

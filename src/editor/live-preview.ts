@@ -240,6 +240,13 @@ export function preview() {
               class: "cm-note-link",
               attributes: {
                 "data-link-target": link.target,
+                ...(!link.external
+                  ? {
+                      tabindex: "0",
+                      role: "link",
+                      "aria-label": `${link.target} 노트 열기`,
+                    }
+                  : {}),
                 "data-link-external": String(link.external),
               },
             }).range(link.labelFrom, link.labelTo),

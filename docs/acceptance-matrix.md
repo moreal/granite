@@ -132,3 +132,14 @@ C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다
 | S28d   | 관련 속성/preview에서 끝나는 운영 story, 좁은 창/두 테마에서 viewport 안 배치와 native 링크 geometry 유지                                                  | C note-link-preview320/960px·라이트/다크 작은 캡처, 기존 components/S26 정렬·초안 후보 한 번 클릭; V 운영 PropertiesLinks/preview/missing                                                             |
 
 본문 편집기의 일반 클릭/수정자 이동 규칙은 그대로다. 미리보기는 저장소를 읽거나 생성/저장하지 않으며 HTML/네트워크를 실행하지 않는다. 실제 picker/권한·OS IME·스크린리더 확인은 합성 Chromium 증거와 구분한다.
+
+## S29 연결 미리보기와 간결한 입력
+
+기준: [S29](superpowers/specs/2026-10-26-writing-ux.md). S28의 속성 전용 범위, S24 읽는 속성40px, S20 수동 정리 검토 유지 요구를 명시적으로 확장/대체한다.
+
+| 기준 | 기대 동작 | 검증 |
+| --- | --- | --- |
+| S29a | 같은 로컬 미리보기를 속성·본문·그래프에서 쓰고 본문 Tab은 선택/문법을 바꾸지 않으며 DOM 링크 Enter만 이동한다. 일반 클릭 편집·수정키 이동 유지. | E [writing-ux](../tests/e2e/writing-ux.spec.ts) 실제 Tab·CM 문서/선택·저장 바이트·Escape/Enter, 본문 hover/일반·수정키 클릭, 그래프 hover/직접 이동; E/C 기존 S28 지연·기하학적 연결·평문·수명·터치 회귀 |
+| S29b | 작은 읽는 속성 행과 요청할 때만 여는 이름→값 행. 첫 속성도 값 확정 전 저장하지 않고 사용자 type을 강제하지 않는다. 초안/오류 보호. | U [property-controls](../tests/unit/property-controls.test.tsx) CRLF 정확한 패치·새type 왕복·미확정 초안·오류·Add 보호; E [writing-ux](../tests/e2e/writing-ux.spec.ts), [schema-editing](../tests/e2e/schema-editing.spec.ts), [property-modes](../tests/e2e/property-modes.spec.ts); C 실제 Create/PropertiesType/PropertiesNew |
+| S29c | 수동 Format UI/story 제거, 자동 idle/CmdS·설정·undo·실패/복구 유지. | U [formatting](../tests/unit/formatting.test.tsx), E [auto-formatting](../tests/e2e/auto-formatting.spec.ts), [formatting](../tests/e2e/formatting.spec.ts); 제거된 story 대신 실제 자동 worker production 경로 유지 |
+| S29d |320/390px 포함 왼쪽 세로 분류, 읽을 수 있는 라디오 행, 기존 임시설정·적용/취소 유지. | E [writing-ux](../tests/e2e/writing-ux.spec.ts) 분류/내용 상대위치·라디오 행/레이블 높이; E [settings](../tests/e2e/settings.spec.ts), C 실제 Settings; 독립 작은 라이트/다크 검토 |

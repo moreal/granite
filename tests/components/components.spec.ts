@@ -33,7 +33,6 @@ const states = [
   "paste-failed",
   "paste-loading",
   "settings",
-  "format",
 ];
 test("S26 actual property links open a target view with click and Enter; pending type draft stays intact", async ({
   page,
@@ -123,7 +122,7 @@ for (const state of states)
       "data-story-ready",
       "true",
     );
-    if (["type", "property", "create"].includes(state)) {
+    if (["type", "property"].includes(state)) {
       const input = page.getByRole("combobox").first();
       await input.focus();
       await input.press("ArrowDown");
@@ -207,7 +206,7 @@ for (const state of states)
         };
       });
       expect(Math.abs(geometry.label - geometry.value)).toBeLessThanOrEqual(1);
-      expect(geometry.height).toBeGreaterThanOrEqual(40);
+      expect(geometry.height).toBeGreaterThanOrEqual(32);
     }
     if (state === "properties-links") {
       const rows = page
@@ -268,10 +267,7 @@ for (const state of states)
       await checkbox.uncheck();
       await expect(checkbox).not.toBeChecked();
     }
-    const target =
-      state === "settings" || state === "format"
-        ? page.getByRole("dialog")
-        : surface;
+    const target = state === "settings" ? page.getByRole("dialog") : surface;
     await page.evaluate(() => document.fonts.ready);
     expect(
       await page.evaluate(
@@ -387,7 +383,6 @@ for (const state of states)
         "create",
         "recovery",
         "settings",
-        "format",
         "row-long",
         "inline-properties",
         "property-value-menu",
@@ -427,7 +422,7 @@ for (const state of states)
       await expect(page.locator(".property-value-input")).toHaveCount(0);
       if (state === "properties-new")
         await expect(
-          page.getByRole("combobox", { name: "속성 이름 검색" }),
+          page.getByRole("button", { name: "속성 추가", exact: true }),
         ).toBeFocused();
       else await expect(page.getByRole("listbox")).toHaveCount(0);
       await expect(

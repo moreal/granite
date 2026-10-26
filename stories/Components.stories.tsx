@@ -12,13 +12,11 @@ import { SettingsDialog } from "../src/components/SettingsDialog";
 import { LinkTemplateRow } from "../src/components/LinkTemplateRow";
 import { TypePicker } from "../src/components/properties/TypePicker";
 import { PropertyPicker } from "../src/components/properties/PropertyPicker";
-import { PropertyCreateForm } from "../src/components/properties/PropertyCreateForm";
 import { NoteProperties } from "../src/components/NoteProperties";
 import { PropertyValueInput } from "../src/components/properties/PropertyValueInput";
 import { PropertyRow } from "../src/components/properties/PropertyRow";
 import { YamlEditor } from "../src/components/properties/YamlEditor";
 import { UrlPasteMenu } from "../src/editor/UrlPasteMenu";
-import { FormatReviewDialog } from "../src/editor/FormatReviewDialog";
 import { noteReference } from "../src/schema/references";
 import { defaultSettings } from "../src/settings";
 
@@ -32,11 +30,13 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
   const [source, setSource] = createSignal(false);
   const [openedNote, setOpenedNote] = createSignal("");
   const [noteBody, setNoteBody] = createSignal(
-    props.kind === "mode-invalid"
-      ? "---\ntype: [\n---\n본문과 원문 보존"
-      : props.kind === "mode-links"
-        ? "---\ntype: Book\nauthor: '소개 [[작가]]와 [[대상 조직]]의 기록'\nabout:\n  - '[[대상 책]] 관련 글'\n  - 3\n  - false\ncount: 2\n---\n본문"
-        : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
+    props.kind === "create"
+      ? "본문"
+      : props.kind === "mode-invalid"
+        ? "---\ntype: [\n---\n본문과 원문 보존"
+        : props.kind === "mode-links"
+          ? "---\ntype: Book\nauthor: '소개 [[작가]]와 [[대상 조직]]의 기록'\nabout:\n  - '[[대상 책]] 관련 글'\n  - 3\n  - false\ncount: 2\n---\n본문"
+          : "---\ntype: Book\nauthor: '[[작가]]' # 보존할 주석\ncount: 2\n---\n본문",
   );
   const [yaml, setYaml] = createSignal("type: Book\nauthor: '[[작가]]'\n");
   const exampleNotes: Record<string, string> = {
@@ -147,7 +147,12 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
         />
       )}
       {props.kind === "create" && (
-        <PropertyCreateForm disabled={props.disabled} onCreate={setResult} />
+        <NoteProperties
+          body={noteBody()}
+          documentKey="create-story"
+          locked={!!props.disabled}
+          onChange={setNoteBody}
+        />
       )}
       {props.kind === "row" && (
         <dl>
@@ -180,18 +185,27 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           onReload={() => setResult("다시 읽기 선택")}
         />
       )}
-      {props.kind === "graph" && (
+      {props.kind === "graph-preview" && openedNote() && (
+        <article aria-label="연결된 노트">
+          <h1>{openedNote()}</h1>
+          <p>{preview(openedNote())?.excerpt}</p>
+        </article>
+      )}
+      {(props.kind === "graph" ||
+        (props.kind === "graph-preview" && !openedNote())) && (
         <GraphItem
           node={{
             id: "synthetic",
-            title: long,
-            types: ["Book"],
-            missing: true,
+            title: props.kind === "graph-preview" ? "작가" : long,
+            types: [props.kind === "graph-preview" ? "Person" : "Book"],
+            missing: props.kind !== "graph-preview",
           }}
           incoming={false}
           property="author"
           locked={!!props.disabled}
-          onOpen={setResult}
+          preview={preview}
+          contextKey="graph-story"
+          onOpen={props.kind === "graph-preview" ? setOpenedNote : setResult}
         />
       )}
       {props.kind === "toolbar" && (
@@ -239,18 +253,8 @@ function Fixture(props: { kind: string; disabled?: boolean }) {
           onClose={() => setResult("닫힘")}
         />
       )}
-      {props.kind === "format" && (
-        <FormatReviewDialog
-          review={{
-            label: "문서 정리",
-            original: "#제목\n\n본문",
-            output: "# 제목\n\n본문\n",
-          }}
-          onClose={() => setResult("취소")}
-          onApply={() => setResult("적용")}
-        />
-      )}
-      {!props.kind.startsWith("mode-") && (
+
+      {!props.kind.startsWith("mode-") && props.kind !== "graph-preview" && (
         <output aria-label="상호작용 결과">{result()}</output>
       )}
     </section>
@@ -276,8 +280,30 @@ export const Type = {
 export const TypeDisabled = story("type", true);
 export const Property = story("property");
 export const PropertyDisabled = story("property", true);
-export const Create = story("create");
-export const CreateDisabled = story("create", true);
+export const Create = {
+  ...story("create"),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText("속성", { exact: true }));
+    await userEvent.click(canvas.getByRole("button", { name: /^속성 추가$/ }));
+    const name = canvas.getByRole("combobox", { name: "속성 이름 검색" });
+    await userEvent.type(name, "customField");
+    await userEvent.tab();
+    await waitFor(async () =>
+      expect(
+        canvas.getByRole("combobox", { name: "customField 값" }),
+      ).toHaveFocus(),
+    );
+  },
+};
+export const CreateDisabled = {
+  ...story("create", true),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByText("속성", { exact: true }),
+    );
+  },
+};
 export const RowLong = story("row");
 export const Yaml = story("yaml");
 export const YamlDisabled = story("yaml", true);
@@ -292,7 +318,6 @@ export const Paste = story("paste");
 export const PasteFailed = story("paste-failed");
 export const PasteLoading = story("paste-loading");
 export const Settings = story("settings");
-export const Format = story("format");
 
 export const InlineProperties = {
   ...story("inline-properties"),
@@ -351,15 +376,8 @@ const propertyModeStory = (kind: string) => ({
       await userEvent.clear(input);
       await userEvent.type(input, "Per");
       await expect(canvas.getByRole("listbox")).toBeVisible();
-      await userEvent.click(
-        canvas.getByRole("button", { name: "작가 노트 열기" }),
-      );
       await expect(input).toHaveValue("Per");
       await expect(input).toHaveFocus();
-      await expect(canvas.queryByRole("article")).toBeNull();
-      await expect(
-        canvas.getByText("입력 중인 값을 적용하거나 취소해 주세요."),
-      ).toBeVisible();
     } else if (kind === "mode-links") {
       const link = canvas.getByRole("button", { name: /^작가 노트 열기$/ });
       link.focus();
@@ -396,6 +414,9 @@ const propertyModeStory = (kind: string) => ({
       }
     } else if (kind === "mode-value" || kind === "mode-new") {
       if (kind === "mode-new") {
+        await userEvent.click(
+          canvas.getByRole("button", { name: /^속성 추가$/ }),
+        );
         const picker = canvas.getByRole("combobox", { name: "속성 이름 검색" });
         await userEvent.type(picker, "about");
         await userEvent.keyboard("{Enter}");
@@ -536,3 +557,14 @@ export const PropertyLinkPreview = propertyPreviewStory("작가");
 export const PropertyLinkEmpty = propertyPreviewStory("빈 노트");
 export const PropertyLinkMissing = propertyPreviewStory("없는 노트");
 export const PropertyLinkLong = propertyPreviewStory("긴 한글 노트");
+
+export const GraphPreview = {
+  ...story("graph-preview"),
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    const canvas = within(canvasElement);
+    canvas.getByRole("button", { name: "작가 노트 열기" }).focus();
+    await waitFor(async () =>
+      expect(canvas.getByRole("tooltip")).toHaveTextContent("일상에서 읽고"),
+    );
+  },
+};

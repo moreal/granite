@@ -5,6 +5,7 @@ export interface PickerOption {
   detail?: string;
 }
 export interface SchemaPickerProps {
+  advanceOnTab?: boolean;
   id: string;
   label: string;
   value: string;
@@ -91,7 +92,15 @@ export function SchemaPicker(props: SchemaPickerProps) {
             );
             setActive(next);
             revealActive();
-          } else if (e.key === "Enter" && open()) {
+          } else if (
+            e.key === "Tab" &&
+            !e.shiftKey &&
+            props.advanceOnTab &&
+            props.value.trim()
+          ) {
+            e.preventDefault();
+            choose(props.value);
+          } else if (e.key === "Enter" && (open() || props.advanceOnTab)) {
             e.preventDefault();
             choose(props.options[active()]?.id ?? props.value);
           }

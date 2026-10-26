@@ -52,4 +52,4 @@ yarn test:visual
 
 현재 경계: 풍부한 본문/CodeMirror/수식/다이어그램·한국어 줄바꿈·화면 그리드·팝업 위치는 기능 스타일에 남는다. 새 디자인 라이브러리, 토큰 외부 게시, 데이터 변환이나 동기화는 포함하지 않는다. 자동 Chromium/합성 데모 검증은 실제 사용자 폴더 권한창·OS IME·스크린리더 확인과 구분한다.
 
-속성 링크 미리보기(S28)는 `PropertyNoteLink`가 native inline Button과 비대화형 top-layer popover를 조합한다. 색/테두리/간격/그림자는 기존 토큰, hover intent/해제 지연과 최대 폭은 `--delay-note-preview-*`/`--note-preview-width`를 쓴다. 내용 조회·직접 이동/초안 보호는 호출자에 남고 미리보기가 새 탭 대상이나 live region을 만들지 않는다.
+속성 링크 미리보기(S28)는 `NoteLinkPreview`를 속성의 `PropertyNoteLink`·그래프·본문 CodeMirror mark 어댑터가 공유하며 native inline/list Button과 비대화형 top-layer popover를 조합한다. 색/테두리/간격/그림자는 기존 토큰, hover intent/해제 지연과 최대 폭은 `--delay-note-preview-*`/`--note-preview-width`를 쓴다. 내용 조회·직접 이동/초안 보호는 호출자에 남고 미리보기가 새 탭 대상이나 live region을 만들지 않는다. 본문 mark의 Tab 초점/Enter 이동은 S29를 따르고 CodeMirror 선택을 바꾸지 않는다.

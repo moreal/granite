@@ -17,8 +17,18 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   await demo(page);
   await create(page, "속성 만들기");
   await page.getByText("속성", { exact: true }).click();
-  await page.getByRole("combobox", { name: "노트 유형" }).fill("Book");
-  await page.getByRole("combobox", { name: "노트 유형" }).press("Escape");
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
+  await page.getByRole("combobox", { name: "속성 이름 검색" }).fill("type");
+  await page.getByRole("combobox", { name: "속성 이름 검색" }).press("Tab");
+  await page
+    .getByRole("combobox", { name: "type 값", exact: true })
+    .fill("Book");
+  await page
+    .getByRole("combobox", { name: "type 값", exact: true })
+    .press("Enter");
+  await page
+    .getByRole("combobox", { name: "type 값", exact: true })
+    .press("Enter");
   await page.getByRole("button", { name: "속성 추가", exact: true }).click();
   const picker = page.getByRole("combobox", { name: "속성 이름 검색" });
   const yaml = page.getByLabel("속성 YAML 원문");
@@ -32,6 +42,7 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   await expect(yaml).toHaveCount(0);
   await value.fill("[[새 저자]]");
   await value.press("Enter");
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
   await picker.fill("about");
   await picker.press("Enter");
   await page
@@ -44,7 +55,7 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   expect(
     Object.values(await rawNotes(page)).some((note) =>
       note.raw.includes(
-        'type: Book\n"author": "[[새 저자]]"\n"about": "[[주제]]"',
+        '"type": "Book"\n"author": "[[새 저자]]"\n"about": "[[주제]]"',
       ),
     ),
   ).toBe(true);
@@ -55,6 +66,7 @@ test("S21 typed panel creates metadata, adds author/about, focuses value and upd
   await expect(page.getByRole("region", { name: "노트 그래프" })).toContainText(
     "주제",
   );
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
   await picker.fill("author");
   await expect(page.getByRole("option")).toHaveCount(0);
 });
@@ -142,7 +154,10 @@ for (const width of [320, 390])
       await create(page, "아주 긴 한국어 이름과 長い中国語 이름 속성");
       await page.getByText("속성", { exact: true }).click();
       const panel = page.locator(".note-properties");
-      const picker = page.getByRole("combobox", { name: "노트 유형" });
+      await page
+        .getByRole("button", { name: "속성 추가", exact: true })
+        .click();
+      const picker = page.getByRole("combobox", { name: "속성 이름 검색" });
       await picker.focus();
       await picker.press("Escape");
       await panel.screenshot({
@@ -150,6 +165,8 @@ for (const width of [320, 390])
           `granite-property-create-${width}-${colorScheme}.png`,
         ),
       });
+      await picker.blur();
+      await picker.focus();
       await picker.fill("");
       await expect(page.getByRole("listbox")).toBeVisible();
       expect(

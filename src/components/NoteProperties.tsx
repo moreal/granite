@@ -30,7 +30,6 @@ export function NoteProperties(props: {
 }) {
   const metadata = createMemo(() => readFrontmatter(props.body));
   const [key, setKey] = createSignal("");
-  const [initialType, setInitialType] = createSignal("Thing");
   const [error, setError] = createSignal<string | null>(null);
   let panel!: HTMLDetailsElement;
   const [draftBlocked, setDraftBlocked] = createSignal(false);
@@ -99,7 +98,7 @@ export function NoteProperties(props: {
             ),
           ].find((button) => button.dataset.property === pending.name)
         : undefined;
-      (row ?? panel.querySelector<HTMLElement>("#new-property-key"))?.focus();
+      (row ?? panel.querySelector<HTMLElement>("#add-property"))?.focus();
     });
   };
   const begin = (name: string, existing = false) => {
@@ -141,6 +140,14 @@ export function NoteProperties(props: {
       setError(result.error);
       if (result.body === undefined) return;
       props.onChange(result.body);
+    } else if (!metadata().present) {
+      // The first property is created only after explicit value confirmation.
+      props.onChange(
+        replaceFrontmatter(
+          props.body,
+          `${JSON.stringify(pending.name)}: ${JSON.stringify(draftValue())}`,
+        ),
+      );
     } else {
       const result = planPropertyInsertion(
         props.body,
@@ -214,9 +221,6 @@ export function NoteProperties(props: {
         value={draftValue()}
         references={props.references ?? []}
       />
-      <span class="ui-field-help property-help">
-        확정 전에는 저장되지 않습니다.
-      </span>
     </div>
   );
   return (
@@ -240,14 +244,6 @@ export function NoteProperties(props: {
               role="status"
             >
               {metadata().warning}
-            </p>
-          )}
-        {!metadata().present &&
-          initialType() !== "Thing" &&
-          (props.source || props.mode === "yaml") && (
-            <p class="ui-field-help property-help">
-              입력한 유형은 보관되어 있습니다. 속성 폼에서 이어서 편집할 수
-              있습니다.
             </p>
           )}
         {props.source ? (
@@ -333,8 +329,6 @@ export function NoteProperties(props: {
                 <PropertyForm
                   preview={props.preview}
                   contextKey={props.documentKey}
-                  initialType={initialType()}
-                  onInitialTypeChange={setInitialType}
                   body={props.body}
                   metadata={metadata()}
                   locked={props.locked}
@@ -347,7 +341,6 @@ export function NoteProperties(props: {
                   onPropertyKey={setKey}
                   onSource={props.onSource}
                   onOpen={props.onOpen ? open : undefined}
-                  onChange={props.onChange}
                 />
               </>
             )}

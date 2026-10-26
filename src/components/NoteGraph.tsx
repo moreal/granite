@@ -1,8 +1,10 @@
+import type { NotePreviewLookup } from "../domain/note-preview";
 import { GraphItem } from "./GraphItem";
 import { createEffect, For } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import type { NoteGraph as Graph } from "../domain/note-graph";
 export function NoteGraph(props: {
+  preview?: NotePreviewLookup;
   graph: Graph;
   current: string;
   onOpen: (title: string) => void;
@@ -56,6 +58,8 @@ export function NoteGraph(props: {
                     {(edge) => (
                       <li>
                         <GraphItem
+                          preview={props.preview}
+                          contextKey={props.current}
                           node={byId().get(
                             group().incoming ? edge().source : edge().target,
                           )!}

@@ -824,6 +824,7 @@ export default function App() {
                     >
                       {(identity) => (
                         <Editor
+                          preview={previewNote}
                           references={references()}
                           linkTemplates={settings().linkTemplates}
                           autoFormat={settings().autoFormat}
@@ -896,6 +897,7 @@ export default function App() {
                   </div>
                   {current()! && (
                     <NoteGraph
+                      preview={previewNote}
                       graph={graph()}
                       current={current()!}
                       onOpen={openTitle}

@@ -15,6 +15,10 @@ for (const theme of ["light", "dark"]) {
       document.documentElement.dataset.theme = theme;
       document.documentElement.style.setProperty("--control-height", "52px");
       document.documentElement.style.setProperty(
+        "--control-height-compact",
+        "52px",
+      );
+      document.documentElement.style.setProperty(
         "--color-focus",
         "rgb(150, 40, 180)",
       );
@@ -49,6 +53,10 @@ for (const theme of ["light", "dark"]) {
     await page.evaluate((theme) => {
       document.documentElement.dataset.theme = theme;
       document.documentElement.style.setProperty("--control-height", "52px");
+      document.documentElement.style.setProperty(
+        "--control-height-compact",
+        "52px",
+      );
       document.documentElement.style.setProperty("--radius-control", "10px");
     }, theme);
     const cancel = page.getByRole("button", { name: "취소", exact: true });
@@ -305,12 +313,11 @@ for (const group of [
   });
 }
 
-test("S27 code typography token reaches real template preview, formatting textareas and YAML without changing their metrics", async ({
+test("S27 code typography token reaches real template preview and YAML without changing their metrics", async ({
   page,
 }) => {
   for (const [id, selector, size, lineHeight] of [
     ["template-error", ".template-preview", "12px", "20.4px"],
-    ["format", ".format-comparison textarea", "12px", "19.2px"],
     ["properties-yaml", ".yaml-editor textarea", "13px", "normal"],
   ] as const) {
     await story(page, `production-components--${id}`);

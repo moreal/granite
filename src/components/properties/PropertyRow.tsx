@@ -66,6 +66,7 @@ export function PropertyRow(props: PropertyRowProps) {
               </span>
               {props.onEdit && (
                 <Button
+                  size="compact"
                   type="button"
                   class="property-edit-button"
                   disabled={props.disabled}
@@ -79,6 +80,7 @@ export function PropertyRow(props: PropertyRowProps) {
             </div>
           ) : props.onEdit ? (
             <Button
+              size="compact"
               type="button"
               disabled={props.disabled}
               layout="list"

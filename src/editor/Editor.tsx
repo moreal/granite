@@ -1,7 +1,9 @@
+import { render as renderPreview } from "@solidjs/web";
+import { NoteLinkPreview } from "../components/NoteLinkPreview";
+import type { NotePreviewLookup } from "../domain/note-preview";
 import { UrlPasteMenu } from "./UrlPasteMenu";
 import { createSignal, createEffect, onSettled, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
-import { FormatReviewDialog } from "./FormatReviewDialog";
 import { EditorState, Compartment, Prec } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
@@ -35,11 +37,11 @@ export interface EditorHandle {
     to: number;
   };
   focus(): void;
-  requestFormatting(id?: string): void;
   formatForSave(): Promise<void>;
 }
 import type { NoteReference } from "../schema/references";
 interface Props {
+  preview?: NotePreviewLookup;
   references?: readonly NoteReference[];
   autoFormat?: boolean;
   plugins?: readonly EditorPlugin[];
@@ -84,7 +86,6 @@ export function Editor(
   const formattingJob = { current: null } as {
     current:
       | ({
-          automatic: boolean;
           controller: AbortController;
           key: string | undefined;
           revision: number;
@@ -95,12 +96,6 @@ export function Editor(
         } | null)
       | null;
   };
-  const [formatting, setFormatting] = createSignal<{
-    label: string;
-    original?: string;
-    output?: string;
-    message?: string;
-  } | null>(null);
   const autoPending = { current: false };
   const autoTimer = { current: null } as {
     current: (ReturnType<typeof setTimeout> | null) | null;
@@ -110,7 +105,7 @@ export function Editor(
   function pauseAutomatic() {
     if (autoTimer.current !== null) clearTimeout(autoTimer.current);
     autoTimer.current = null;
-    if (formattingJob.current?.automatic) cancelFormatting();
+    cancelFormatting();
   }
   function automaticBlocked(ignoreJob = false) {
     const v = view.current;
@@ -136,17 +131,12 @@ export function Editor(
     autoTimer.current = setTimeout(() => {
       autoTimer.current = null;
       if (!autoPending.current || automaticBlocked()) return;
-      void requestFormatting(undefined, true);
+      void requestFormatting();
     }, 1500);
   }
   function cancelFormatting() {
     formattingJob.current?.controller.abort();
     formattingJob.current = null;
-    setFormatting(null);
-  }
-  function closeFormatting() {
-    cancelFormatting();
-    scheduleAutomatic();
   }
   function formattingCurrent(job: NonNullable<typeof formattingJob.current>) {
     return (
@@ -158,17 +148,16 @@ export function Editor(
       !!view.current &&
       !view.current.composing &&
       !composing.current &&
-      (!job.automatic ||
-        (latest.current.autoFormat !== false &&
-          view.current.state.selection.main.anchor === job.anchor &&
-          view.current.state.selection.main.head === job.head &&
-          view.current.state.selection.ranges.every((s) => s.empty) &&
-          completionStatus(view.current.state) === null &&
-          !pasteRef.current)) &&
+      latest.current.autoFormat !== false &&
+      view.current.state.selection.main.anchor === job.anchor &&
+      view.current.state.selection.main.head === job.head &&
+      view.current.state.selection.ranges.every((s) => s.empty) &&
+      completionStatus(view.current.state) === null &&
+      !pasteRef.current &&
       view.current.state.sliceDoc() === job.original
     );
   }
-  async function requestFormatting(id?: string, automatic = false) {
+  async function requestFormatting() {
     pauseAutomatic();
     cancelFormatting();
     const v = view.current;
@@ -177,11 +166,10 @@ export function Editor(
       latest.current.plugins ?? builtinPlugins,
     )
       .flatMap((p) => p.formatters ?? [])
-      .find((f) => !id || f.id === id);
+      .at(0);
     if (!formatter) return;
     const selection = v.state.selection.main;
     const job = {
-      automatic,
       controller: new AbortController(),
       key: latest.current.documentKey,
       revision: revision.current,
@@ -191,51 +179,23 @@ export function Editor(
       output: undefined as string | undefined,
     };
     formattingJob.current = job;
-    if (!automatic)
-      setFormatting({
-        label: formatter.label,
-        message: "문서를 정리하는 중…",
-      });
     try {
       const output = await formatter.format(job.original, {
         signal: job.controller.signal,
       });
       if (!formattingCurrent(job)) return;
-      if (automatic) {
-        autoPending.current = false;
-        job.output = output;
-        if (output !== job.original) applyFormatting();
-        else cancelFormatting();
-        return;
-      }
-      if (output === job.original) {
-        setFormatting({
-          label: formatter.label,
-          message: "정리할 변경 사항이 없습니다.",
-        });
-        return;
-      }
+      autoPending.current = false;
       job.output = output;
-      setFormatting({
-        label: formatter.label,
-        original: job.original,
-        output,
-      });
+      if (output !== job.original) applyFormatting();
+      else cancelFormatting();
     } catch (error) {
-      if (formattingCurrent(job) && automatic) {
+      if (formattingCurrent(job)) {
         autoPending.current = false;
         cancelFormatting();
         setAutoError(
           error instanceof Error ? error.message : "문서 정리에 실패했습니다.",
         );
-      } else if (formattingCurrent(job))
-        setFormatting({
-          label: formatter.label,
-          message:
-            error instanceof Error
-              ? error.message
-              : "문서 정리에 실패했습니다.",
-        });
+      }
     }
   }
   function applyFormatting() {
@@ -276,7 +236,6 @@ export function Editor(
       annotations: isolateHistory.of("full"),
       userEvent: "input.format",
     });
-    if (!job.automatic) v.focus();
   }
   untrack(() => resolveEditorPlugins(props.plugins ?? builtinPlugins));
   const mount = { current: null } as {
@@ -328,10 +287,7 @@ export function Editor(
     focus: () => view.current?.focus(),
     formatForSave: async () => {
       if (automaticBlocked(true)) return;
-      await requestFormatting(undefined, true);
-    },
-    requestFormatting: (id) => {
-      void requestFormatting(id);
+      await requestFormatting();
     },
   });
   onSettled(() =>
@@ -656,6 +612,59 @@ export function Editor(
         }),
       });
       view.current = v;
+      // Attach preview behavior to CodeMirror's own marks; never replace editable DOM.
+      const previews = new Map<
+        HTMLElement,
+        { title: string; dispose: () => void }
+      >();
+      const bindPreviews = () => {
+        for (const [anchor, preview] of previews) {
+          if (
+            !v.dom.contains(anchor) ||
+            anchor.dataset.linkTarget !== preview.title
+          ) {
+            preview.dispose();
+            previews.delete(anchor);
+          }
+        }
+        for (const anchor of v.dom.querySelectorAll<HTMLElement>(
+          '.cm-note-link[data-link-external="false"]',
+        )) {
+          if (previews.has(anchor)) continue;
+          const host = document.createElement("span");
+          v.dom.append(host);
+          const dispose = renderPreview(
+            () => (
+              <NoteLinkPreview
+                anchor={anchor}
+                title={anchor.dataset.linkTarget!}
+                preview={props.preview}
+                contextKey={JSON.stringify([props.documentKey, props.value])}
+                disabled={props.locked || props.source}
+                onOpen={(title) => latest.current.onOpen(title)}
+              />
+            ),
+            host,
+          );
+          previews.set(anchor, {
+            title: anchor.dataset.linkTarget!,
+            dispose: () => {
+              dispose();
+              host.remove();
+            },
+          });
+        }
+      };
+      const observer = new MutationObserver(bindPreviews);
+      observer.observe(v.contentDOM, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["data-link-target"],
+      });
+      queueMicrotask(() => {
+        if (view.current === v) bindPreviews();
+      });
       return () => {
         autoPending.current = false;
         if (autoTimer.current !== null) clearTimeout(autoTimer.current);
@@ -664,6 +673,8 @@ export function Editor(
         imageJob.current = null;
         fetchJob.current?.abort();
         pasteRef.current = null;
+        observer.disconnect();
+        previews.forEach((preview) => preview.dispose());
         v.destroy();
         view.current = null;
       };
@@ -972,13 +983,6 @@ export function Editor(
         <p class="auto-format-status" role="status">
           자동 문서 정리: {autoError()} 글은 계속 저장됩니다.
         </p>
-      )}
-      {formatting()! && (
-        <FormatReviewDialog
-          review={formatting()!}
-          onClose={closeFormatting}
-          onApply={applyFormatting}
-        />
       )}
 
       {paste()! && (

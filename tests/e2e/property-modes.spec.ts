@@ -301,31 +301,28 @@ test("S24 YAML caret/selection/IME/save dismiss safely and source mismatch advic
     "alert",
   );
 });
-test("S24 initial type query survives setting and source round trips before metadata creation", async ({
+test("S29 new type value survives setting and source round trips before metadata creation", async ({
   page,
 }) => {
   await disableAutomaticFormatting(page);
   await demo(page);
   await create(page, "처음 유형 초안");
   await page.getByText("속성", { exact: true }).click();
-  const type = page.getByRole("combobox", { name: "노트 유형", exact: true });
-  await expect(type).toHaveValue("Thing");
-  await type.fill("");
-  await type.pressSequentially("Per");
+  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
+  const name = page.getByRole("combobox", { name: "속성 이름 검색" });
+  await name.fill("type");
+  await name.press("Tab");
+  const type = page.getByRole("combobox", { name: "type 값", exact: true });
+  await type.fill("CustomType");
   await setting(page, "yaml");
-  await expect(type).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "속성 YAML 추가" }),
-  ).toBeVisible();
+  await expect(type).toHaveValue("CustomType");
   await setting(page, "form");
-  await expect(type).toHaveValue("Per");
+  await expect(type).toHaveValue("CustomType");
   await source(page);
   await expect(type).toHaveCount(0);
   await live(page);
-  await expect(type).toHaveValue("Per");
-  await type.fill("CustomType");
-  await type.press("Escape");
-  await page.getByRole("button", { name: "속성 추가", exact: true }).click();
+  await expect(type).toHaveValue("CustomType");
+  await page.getByRole("button", { name: "추가 / 적용", exact: true }).click();
   await saved(page);
   await page.reload();
   await page.getByText("속성", { exact: true }).click();

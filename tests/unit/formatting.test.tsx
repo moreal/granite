@@ -95,19 +95,7 @@ function setup(
     view = EditorView.findFromDOM(box)!;
   return { ref, props, rendered, box, view, onChange };
 }
-it("S20 formatter review applies only on confirmation in one undo unit", async () => {
-  const { ref, view, onChange } = setup(async () => "formatted");
-  await act(async () => ref.current!.requestFormatting("test.format"));
-  expect(view.state.sliceDoc()).toBe("original");
-  fireEvent.click(screen.getByRole("button", { name: "적용" }));
-  expect(view.state.sliceDoc()).toBe("formatted");
-  expect(onChange).toHaveBeenLastCalledWith("formatted");
-  act(() => {
-    undo(view);
-  });
-  expect(view.state.sliceDoc()).toBe("original");
-});
-it.each(["edit", "key", "lock", "composition", "cancel"])(
+it.each(["edit", "key", "lock", "composition"])(
   "S20 discards pending result after %s",
   async (action) => {
     let resolve!: (s: string) => void;
@@ -116,7 +104,7 @@ it.each(["edit", "key", "lock", "composition", "cancel"])(
       signal = context.signal;
       return new Promise((r) => (resolve = r));
     });
-    act(() => s.ref.current!.requestFormatting());
+    act(() => s.ref.current!.formatForSave());
     if (action === "edit")
       act(() => s.view.dispatch({ changes: { from: 0, insert: "new " } }));
     if (action === "key" || action === "lock")
@@ -126,8 +114,6 @@ it.each(["edit", "key", "lock", "composition", "cancel"])(
         locked: action === "lock",
       });
     if (action === "composition") fireEvent.compositionStart(s.box);
-    if (action === "cancel")
-      fireEvent.click(screen.getByRole("button", { name: "취소" }));
     await act(async () => resolve("stale"));
     expect(signal.aborted).toBe(true);
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -139,19 +125,12 @@ it.each(["same", "error"])("S20 %s does not write", async (kind) => {
     if (kind === "error") throw Error("format failed");
     return text;
   });
-  await act(async () => s.ref.current!.requestFormatting());
+  await act(async () => s.ref.current!.formatForSave());
   expect(s.onChange).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: "적용" })).toBeNull();
-  expect(screen.getByRole("status").textContent).toContain(
-    kind === "same" ? "변경 사항" : "format failed",
-  );
-});
-it("S20 edit while reviewing invalidates apply", async () => {
-  const s = setup(async () => "formatted");
-  await act(async () => s.ref.current!.requestFormatting());
-  act(() => s.view.dispatch({ changes: { from: 0, insert: "new " } }));
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(s.view.state.sliceDoc()).toBe("new original");
+  if (kind === "error")
+    expect(screen.getByRole("status").textContent).toContain("format failed");
+  else expect(screen.queryByRole("status")).toBeNull();
 });
 it("S20 worker timeout and abort terminate computation", async () => {
   vi.useFakeTimers();
@@ -202,24 +181,6 @@ it("S20 reference labels remain editable and modifier navigation opens only safe
   expect(box.textContent).toContain("[출처][ref]");
   expect(view.state.sliceDoc()).toBe(text);
   open.mockRestore();
-});
-it("S20 preview traps Tab, Escape cancels, and restores invoking focus", async () => {
-  const trigger = document.createElement("button");
-  document.body.append(trigger);
-  trigger.focus();
-  const s = setup(async () => "formatted");
-  trigger.focus();
-  await act(async () => s.ref.current!.requestFormatting());
-  const first = screen.getByRole("textbox", { name: "정리 전 원문" }),
-    last = screen.getByRole("button", { name: "적용" });
-  expect(document.activeElement).toBe(first);
-  last.focus();
-  fireEvent.keyDown(last, { key: "Tab" });
-  expect(document.activeElement).toBe(first);
-  fireEvent.keyDown(first, { key: "Escape" });
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(document.activeElement).toBe(trigger);
-  trigger.remove();
 });
 it("S20 auto formats only real edits after 1500ms and undo stays undone", async () => {
   vi.useFakeTimers();
@@ -439,22 +400,6 @@ it("S20 paste choices defer automatic work until dismissal", async () => {
   fireEvent.click(screen.getByRole("button", { name: "닫기 · Esc" }));
   await act(async () => vi.advanceTimersByTimeAsync(1500));
   expect(s.view.state.sliceDoc()).toContain("formatted");
-});
-it("S20 manual review pauses eligible automatic work and cancel resumes the quiet wait", async () => {
-  vi.useFakeTimers();
-  const s = setup(async (text) => text + " formatted");
-  act(() =>
-    s.view.dispatch({
-      changes: { from: 8, insert: "!" },
-      userEvent: "input.paste",
-    }),
-  );
-  await act(async () => s.ref.current!.requestFormatting());
-  await act(async () => vi.advanceTimersByTimeAsync(3000));
-  expect(s.view.state.sliceDoc()).toBe("original!");
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
-  await act(async () => vi.advanceTimersByTimeAsync(1500));
-  expect(s.view.state.sliceDoc()).toBe("original! formatted");
 });
 it("S20 save formatting applies without review and keeps one undo unit", async () => {
   const { ref, view } = setup(async () => "formatted");

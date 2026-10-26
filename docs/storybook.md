@@ -36,3 +36,5 @@ S25에는 실제 NoteProperties의 `PropertiesYamlQuiet`, `PropertiesYamlValidat
 S27의 **Design System → Foundations / Primitives**는 운영 토큰/컨트롤의 색·글자·간격·변형·상태를 한곳에서 보여 준다. 상단 테마 도구는 앱 설정을 저장하지 않는다. 수정 위치·선택 기준·네이티브 동작 경계·검사 추가법은 [디자인 수정 안내](design-system.md)를 따른다.
 
 S28의 PropertiesLinks는 운영 속성 링크와 읽기 전용 미리보기에서 준비를 끝낸다. 링크를 누르면 예제 노트의 실제 합성 내용으로 바로 이동하며, 추가 열기/돌아가기 단계나 작업 결과 문구를 표시하지 않는다. story 재설정으로 출발 상태를 다시 볼 수 있다. PropertyLinkPreview/Empty/Missing/Long은 같은 운영 링크의 내용·빈/없는 대상·긴 한글을 작게 검토한다. 미리보기는 기존 메모리의 일반 텍스트만 사용하고 클릭/Enter/터치의 운영 이동 경로는 바꾸지 않는다.
+
+S29 연결 미리보기: Production → Components → GraphPreview는 실제 GraphItem의 로컬 노트 미리보기에서 준비를 마치며 클릭/Enter는 곧바로 예제 노트 내용을 연다. GraphLong은 긴 없는 대상의 미리보기, GraphDisabled는 잠긴 상태다. Create는 별도 유형 생성 폼 대신 실제 새 속성 이름→값 초안을 보여 준다. Components/Format 수동 정리 예제는 폐기했다.
