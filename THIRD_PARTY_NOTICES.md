@@ -69,3 +69,13 @@ the original JSON-LD, generator, provenance, and derived catalog.
 
 The public component explorer is built with `yarn build:storybook` after the
 application build and is served at `/granite/storybook/`.
+
+## Noto Serif KR
+
+The writing surface includes the complete variable Noto Serif KR font from
+Google Fonts/Noto, under SIL Open Font License1.1. The full license and copyright
+are retained at [OFL.LICENSE](src/assets/fonts/OFL.LICENSE), and the pinned
+upstream revision, original/WOFF2 hashes, complete Hangul coverage and lossless
+conversion details are in [font provenance](src/assets/fonts/README.md).
+The font is served from Granite's own assets and included in the corresponding
+source archive; the application does not request Google Fonts.
