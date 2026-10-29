@@ -509,10 +509,10 @@ test("S12 writing-focus actual editor text inherits readable typography at every
         width: element.getBoundingClientRect().width,
       };
     });
-  expect(await textStyle()).toMatchObject({ size: 17, line: 30.6 });
+  expect(await textStyle()).toMatchObject({ size: 19.2, line: 30.72 });
   expect((await textStyle()).font).not.toContain("monospace");
   await page.getByRole("button", { name: "집중 모드", exact: true }).click();
-  expect((await textStyle()).width).toBeLessThanOrEqual(700);
+  expect((await textStyle()).width).toBeLessThanOrEqual(835.3);
   await page.screenshot({
     path: testInfo.outputPath("focus.png"),
     fullPage: true,
@@ -523,7 +523,7 @@ test("S12 writing-focus actual editor text inherits readable typography at every
     .getByRole("button", { name: "라이브 프리뷰", exact: true })
     .click();
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await textStyle()).toMatchObject({ size: 16, line: 28.8, width: 354 });
+  expect(await textStyle()).toMatchObject({ size: 19.2, line: 30.72, width: 390 });
   expect((await textStyle()).font).not.toContain("monospace");
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),

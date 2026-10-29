@@ -219,7 +219,7 @@ test("S27 manager theme toolbar updates a ready story and survives production/de
     .filter({ hasText: /^Design System$/ });
   if ((await designSystem.getAttribute("aria-expanded")) !== "true")
     await designSystem.click();
-  const expandAll = page.getByRole("button", {
+  const expandAll = page.locator("#design-system").getByRole("button", {
     name: "Expand all",
     exact: true,
   });

@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 export const editor = (page: Page) =>
   page.getByRole("textbox", { name: "노트 본문" });
-export async function demo(page: Page) {
+export async function demo(page: Page, options: { panels?: boolean } = {}) {
   await page.goto("/");
   await page.getByRole("button", { name: "데모 둘러보기" }).click();
   await expect(
@@ -11,8 +11,31 @@ export async function demo(page: Page) {
       exact: true,
     }),
   ).toBeVisible();
+  if (options.panels !== false) {
+    await openNavigation(page);
+    await page
+      .getByRole("button", { name: "연결 패널 열기", exact: true })
+      .click();
+  }
+}
+export async function openNavigation(page: Page) {
+  await expect(page.locator(".topbar")).toBeVisible();
+  const toggle = page.getByRole("button", {
+    name: "노트 목록 열기",
+    exact: true,
+  });
+  if (await toggle.count()) await toggle.click();
+}
+export async function openConnections(page: Page) {
+  await expect(page.locator(".topbar")).toBeVisible();
+  const toggle = page.getByRole("button", {
+    name: "연결 패널 열기",
+    exact: true,
+  });
+  if (await toggle.count()) await toggle.click();
 }
 export async function create(page: Page, title: string) {
+  await openNavigation(page);
   await page.getByRole("button", { name: "새 노트", exact: true }).click();
   await page.getByLabel("새 노트 제목").fill(title);
   await page.getByRole("button", { name: "만들기", exact: true }).click();
@@ -56,6 +79,7 @@ export async function rawNotes(
   );
 }
 export async function openListed(page: Page, title: string) {
+  await openNavigation(page);
   await page.getByRole("textbox", { name: "노트 검색" }).fill(title);
   await page
     .locator(".note-list")

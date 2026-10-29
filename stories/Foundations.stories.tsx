@@ -62,7 +62,7 @@ function Foundations(props: { group?: string }) {
           ))}
           <p class="ui-field-help">
             기본 작업 40px · 편안한 작업/터치 행 44px · 최근 노트 행 32px · 본문
-            최대 700px
+            19.2px/1.6 · 최대41em
           </p>
           <div class="ui-action-row">
             <BookOpen size={17} />

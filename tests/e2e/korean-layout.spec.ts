@@ -26,7 +26,8 @@ test("S04/S12/S17 Korean headings and graph labels share their start edge", asyn
     .getByRole("button", { name: "라이브 프리뷰", exact: true })
     .click();
   const heading = page.locator(".cm-heading");
-  await expect(heading).toHaveText("제목의 시작");
+  await expect(heading).toHaveText("##   제목의 시작");
+  await expect(heading.locator(".cm-md-mark")).toHaveText("##");
   const positions = await heading.evaluate((el) => {
     const range = document.createRange();
     range.selectNodeContents(el);

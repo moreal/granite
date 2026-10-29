@@ -1,3 +1,4 @@
+import { openConnections } from "../helpers/ui";
 import { expect, test } from "@playwright/test";
 import { demo, openListed, saved, propertyMode } from "../helpers/ui";
 
@@ -12,6 +13,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await openListed(page, article);
   await page.locator(".note-properties > summary").click();
   await expect(page.locator(".note-properties")).toContainText("Article");
+  await openConnections(page);
   await page.locator(".note-graph summary").click();
   const graph = page.getByRole("region", { name: "노트 그래프" });
   await expect(graph).toContainText(person);
@@ -51,6 +53,7 @@ test("S15/S17 typed fixtures expose relationships and edits survive reopening", 
   await expect(page.getByLabel("속성 YAML 원문")).toHaveValue(
     'type: Article\nauthor: "[[덤프]]"\nabout: "[[좋은 질문을 모으는 일]]"',
   );
+  await openConnections(page);
   await page.locator(".note-graph summary").click();
   await expect(graph).toContainText("덤프");
   await expect(graph).toContainText("좋은 질문을 모으는 일");

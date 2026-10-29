@@ -1,3 +1,4 @@
+import { openConnections } from "../helpers/ui";
 import { test, expect } from "@playwright/test";
 import {
   body,
@@ -29,6 +30,7 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
   await expect(page.getByLabel("속성 YAML 원문")).toHaveValue(
     original.split("---\n")[1].trimEnd(),
   );
+  await openConnections(page);
   await page.getByText("노트 그래프", { exact: true }).click();
   const graph = page.getByRole("region", { name: "노트 그래프" });
   await expect(graph).toContainText("author");
@@ -50,6 +52,7 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
   await expect(editor(page)).toContainText("# 그대로 두는 주석");
   await expect(editor(page)).toContainText("custom: [one, 2]");
   await expect(editor(page)).toContainText("그대로 두는 본문");
+  await openConnections(page);
   await page.getByText("노트 그래프", { exact: true }).click();
   await graph.getByRole("button").filter({ hasText: "바뀐 저자" }).click();
   await expect(
@@ -59,6 +62,7 @@ test("S17 schema metadata preserves source and shows typed draft connections", a
   await expect(
     page.getByRole("heading", { name: "바뀐 저자", exact: true }),
   ).toBeVisible();
+  await openConnections(page);
   await page.getByText("노트 그래프", { exact: true }).click();
   await expect(graph).toContainText("스키마 책");
   await expect(graph).toContainText("author");

@@ -1,4 +1,4 @@
-import { disableAutomaticFormatting } from "../helpers/ui";
+import { disableAutomaticFormatting, openConnections } from "../helpers/ui";
 import { expect, takeSnapshot, test } from "@chromatic-com/playwright";
 import { body, create, saved, source } from "../helpers/ui";
 
@@ -18,7 +18,8 @@ test("S18 S04 S12 S17 Korean heading and graph start alignment", async ({
   await page
     .getByRole("button", { name: "라이브 프리뷰", exact: true })
     .click();
-  await expect(page.locator(".cm-heading")).toHaveText("제목의 시작");
+  await expect(page.locator(".cm-heading")).toHaveText("##   제목의 시작");
+  await openConnections(page);
   await page.getByText("노트 그래프", { exact: true }).click();
   await expect(page.locator(".graph-node")).toHaveCount(2);
   await page.evaluate(() => document.fonts.ready);

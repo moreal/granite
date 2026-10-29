@@ -14,10 +14,10 @@ test("S27 tokens reach real app property, toolbar and dialog controls without re
   await disableAutomaticFormatting(page);
   await demo(page);
   await expect(
-    page.getByRole("button", { name: "집중 모드", exact: true }),
+    page.getByRole("button", { name: "연결 패널 접기", exact: true }),
   ).toHaveCSS("width", "40px");
   await expect(
-    page.getByRole("button", { name: "집중 모드", exact: true }),
+    page.getByRole("button", { name: "연결 패널 접기", exact: true }),
   ).toHaveCSS("padding-inline-start", "8px");
   await create(page, "디자인 체계 확인");
   await source(page);

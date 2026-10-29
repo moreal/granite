@@ -17,23 +17,23 @@ test("S04/S10/S12: writing subdues only chrome and restores keyboard/pointer acc
   const chrome = page.locator(".sidebar");
   await expect(chrome).toHaveCSS("opacity", "1");
   await body(page, "조용히 쓰는 본문");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   for (const selector of [
     ".topbar",
     ".connections",
     ".note-meta",
     ".editor-hint",
   ])
-    await expect(page.locator(selector)).toHaveCSS("opacity", "0.3");
+    await expect(page.locator(selector)).toHaveCSS("opacity", "0.2");
   for (const selector of [".save-state", "h1", ".cm-content"])
     expect(await effectiveOpacity(page.locator(selector))).toBe(1);
   await saved(page);
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.screenshot({
     path: "docs/screenshots/typing-desktop-writing.png",
   });
   await page.keyboard.press("ArrowLeft");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.keyboard.press("Tab");
   await expect(chrome).toHaveCSS("opacity", "1");
   await expect(chrome).toHaveCSS("transition-duration", "0s");
@@ -42,7 +42,7 @@ test("S04/S10/S12: writing subdues only chrome and restores keyboard/pointer acc
   });
   await editor(page).focus();
   await page.keyboard.insertText(" 추가");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.mouse.move(15, 15);
   await expect(chrome).toHaveCSS("opacity", "1");
   await page.getByRole("textbox", { name: "노트 검색" }).fill("본문");
@@ -56,7 +56,7 @@ test("S04/S08/S12: selection, menus, reduced motion and manual focus remain usab
   await demo(page);
   const chrome = page.locator(".topbar");
   await body(page, "선택할 내용");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await expect(chrome).toHaveCSS("transition-duration", "0s");
   await page.screenshot({ path: "docs/screenshots/typing-reduced-motion.png" });
   await page.keyboard.press("Shift+ArrowLeft");
@@ -70,9 +70,10 @@ test("S04/S08/S12: selection, menus, reduced motion and manual focus remain usab
   await expect(chrome).toHaveCSS("opacity", "1");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "집중 모드", exact: true }).click();
+  await editor(page).hover();
   await editor(page).focus();
   await page.keyboard.insertText(" 계속");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.setViewportSize({ width: 760, height: 900 });
   await page.screenshot({ path: "docs/screenshots/typing-narrow-writing.png" });
   await page.keyboard.press("Escape");
@@ -90,26 +91,26 @@ test("S04/S06/S10/S12: edits, commands, autocomplete and note loads preserve chr
   const chrome = page.locator(".topbar");
   await create(page, "입력 흐림");
   await body(page, "가나다");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await expect(chrome).toHaveCSS("transition-duration", "0.25s");
   await expect(chrome).toHaveCSS("transition-timing-function", "ease-out");
   await page.keyboard.press("Escape");
   await page.keyboard.press("Backspace");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.keyboard.press("Escape");
   await page.keyboard.press("ControlOrMeta+z");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.keyboard.press("Escape");
   await redo(page);
   await expect(editor(page)).toHaveText("가나");
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await page.keyboard.press("ControlOrMeta+s");
   await expect(chrome).toHaveCSS("opacity", "1");
   await saved(page);
   await expect(chrome).toHaveCSS("opacity", "1");
   await page.keyboard.insertText(" [[");
   await expect(page.locator(".cm-tooltip-autocomplete")).toBeVisible();
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   expect(await effectiveOpacity(page.locator(".cm-tooltip-autocomplete"))).toBe(
     1,
   );
@@ -124,7 +125,7 @@ test("S04/S06/S10/S12: edits, commands, autocomplete and note loads preserve chr
     });
   }
   await cdp.send("Input.insertText", { text: "한" });
-  await expect(chrome).toHaveCSS("opacity", "0.3");
+  await expect(chrome).toHaveCSS("opacity", "0.2");
   await expect(editor(page)).toContainText("한");
   await page.getByRole("button", { name: "새 노트", exact: true }).focus();
   await expect(chrome).toHaveCSS("opacity", "1");
@@ -158,14 +159,14 @@ test("S10/S12: save errors and recovered drafts keep full effective opacity whil
   await page.evaluate(() => sessionStorage.setItem("fail-demo-save", "true"));
   await body(page, "보존해야 하는 한글 초안");
   await expect(page.locator(".save-error")).toBeVisible();
-  await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.3");
+  await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.2");
   for (const selector of [".save-state", ".save-error", ".recovery-actions"])
     expect(await effectiveOpacity(page.locator(selector))).toBe(1);
   await page.reload();
   await expect(page.locator(".draft-notice")).toBeVisible();
   await editor(page).focus();
   await page.keyboard.insertText("복구 후에도 ");
-  await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.3");
+  await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.2");
   for (const selector of [".draft-notice", ".save-state"])
     expect(await effectiveOpacity(page.locator(selector))).toBe(1);
   await expect(page.locator(".save-error")).toBeVisible();
@@ -201,7 +202,7 @@ for (const { label, input, option, mouse } of [
     await editor(page).pressSequentially(input);
     const choice = page.getByRole("option", { name: option });
     await expect(choice).toBeVisible();
-    await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.3");
+    await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.2");
     if (mouse) await choice.click();
     else await editor(page).press("Enter");
     await expect(page.getByRole("listbox")).toBeHidden();
@@ -211,7 +212,7 @@ for (const { label, input, option, mouse } of [
       "0s",
     );
     await page.keyboard.insertText(" 이어 쓰기");
-    await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.3");
+    await expect(page.locator(".topbar")).toHaveCSS("opacity", "0.2");
   });
 }
 
@@ -239,7 +240,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await demo(page);
     await body(page, "포인터 복원 전환 검증");
     const chrome = page.locator(".topbar");
-    await expect(chrome).toHaveCSS("opacity", "0.3");
+    await expect(chrome).toHaveCSS("opacity", "0.2");
     // Capture the browser's real transition before automation latency can finish it.
     await chrome.evaluate((element) => {
       element.addEventListener(
@@ -274,7 +275,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
         duration: element.getAnimations()[0].effect!.getTiming().duration,
       }));
       expect(frame.duration).toBe(120);
-      expect(frame.opacity).toBeGreaterThan(0.3);
+      expect(frame.opacity).toBeGreaterThan(0.2);
       expect(frame.opacity).toBeLessThan(1);
       await page.mouse.move(16, 16);
       expect(
@@ -291,9 +292,9 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
       const reversed = await chrome.evaluate((element) =>
         Number(getComputedStyle(element).opacity),
       );
-      expect(reversed).toBeGreaterThan(0.3);
+      expect(reversed).toBeGreaterThan(0.2);
       expect(reversed).toBeLessThan(1);
-      await expect(chrome).toHaveCSS("opacity", "0.3");
+      await expect(chrome).toHaveCSS("opacity", "0.2");
       await page.mouse.move(20, 20);
       await expect(chrome).toHaveCSS("opacity", "1");
     }
@@ -302,7 +303,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
       path: testInfo.outputPath("pointer-narrow-revealed.png"),
     });
     await page.keyboard.insertText(" 다시");
-    await expect(chrome).toHaveCSS("opacity", "0.3");
+    await expect(chrome).toHaveCSS("opacity", "0.2");
     await page.keyboard.press("Tab");
     await expect(chrome).toHaveCSS("opacity", "1");
     expect(

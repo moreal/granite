@@ -1,5 +1,5 @@
-import type { NotePreviewLookup } from "../domain/note-preview";
 import { SaveStatus } from "./SaveStatus";
+import type { NotePreviewLookup } from "../domain/note-preview";
 import { NoteProperties } from "./NoteProperties";
 import type { PropertyEditorMode } from "../settings";
 import type { NoteReference } from "../schema/references";
@@ -21,10 +21,10 @@ export function NoteHeader(props: {
 }) {
   return (
     <div class="note-header">
-      <div class="note-kicker">
+      <div class="note-identity">
+        <h1>{props.entry.note.title}</h1>
         <SaveStatus status={props.entry.status} />
       </div>
-      <h1>{props.entry.note.title}</h1>
       <NoteProperties
         titles={props.titles}
         preview={props.preview}

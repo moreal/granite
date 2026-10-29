@@ -278,15 +278,15 @@ it("S08 title retrieval prefers normalized OG title and escapes remote Markdown"
   );
 });
 it.each(["## 제목  안쪽 공백", "###\t\t제목", "  ##   제목", "## 제목 ##  "])(
-  "S04 hides only the opening heading delimiter spacing: %s",
+  "S30c retains dim heading syntax and exact spacing: %s",
   (heading) => {
     const value = `${heading}\n\n끝`;
     const { box, view } = setup(value);
     act(() => view.dispatch({ selection: { anchor: value.length } }));
-    const expected = heading
-      .replace(/^( {0,3})#{1,6}[ \t]+/, "$1")
-      .replace(/##(?=  $)/, "");
-    expect(box.querySelector(".cm-heading")?.textContent).toBe(expected);
+    expect(box.querySelector(".cm-heading")?.textContent).toBe(heading);
+    expect(box.querySelector(".cm-heading .cm-md-mark")?.textContent).toMatch(
+      /^#+$/,
+    );
     expect(view.state.doc.toString()).toBe(value);
     act(() =>
       view.dispatch({ selection: { anchor: heading.indexOf("제목") } }),
@@ -327,7 +327,7 @@ it("S04 styles inactive nested and lazy quote lines without styling escaped mark
   );
   act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
   expect(box.querySelectorAll(".cm-blockquote").length).toBe(3);
-  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("quote");
+  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("> quote");
   expect(
     box
       .querySelectorAll<HTMLElement>(".cm-blockquote")[1]
@@ -543,7 +543,7 @@ it("S04/S17 YAML literal fences cannot swallow body Markdown syntax", () => {
   const value = "---\nexample: |\n  ```\n---\n# Heading\n\n> quote\n\nBody";
   const { box, view } = setup(value);
   act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
-  expect(box.querySelector(".cm-heading")?.textContent).toBe("Heading");
-  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("quote");
+  expect(box.querySelector(".cm-heading")?.textContent).toBe("# Heading");
+  expect(box.querySelector(".cm-blockquote")?.textContent).toBe("> quote");
   expect(box.textContent).not.toContain("example:");
 });

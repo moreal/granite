@@ -1,6 +1,8 @@
 import { render as renderPreview } from "@solidjs/web";
 import { NoteLinkPreview } from "../components/NoteLinkPreview";
 import type { NotePreviewLookup } from "../domain/note-preview";
+import { Outline } from "./WritingOutline";
+import { writingHeadings, type WritingHeading } from "./outline";
 import { UrlPasteMenu } from "./UrlPasteMenu";
 import { createSignal, createEffect, onSettled, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
@@ -101,6 +103,28 @@ export function Editor(
     current: (ReturnType<typeof setTimeout> | null) | null;
   };
   const composing = { current: false };
+  const [headings, setHeadings] = createSignal<WritingHeading[]>([]);
+  const [caret, setCaret] = createSignal(0);
+  const activeHeading = () => {
+    let active = 0;
+    headings().forEach((heading, index) => {
+      if (heading.from <= caret()) active = index;
+    });
+    return active;
+  };
+  const pickHeading = (heading: WritingHeading) => {
+    const v = view.current;
+    if (!v) return;
+    latest.current.onCommand?.();
+    v.dispatch({
+      selection: { anchor: heading.to },
+      effects: EditorView.scrollIntoView(heading.from, {
+        y: "start",
+        yMargin: 48,
+      }),
+    });
+    v.focus();
+  };
   const [autoError, setAutoError] = createSignal("");
   function pauseAutomatic() {
     if (autoTimer.current !== null) clearTimeout(autoTimer.current);
@@ -334,7 +358,7 @@ export function Editor(
             }),
             syntaxHighlighting(
               HighlightStyle.define([
-                { tag: tags.strong, fontWeight: "650" },
+                { tag: tags.strong, fontWeight: "700" },
                 { tag: tags.emphasis, fontStyle: "italic" },
                 { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
                 { tag: tags.link, color: "var(--link)" },
@@ -378,6 +402,10 @@ export function Editor(
               EditorView.editable.of(!latest.current.locked),
             ]),
             EditorView.updateListener.of((update) => {
+              if (update.docChanged || update.viewportChanged)
+                setHeadings(writingHeadings(update.state));
+              if (update.selectionSet || update.docChanged)
+                setCaret(update.state.selection.main.head);
               if (update.docChanged) {
                 pauseAutomatic();
                 cancelFormatting();
@@ -612,6 +640,8 @@ export function Editor(
         }),
       });
       view.current = v;
+      setHeadings(writingHeadings(v.state));
+      setCaret(v.state.selection.main.head);
       // Attach preview behavior to CodeMirror's own marks; never replace editable DOM.
       const previews = new Map<
         HTMLElement,
@@ -978,7 +1008,14 @@ export function Editor(
   }
   return (
     <div class={"editor-wrap" + (props.source ? " source-mode" : "")}>
-      <div ref={(element) => (mount.current = element)} />
+      <div class="editor-mount" ref={(element) => (mount.current = element)} />
+      {!props.source && (
+        <Outline
+          headings={headings()}
+          active={activeHeading()}
+          onPick={pickHeading}
+        />
+      )}
       {autoError() && (
         <p class="auto-format-status" role="status">
           자동 문서 정리: {autoError()} 글은 계속 저장됩니다.

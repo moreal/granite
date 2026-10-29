@@ -1,3 +1,4 @@
+import { SaveStatus } from "./components/SaveStatus";
 import { notePreview } from "./domain/note-preview";
 import { Button } from "./design-system/Button";
 import { noteReference } from "./schema/references";
@@ -6,7 +7,6 @@ import { RecoveryPanel } from "./components/RecoveryPanel";
 import { NoteHeader } from "./components/NoteHeader";
 import { EditorToolbar } from "./components/EditorToolbar";
 import { TodayShortcut } from "./components/TodayShortcut";
-import { SaveStatus } from "./components/SaveStatus";
 import {
   createSignal,
   createMemo,
@@ -110,8 +110,9 @@ export default function App() {
       "clear" | "typing" | "pointer"
     >("clear"),
     [editorMenu, setEditorMenu] = createSignal(false),
+    [navigation, setNavigation] = createSignal(false),
     [focus, setFocus] = createSignal(false),
-    [connections, setConnections] = createSignal(true),
+    [connections, setConnections] = createSignal(false),
     [selection, setSelection] = createSignal(0),
     [modal, setModal] = createSignal<Modal | null>(null),
     [modalError, setModalError] = createSignal(""),
@@ -333,6 +334,7 @@ export default function App() {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
           e.preventDefault();
           setFocus(false);
+          setNavigation(true);
           setTimeout(() => search.current?.focus(), 0);
         }
       };
@@ -568,6 +570,11 @@ export default function App() {
                 </Button>
               ))}
               {loading() && <p role="status">노트를 여는 중…</p>}
+              {entry() && (
+                <div class="writing-save">
+                  <SaveStatus status={entry()!.status} />
+                </div>
+              )}
               {error() && (
                 <p class="ui-feedback ui-feedback--error error" role="alert">
                   {error()}
@@ -590,6 +597,7 @@ export default function App() {
               : "") +
             (chromeIntent() === "pointer" ? " pointer-reveal" : "") +
             (focus() ? " focus-mode" : "") +
+            (navigation() ? "" : " navigation-closed") +
             (connections() ? "" : " no-connections")
           }
         >
@@ -677,6 +685,14 @@ export default function App() {
             </div>
             <footer class="sidebar-footer">
               {settingsButton()}
+              <Button
+                size="compact"
+                aria-label="집중 모드"
+                aria-pressed="false"
+                onClick={() => setFocus(true)}
+              >
+                집중 모드
+              </Button>
               <span>
                 <span class="online-dot" />{" "}
                 {workspace()!.storage.kind === "demo"
@@ -688,27 +704,45 @@ export default function App() {
           </aside>
           <div class="work-area">
             <header class="topbar">
-              {focus() && settingsButton()}
+              {(!navigation() || focus()) && settingsButton()}
               <div class="breadcrumb">
                 <Button
-                  layout="icon"
-                  class="icon-button focus-toggle"
-                  title={focus() ? "집중 모드 끝내기" : "집중 모드"}
-                  aria-label={focus() ? "집중 모드 끝내기" : "집중 모드"}
-                  aria-pressed={focus() ? "true" : "false"}
-                  onClick={() => setFocus(!focus())}
+                  class="navigation-toggle"
+                  aria-label={
+                    navigation() && !focus()
+                      ? "노트 목록 접기"
+                      : "노트 목록 열기"
+                  }
+                  aria-expanded={navigation() && !focus() ? "true" : "false"}
+                  onClick={() => {
+                    const open = focus() || !navigation();
+                    setFocus(false);
+                    setNavigation(open);
+                  }}
                 >
-                  {focus() ? (
-                    <PanelLeftOpen size={18} />
-                  ) : (
+                  {navigation() && !focus() ? (
                     <PanelLeftClose size={18} />
+                  ) : (
+                    <PanelLeftOpen size={18} />
                   )}
+                  <span>노트 목록</span>
                 </Button>
-                <span>나의 노트</span>
-                <ChevronRight size={13} />
-                <span class="breadcrumb-current">
-                  {entry()!?.note.title ?? "첫 번째 노트"}
-                </span>
+                {focus() && (
+                  <Button
+                    layout="icon"
+                    class="icon-button focus-toggle"
+                    title={focus() ? "집중 모드 끝내기" : "집중 모드"}
+                    aria-label={focus() ? "집중 모드 끝내기" : "집중 모드"}
+                    aria-pressed={focus() ? "true" : "false"}
+                    onClick={() => setFocus(!focus())}
+                  >
+                    {focus() ? (
+                      <PanelLeftOpen size={18} />
+                    ) : (
+                      <PanelLeftClose size={18} />
+                    )}
+                  </Button>
+                )}
               </div>
               <EditorToolbar
                 hasNote={!!entry()}
@@ -741,28 +775,30 @@ export default function App() {
                 </Button>
               </div>
             )}
+            {entry() && (
+              <NoteHeader
+                preview={previewNote}
+                references={references()}
+                propertyMode={settings().propertyEditor}
+                source={source()}
+                sourceEditing={
+                  metadataEditing() ===
+                  workspace()!.storage.id + ":" + current()!
+                }
+                onSource={() => setSource(true)}
+                onOpen={openTitle}
+                titles={notes().map((note) => note.title)}
+                documentKey={workspace()!.storage.id + ":" + current()!}
+                entry={entry()!}
+                locked={busy()}
+                wordCount={count()}
+                onBody={(body) => workspace()!.edit(current()!, body)}
+              />
+            )}
             <div class="writing-layout">
               <main class="note-pane">
                 {entry()! ? (
                   <>
-                    <NoteHeader
-                      preview={previewNote}
-                      references={references()}
-                      propertyMode={settings().propertyEditor}
-                      source={source()}
-                      sourceEditing={
-                        metadataEditing() ===
-                        workspace()!.storage.id + ":" + current()!
-                      }
-                      onSource={() => setSource(true)}
-                      onOpen={openTitle}
-                      titles={notes().map((note) => note.title)}
-                      documentKey={workspace()!.storage.id + ":" + current()!}
-                      entry={entry()!}
-                      locked={busy()}
-                      wordCount={count()}
-                      onBody={(body) => workspace()!.edit(current()!, body)}
-                    />
                     {entry()!.recovered && (
                       <div class="draft-notice">
                         이전에 저장하지 못한 초안을 복구했습니다.

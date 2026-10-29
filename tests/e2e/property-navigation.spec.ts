@@ -72,6 +72,11 @@ test("S26 saved scalar and list links open notes by ordinary click and Enter aft
     page.getByRole("heading", { name: "주제", exact: true }),
   ).toBeVisible();
   expect((await rawNotes(page))[filenameFor(documentTitle)].raw).toContain(raw);
+  const connections = page.getByRole("button", {
+    name: "연결 패널 열기",
+    exact: true,
+  });
+  if (await connections.count()) await connections.click();
   await page.getByText("노트 그래프", { exact: true }).click();
   await expect(page.getByRole("region", { name: "노트 그래프" })).toContainText(
     documentTitle,

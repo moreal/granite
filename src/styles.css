@@ -193,6 +193,7 @@
 }
 .sidebar-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
@@ -212,7 +213,9 @@
   flex-direction: column;
 }
 .topbar {
-  height: 64px;
+  min-height: 48px;
+  height: auto;
+  padding-block: 4px;
   flex-shrink: 0;
   padding: 0 var(--space-6);
   display: flex;
@@ -228,12 +231,6 @@
   color: var(--muted);
   font-size: var(--text-sm);
   min-width: 0;
-}
-.breadcrumb-current {
-  max-width: 230px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .top-actions {
   display: flex;
@@ -260,9 +257,12 @@
   flex: 1;
 }
 .note-pane {
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   min-width: 0;
-  padding: var(--space-12) var(--space-10) 28px;
+  min-height: 0;
+  padding: 0;
 }
 .note-header,
 .editor-wrap,
@@ -273,13 +273,15 @@
   margin-inline: auto;
 }
 .note-header {
-  margin-bottom: var(--space-8);
-}
-.note-kicker {
-  display: flex;
-  justify-content: flex-end;
-  min-height: 20px;
-  margin-bottom: 18px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(48px, 1fr) minmax(0, auto);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 6px 24px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 .save-state {
   display: flex;
@@ -299,14 +301,40 @@
   background: currentColor;
 }
 .note-header h1 {
-  font-size: var(--text-title);
-  font-weight: 650;
-  line-height: 1.5;
-  letter-spacing: -0.6px;
-  margin-bottom: 14px;
-  overflow-wrap: anywhere;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.note-identity {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.note-identity .save-state {
+  flex: none;
+}
+.note-header .note-properties {
+  margin: 0;
+  min-width: 0;
+}
+.note-header .note-properties[open] {
+  grid-column: 1 / -1;
+  max-height: 40vh;
+  overflow: auto;
 }
 .note-meta {
+  min-width: 0;
+  align-self: center;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -406,7 +434,16 @@
 }
 .editor-wrap {
   position: relative;
-  min-height: 280px;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  container-type: inline-size;
+}
+.editor-mount,
+.editor-mount > .cm-editor {
+  height: 100%;
+  min-height: 0;
 }
 .cm-editor {
   font-family: var(--font-reading);
@@ -421,10 +458,14 @@
 .cm-editor .cm-scroller {
   font-family: inherit;
   line-height: inherit;
-  overflow: visible;
+  overflow: auto;
 }
 .cm-editor .cm-content {
-  padding: 0;
+  box-sizing: content-box;
+  width: min(var(--reading-width), calc(100% - 48px));
+  max-width: var(--reading-width);
+  margin: 0 auto;
+  padding: 48px 24px 40vh;
   min-height: 280px;
   caret-color: var(--text);
 }
@@ -432,20 +473,22 @@
   padding: 0;
 }
 .cm-heading {
-  font-weight: 650;
-  letter-spacing: -0.3px;
+  font-weight: 700;
+  letter-spacing: normal;
 }
 .cm-heading-1 {
-  font-size: 26px;
+  font-size: 1.6em;
+  line-height: 1.3;
 }
 .cm-heading-2 {
-  font-size: 23px;
+  font-size: 1.35em;
+  line-height: 1.3;
 }
 .cm-heading-3 {
-  font-size: 20px;
+  font-size: 1.15em;
 }
 .cm-strong {
-  font-weight: 650;
+  font-weight: 700;
 }
 .cm-emphasis {
   font-style: italic;
@@ -635,9 +678,11 @@
   line-height: var(--leading-reading);
   padding: 10px;
 }
-.app-shell.focus-mode {
+.app-shell.focus-mode,
+.app-shell.navigation-closed {
   grid-template-columns: minmax(0, 1fr);
 }
+.navigation-closed .sidebar,
 .focus-mode .sidebar,
 .focus-mode .connections {
   display: none;
@@ -722,7 +767,7 @@
     grid-template-columns: minmax(0, 1fr) 210px;
   }
   .note-pane {
-    padding: 36px 28px var(--space-6);
+    padding: 0;
   }
   .connections {
     padding-inline: var(--space-4);
@@ -730,20 +775,21 @@
   .topbar {
     padding-inline: var(--space-4);
   }
-  .breadcrumb-current {
-    max-width: 140px;
-  }
 }
 @media (max-width: 900px) {
   .writing-layout {
-    display: block;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   .note-pane {
-    overflow: visible;
+    flex: 1 0 180px;
+    overflow: hidden;
   }
   .connections {
-    overflow: visible;
+    max-height: 35%;
+    flex: 0 1 auto;
+    overflow: auto;
     border-left: 0;
     border-top: var(--border-width) solid var(--line);
     padding: var(--space-6) 28px;
@@ -753,15 +799,8 @@
     max-width: var(--reading-width);
     margin-inline: auto;
   }
-  .breadcrumb > span:not(.breadcrumb-current),
-  .breadcrumb > svg {
-    display: none;
-  }
-  .breadcrumb-current {
-    max-width: 130px;
-  }
   .focus-mode .writing-layout {
-    display: block;
+    display: flex;
   }
 }
 @media (max-width: 620px) {
@@ -780,8 +819,7 @@
   }
   .workspace-dot,
   .search-box kbd,
-  .demo-tag,
-  .breadcrumb-current {
+  .demo-tag {
     display: none;
   }
   .workspace-switch small {
@@ -810,11 +848,26 @@
   .topbar {
     padding-inline: 5px;
     gap: 0;
-    height: 58px;
+    min-height: 48px;
+    height: auto;
   }
   .top-actions {
     gap: 0;
   }
+  .app-shell:not(.navigation-closed) .navigation-toggle > span {
+    display: none;
+  }
+  .editor-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .icon-button {
     min-width: 36px;
     padding: 7px;
@@ -827,13 +880,19 @@
     display: none;
   }
   .note-pane {
-    padding: 28px 18px 22px;
+    padding: 0;
+  }
+  .note-header {
+    padding-inline: 12px;
+  }
+  .writing-save {
+    right: 12px;
   }
   .note-header h1 {
-    font-size: var(--text-title);
+    font-size: 14px;
   }
   .cm-editor {
-    font-size: var(--text-input);
+    font-size: var(--text-body);
   }
   .source-mode .cm-editor {
     font-size: var(--text-input);
@@ -857,22 +916,51 @@
 
 /* Only peripheral chrome fades; save/recovery state and editor overlays have
    no subdued ancestor. Only pointer reveal animates; commands restore immediately. */
-.app-shell :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
+.app-shell
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .editor-hint,
+    .note-properties
+  ) {
   opacity: 1;
   transition: none;
 }
 .app-shell.pointer-reveal
-  :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .editor-hint,
+    .note-properties
+  ) {
   transition: opacity var(--duration-chrome-reveal) var(--ease-chrome);
 }
 .app-shell.typing
-  :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
-  opacity: 0.3;
+  :is(
+    .sidebar,
+    .topbar,
+    .connections,
+    .note-meta,
+    .editor-hint,
+    .note-properties
+  ) {
+  opacity: 0.2;
   transition: opacity var(--duration-chrome-hide) var(--ease-chrome);
 }
 @media (prefers-reduced-motion: reduce) {
   .app-shell:is(.typing, .pointer-reveal)
-    :is(.sidebar, .topbar, .connections, .note-meta, .editor-hint) {
+    :is(
+      .sidebar,
+      .topbar,
+      .connections,
+      .note-meta,
+      .editor-hint,
+      .note-properties
+    ) {
     transition: none;
   }
 }
@@ -1503,4 +1591,137 @@ span.cm-rich-math {
 .cm-note-link:focus-visible {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* CMS outline is attached to the writing viewport, never the document DOM. */
+.cm-md-mark {
+  opacity: 0.45;
+  font-weight: 400;
+}
+.cm-md-setext {
+  letter-spacing: calc(0.5em - 1ch);
+}
+.writing-outline {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  max-height: calc(100% - 96px);
+  max-width: min(260px, calc(100% - 24px));
+  overflow: auto;
+  z-index: 3;
+  padding: 6px;
+  border-radius: 10px;
+}
+.writing-outline ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.writing-outline button {
+  display: flex;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 3px 4px;
+  width: 100%;
+  min-height: 32px;
+  color: var(--muted);
+  font-family: var(--font-reading);
+  font-size: 14.5px;
+  line-height: 1.45;
+  gap: 10px;
+}
+.writing-outline .outline-h1 button {
+  font-weight: 600;
+}
+.writing-outline [aria-current] {
+  font-weight: 600;
+  color: var(--text);
+}
+.outline-bar {
+  width: 14px;
+  height: 2px;
+  flex: none;
+  background: currentColor;
+  border-radius: 1px;
+}
+.outline-h2 .outline-bar {
+  width: 10px;
+  margin-left: 4px;
+}
+.outline-h3 .outline-bar {
+  width: 6px;
+  margin-left: 8px;
+}
+.writing-outline [aria-current] .outline-bar {
+  background: var(--link);
+}
+.outline-text {
+  display: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.writing-outline:is(:hover, :focus-within) {
+  width: 260px;
+  background: var(--paper);
+  box-shadow: var(--shadow-overlay);
+}
+.writing-outline:is(:hover, :focus-within) .outline-text {
+  display: block;
+}
+.app-shell.typing .writing-outline {
+  opacity: 0.65;
+}
+.app-shell.typing
+  :is(.topbar, .sidebar, .connections, .note-properties):is(
+    :hover,
+    :focus-within
+  ),
+.app-shell.typing .note-properties[open],
+.app-shell.typing .writing-outline:is(:hover, :focus-within) {
+  opacity: 1;
+}
+@container (min-width: 641px) and (max-width: 1299px) {
+  .editor-mount:has(+ .writing-outline) .cm-content {
+    width: min(var(--reading-width), calc(100% - 96px));
+  }
+}
+@container (min-width: 1300px) {
+  .writing-outline,
+  .writing-outline:is(:hover, :focus-within) {
+    top: 48px;
+    left: 24px;
+    transform: none;
+    width: calc((100cqw - var(--reading-width) - 48px) / 2 - 56px);
+    max-width: 260px;
+    background: none;
+    box-shadow: none;
+  }
+  .outline-text {
+    display: block;
+  }
+  .outline-bar {
+    display: none;
+  }
+  .writing-outline ol {
+    border-left: 1px solid var(--line);
+  }
+  .writing-outline button {
+    padding: 4px 8px 4px 12px;
+  }
+  .writing-outline [aria-current] {
+    border-left: 2px solid var(--link);
+  }
+  .outline-h2 .outline-text {
+    padding-left: 12px;
+  }
+  .outline-h3 .outline-text {
+    padding-left: 24px;
+  }
+}
+@container (max-width: 640px) {
+  .writing-outline {
+    display: none;
+  }
 }

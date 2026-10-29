@@ -53,3 +53,11 @@ yarn test:visual
 현재 경계: 풍부한 본문/CodeMirror/수식/다이어그램·한국어 줄바꿈·화면 그리드·팝업 위치는 기능 스타일에 남는다. 새 디자인 라이브러리, 토큰 외부 게시, 데이터 변환이나 동기화는 포함하지 않는다. 자동 Chromium/합성 데모 검증은 실제 사용자 폴더 권한창·OS IME·스크린리더 확인과 구분한다.
 
 속성 링크 미리보기(S28)는 `NoteLinkPreview`를 속성의 `PropertyNoteLink`·그래프·본문 CodeMirror mark 어댑터가 공유하며 native inline/list Button과 비대화형 top-layer popover를 조합한다. 색/테두리/간격/그림자는 기존 토큰, hover intent/해제 지연과 최대 폭은 `--delay-note-preview-*`/`--note-preview-width`를 쓴다. 내용 조회·직접 이동/초안 보호는 호출자에 남고 미리보기가 새 탭 대상이나 live region을 만들지 않는다. 본문 mark의 Tab 초점/Enter 이동은 S29를 따르고 CodeMirror 선택을 바꾸지 않는다.
+
+## CMS 글쓰기 면 (S30)
+
+[S30](superpowers/specs/2026-10-30-cms-writing-design.md)은 본문 역할을 자체 제공 Noto Serif KR19.2px/1.6과41em으로 바꾼다. 좁은320/390px에서도 같은 크기를 유지하고, UI와 코드 서체는 별도 역할 그대로다. 글꼴의 출처·전체 한글 범위·OFL·해시는 `src/assets/fonts/README.md`에 있다. Google Fonts 요청을 추가하지 않는다.
+
+기본 화면은 노트 목록과 연결 패널을 접고 작은 상단 정체성/저장 상태·속성 밴드를 둔다. 본문 CodeMirror는48px 위·24px 좌우·40vh 아래 여백으로 독립 스크롤한다. 목차의 실제 제목 수집과 커서/이동은 `src/editor/outline.ts`와 기존 `Editor.tsx`, 표시만 `WritingOutline.tsx`/`styles.css`가 소유한다. 짧은 입력기 DOM이나 별도의 미리보기 편집기를 만들지 않는다.
+
+**Production → Writing Surface → Cms Writing**은 같은 Editor·NoteHeader·원문 전환·목차를 쓰는 합성 검토 예제다. 예제는 미저장 편집 상태이며 파일이나 서버에 쓰지 않는다. 목차는 넓으면 제목, 중간 폭이면 hover/초점으로 펼치는 막대,640px 이하면 숨긴다. 좁은 편집 영역에서는 막대를 위한 여백을 확보한다. 상태/오류는 선명하게 남기고 주변 UI만 입력 중0.2로 약화한다.

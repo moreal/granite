@@ -162,7 +162,7 @@ export function preview() {
                 );
               }
             }
-            if (/^ATXHeading[1-6]$/.test(node.name)) {
+            if (/^(?:ATX|Setext)Heading[1-6]$/.test(node.name)) {
               ranges.push(
                 Decoration.line({
                   class: "cm-heading cm-heading-" + node.name.slice(-1),
@@ -177,35 +177,33 @@ export function preview() {
                 ),
               );
             }
-            if (activeLines.has(line.number)) return;
             if (
               [
                 "HeaderMark",
                 "EmphasisMark",
                 "CodeMark",
-                "CodeInfo",
                 "QuoteMark",
-              ].includes(node.name)
+                "ListMark",
+              ].includes(node.name) &&
+              node.node.parent?.name !== "FencedCode"
             ) {
-              // The opening ATX marker owns its separator; indentation and
-              // closing-marker whitespace remain untouched document text.
-              const openingHeading =
-                node.name === "HeaderMark" &&
-                /^ATXHeading[1-6]$/.test(node.node.parent?.name ?? "") &&
-                node.node.parent?.firstChild?.from === node.from;
-              const separator =
-                node.name === "QuoteMark"
-                  ? /^[ \t]/.test(doc.sliceString(node.to, line.to))
-                    ? 1
-                    : 0
-                  : openingHeading
-                    ? (doc.sliceString(node.to, line.to).match(/^[ \t]+/)?.[0]
-                        .length ?? 0)
-                    : 0;
               ranges.push(
-                Decoration.replace({}).range(node.from, node.to + separator),
+                Decoration.mark({
+                  class:
+                    "cm-md-mark" +
+                    (node.name === "HeaderMark" &&
+                    node.node.parent?.name.startsWith("Setext")
+                      ? " cm-md-setext"
+                      : ""),
+                }).range(node.from, node.to),
               );
             }
+            if (
+              !activeLines.has(line.number) &&
+              ["CodeMark", "CodeInfo"].includes(node.name) &&
+              node.node.parent?.name === "FencedCode"
+            )
+              ranges.push(Decoration.replace({}).range(node.from, node.to));
             const classes: Record<string, string> = {
               StrongEmphasis: "cm-strong",
               Emphasis: "cm-emphasis",
