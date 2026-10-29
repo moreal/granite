@@ -121,6 +121,35 @@ export function preview() {
         const metadataEnd = documentContext(doc.toString()).metadataEnd;
         const quoteLines = new Map<number, number>();
         const selection = view.state.selection.ranges;
+        // Display-math source stays editable even when its contents cannot
+        // render. Ignore code/metadata dollar fences when finding its bounds.
+        const excluded: { from: number; to: number }[] = [];
+        syntaxTree(view.state).iterate({
+          enter(node) {
+            if (["FencedCode", "CodeBlock", "HTMLBlock"].includes(node.name)) {
+              excluded.push({ from: node.from, to: node.to });
+              return false;
+            }
+          },
+        });
+        const math: { from: number; to: number }[] = [];
+        let mathStart: number | undefined;
+        for (let number = 1; number <= doc.lines; number++) {
+          const line = doc.line(number);
+          if (
+            line.from < metadataEnd ||
+            !/^\$\$[^\S\n]*$/.test(line.text) ||
+            excluded.some(
+              (range) => range.from <= line.from && range.to >= line.to,
+            )
+          )
+            continue;
+          if (mathStart === undefined) mathStart = line.from;
+          else {
+            math.push({ from: mathStart, to: line.to });
+            mathStart = undefined;
+          }
+        }
         const activeLines = new Set(
           selection.flatMap((range) => {
             const lines: number[] = [];
@@ -163,11 +192,41 @@ export function preview() {
               }
             }
             if (/^(?:ATX|Setext)Heading[1-6]$/.test(node.name)) {
-              ranges.push(
-                Decoration.line({
-                  class: "cm-heading cm-heading-" + node.name.slice(-1),
-                }).range(line.from),
+              for (
+                let number = line.number;
+                number <= doc.lineAt(node.to).number;
+                number++
+              ) {
+                ranges.push(
+                  Decoration.line({
+                    class: "cm-heading cm-heading-" + node.name.slice(-1),
+                  }).range(doc.line(number).from),
+                );
+              }
+            }
+            if (
+              node.name === "LinkReference" &&
+              !math.some(
+                (range) => range.from < node.to && range.to > node.from,
+              )
+            ) {
+              const active = selection.some(
+                (range) => range.from <= node.to && range.to >= node.from,
               );
+              for (
+                let number = line.number;
+                number <= doc.lineAt(node.to).number;
+                number++
+              ) {
+                ranges.push(
+                  Decoration.line({
+                    class:
+                      "cm-reference-definition" +
+                      (active ? "" : " cm-reference-definition--quiet"),
+                  }).range(doc.line(number).from),
+                );
+              }
+              return false;
             }
             if (node.name === "InlineCode") {
               ranges.push(

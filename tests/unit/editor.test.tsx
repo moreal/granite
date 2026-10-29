@@ -547,3 +547,61 @@ it("S04/S17 YAML literal fences cannot swallow body Markdown syntax", () => {
   expect(box.querySelector(".cm-blockquote")?.textContent).toBe("> quote");
   expect(box.textContent).not.toContain("example:");
 });
+
+// S32 / S04: hongdown's multiline headings retain one coherent type scale.
+it("styles every Setext heading line and preserves ATX heading levels", () => {
+  const text =
+    "큰 제목\n=======\n\n작은\n여러 줄 제목\n----------\n\n# 하나\n\n## 둘\n\n### 셋\n\n끝";
+  const { box, view } = setup(text);
+  act(() => view.dispatch({ selection: { anchor: text.length } }));
+  expect(
+    [...box.querySelectorAll(".cm-heading-1")].map((el) => el.textContent),
+  ).toEqual(["큰 제목", "=======", "# 하나"]);
+  expect(
+    [...box.querySelectorAll(".cm-heading-2")].map((el) => el.textContent),
+  ).toEqual(["작은", "여러 줄 제목", "----------", "## 둘"]);
+  expect(box.querySelector(".cm-heading-3")?.textContent).toBe("### 셋");
+  expect(view.state.doc.toString()).toBe(text);
+});
+
+it("subdues complete reference definitions and reveals only those touched by a selection", () => {
+  const text =
+    '시작\n\n[출처]:\n  <https://example.com>\n  "제목"\n\n[다른]: https://example.org\n\n[본문][출처]\n\n`[코드]: https://example.net`\n\n끝';
+  const { box, view } = setup(text);
+  const first = text.indexOf("[출처]:");
+  const end = text.indexOf('"제목"') + 4;
+  const second = text.indexOf("[다른]:");
+  const dimmed = () =>
+    [...box.querySelectorAll(".cm-reference-definition--quiet")].map(
+      (el) => el.textContent,
+    );
+  expect(dimmed()).toEqual([
+    "[출처]:",
+    "  <https://example.com>",
+    '  "제목"',
+    "[다른]: https://example.org",
+  ]);
+  for (const anchor of [first, first + 10, end]) {
+    act(() => view.dispatch({ selection: { anchor } }));
+    expect(dimmed()).toEqual(["[다른]: https://example.org"]);
+  }
+  act(() =>
+    view.dispatch({ selection: { anchor: first - 1, head: second + 2 } }),
+  );
+  expect(dimmed()).toEqual([]);
+  act(() => view.dispatch({ selection: { anchor: text.length } }));
+  expect(box.querySelector(".cm-note-link")?.textContent).toBe("본문");
+  expect(view.state.doc.toString()).toBe(text);
+});
+
+it("leaves metadata, code and math reference-like text outside definition feedback", () => {
+  const text =
+    '---\ntitle: "[metadata]: https://example.com"\n---\n\n```md\n$$\n[code]: https://example.com\n```\n\n$$\n\n[math]: https://example.com\n\n$$\n\n[real]: https://example.org\n\n$$\n\n[unclosed]: https://example.net\n\n끝';
+  const { box, view } = setup(text);
+  act(() => view.dispatch({ selection: { anchor: text.length } }));
+  expect(
+    [...box.querySelectorAll(".cm-reference-definition")].map(
+      (el) => el.textContent,
+    ),
+  ).toEqual(["[real]: https://example.org", "[unclosed]: https://example.net"]);
+});

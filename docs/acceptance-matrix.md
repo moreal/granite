@@ -153,3 +153,15 @@ C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다
 - S31c/d: `tests/unit/formatting.test.tsx`가 실제 기본값의 frontmatter CRLF·긴 위키 대상·로컬 이미지·수식 보존, fence 표기 변경 허용과 Mermaid 본문 변경 거절을 검사한다. 앱 브라우저는 Mermaid/수식 표시·fence 내부 제목 목차 제외와 위키 대상 변형 거절 후 원문 저장/재열기를 검사한다. 기존 S20 취소/조합/오래된 결과·실패/undo 회귀를 유지한다.
 
 실행 기록과 실제 합성 데모의1440/390px 화면은 `.superpowers/hongdown-parity/`에 있다. 폴더 picker/권한창·사용자 파일·OS IME 검증을 의미하지 않는다.
+
+## S32 제목 밑줄과 참조 정의
+
+기준: [S32](superpowers/specs/2026-10-30-cms-writing-design.md#s32-제목-밑줄과-참조-정의의-편집-흐름), S04/S10/S14/S30.
+
+| 기준 | 기대 동작 | 검증 |
+| --- | --- | --- |
+| S32a | Setext 여러 줄 본문과 밑줄의 단계별 크기·행간 일치, 고정폭 반 em 밑줄, 기존 ATX 계층 유지 | U [editor](../tests/unit/editor.test.tsx) 여러 줄 Setext/ATX; E [heading-reference](../tests/e2e/heading-reference.spec.ts) 실제 hongdown 출력과 H1/H2/H3 계산 크기·행간·밑줄 서체 |
+| S32b | 읽는 참조 정의는 보조 색, 경계/내부 커서·선택은 여러 줄 전체 본문 색, 크기/행간/굵기 유지, 원문과 코드/메타데이터/수식 예외 | U editor의 경계·범위·여러 줄·코드/메타데이터/수식·닫히지 않은 수식 검사; E heading-reference의 클릭/방향키·여러 정의 선택·실제 URL 색·동일 geometry·원문 전환 |
+| S32c | 장식만 변경하고 원문 바이트·참조 해석·편집·undo 유지, 1440/390px 읽기/쓰기 | U editor의 정확한 문서·참조 레이블 보존; E heading-reference의 실제 URL 입력/네이티브 undo·정확한 문서·밝게/어둡게 화면·가로 넘침; 기존 CMS/rich-content/korean-layout 회귀 |
+
+실행별 결과와 실제 화면은 `.superpowers/heading-reference-ux/implementation.md`에 구분한다. 합성 Chromium·데모 증거이며 실제 폴더 picker/권한창·OS IME/한자·스크린리더 검증을 뜻하지 않는다.

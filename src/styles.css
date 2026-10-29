@@ -1599,7 +1599,17 @@ span.cm-rich-math {
   font-weight: 400;
 }
 .cm-md-setext {
+  font-family: var(--font-code);
   letter-spacing: calc(0.5em - 1ch);
+}
+.cm-reference-definition {
+  color: var(--text);
+}
+.cm-reference-definition--quiet {
+  color: var(--muted);
+}
+.cm-editor .cm-reference-definition span {
+  color: inherit;
 }
 .writing-outline {
   position: absolute;
