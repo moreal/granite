@@ -480,3 +480,26 @@ it("S20 applying save formatting preserves command chrome intent instead of simu
   expect(s.view.state.sliceDoc()).toBe("formatted");
   expect(typing).not.toHaveBeenCalled();
 });
+
+it("S31 accepts CMS fence spelling while preserving Mermaid semantics", () => {
+  const source = "```mermaid\ngraph TD\n A-->B\n```";
+  const output = "~~~~ mermaid\ngraph TD\n A-->B\n~~~~\n";
+  expect(preserveFormatting(source, output)).toBe(output);
+  expect(() =>
+    preserveFormatting(source, output.replace("A-->B", "B-->A")),
+  ).toThrow();
+});
+
+it("S31 real defaults retain metadata, math, image and wiki semantics or refuse safely", async () => {
+  const { formatWithWarnings } = await import("@hongdown/wasm");
+  const prefix = '--- \r\nname: "[[속성]]"\r\n---\r\n';
+  const body = `# 제목\n\n[[연결 노트]] [[${"긴 제목 ".repeat(30).trim()}]] $x_1 -- x_2$\n\n![그림](assets/${"a".repeat(64)}.png)\n\n\`\`\`mermaid\ngraph TD; A-->B\n\`\`\`\n`;
+  const output = (await formatWithWarnings(body, {})).output;
+  expect(preserveFormatting(prefix + body, output)).toBe(
+    prefix + output.replace(/\n/g, "\r\n"),
+  );
+  const wiki = '[["Quoted note"]]';
+  const changed = (await formatWithWarnings(wiki, {})).output;
+  expect(changed).toContain("[[“Quoted note”]]");
+  expect(() => preserveFormatting(wiki, changed)).toThrow("연결·이미지·수식");
+});

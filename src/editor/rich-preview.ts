@@ -46,7 +46,7 @@ export function richNodes(state: EditorState): RichNode[] {
         if (node.name === "FencedCode") {
           const raw = text.slice(node.from, node.to),
             match =
-              /^(`{3,}|~{3,})mermaid[^\S\n]*\n([\s\S]*?)\n(?:`{3,}|~{3,})\s*$/.exec(
+              /^(`{3,}|~{3,})[^\S\n]*mermaid[^\S\n]*\n([\s\S]*?)\n(?:`{3,}|~{3,})\s*$/.exec(
                 raw,
               );
           if (match)

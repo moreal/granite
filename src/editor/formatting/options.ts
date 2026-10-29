@@ -1,14 +1,5 @@
 import type { FormatOptions } from "@hongdown/wasm";
-export const hongdownOptions: FormatOptions = {
-  lineWidth: false,
-  setextH1: false,
-  setextH2: false,
-  fenceChar: "`",
-  minFenceLength: 3,
-  spaceAfterFence: false,
-  curlyDoubleQuotes: false,
-  curlySingleQuotes: false,
-  ellipsis: false,
-  emDash: false,
-  math: true,
-};
+
+// Match the blog CMS: hongdown 0.5.3 defaults, with no style overrides.
+// Math preservation is already enabled by the pinned formatter by default.
+export const hongdownOptions: FormatOptions = {};

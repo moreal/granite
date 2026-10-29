@@ -210,3 +210,11 @@ URL 제목 응답은 재현 가능한 네트워크 대역으로 성공·실패·
 자체 제공5.6MiB 글꼴은 공식 원본의 전체 가변 글꼴을 WOFF2로 무손실 변환했으며 현대 한글11,172자를 모두 포함한다. 버전 고정 출처·변환 도구·해시는 [서체 기록](../src/assets/fonts/README.md), 전체 라이선스는 [OFL](../src/assets/fonts/OFL.LICENSE)에 보존한다. 실제 source publisher와 임시 배포 fixture 검사에서 글꼴/OFL/출처의 archive·manifest 포함과 관련 없는 `.txt` 거부를 확인했다. Pages와 Storybook은 같은 출처 자산을 불러오며 Google Fonts 요청이 없다.
 
 독립 UX 검토는1440/900/390px 밝게/어둡게, 목차 hover/이동/초점, 속성 미확정 값의 접기·탐색 왕복 보존, 입력 중 저장 실패·Escape 복원을 확인하고 승인했다. [실제 넓은 글쓰기 화면](screenshots/cms-writing-desktop.png)과 [좁은 어두운 화면](screenshots/cms-writing-narrow-dark.png)은 최종 합성 노트 회귀에서 생성했다. **Production → Writing Surface → Cms Writing**은 같은 운영 Editor·NoteHeader·목차와 원문 전환을 제공한다. 데모/Chromium·합성 이벤트·디스크 어댑터 증거이며 실제 폴더 picker·권한창·OS IME/Hanja·스크린리더 검증을 뜻하지 않는다.
+
+## 2026-10-30 블로그 CMS hongdown 기본값 (S31)
+
+[S31](superpowers/specs/2026-10-30-hongdown-cms-defaults.md)은 블로그 CMS가 쓰는 hongdown0.5.3 기본 옵션을 그대로 사용한다. 고정 WASM과 실제 CLI의 합성 fixture 출력이 같음을 확인했다. 스타일 재정의 제거로80열 재줄바꿈·밑줄 제목·곡선 인용부호/말줄임표/dash·물결표 fence를 적용한다. 공백이 있는 정상 fence도 기존 Mermaid 파서가 같은 본문으로 인식하게 했다. 수식 기본 보존과 의미 보호·원문 저장 계약은 유지한다. 위키 제목의 따옴표를 정리가 바꾸려 하면 기존 보호가 거절하고 원문을 저장한다.
+
+최종 단위273개, 타입 검사와 `/granite/` 앱→Storybook 빌드, 관련 운영 컴포넌트6개와 production worker/WASM 검사1개가 통과했다. 전체 앱139개 실행은138개 통과했고 새 CmdS 검사만 동결 시계가 CodeMirror의 비동기 완성 탐색을 기다리지 않아 실패했다. 이 검사에서 완성 탐색을 먼저 진행하고600ms로1500ms idle 이전 적용을 확인하도록 고친 뒤 기존 idle/CmdS/실패/설정/선택 보호와 새 S31을 포함한 집중10개가 통과했다. 검사 보완 후 전체 앱139개를 다시 실행했다고 주장하지 않는다.
+
+실제 worker가 바꾼 전체 EditorView 원문·저장 바이트·새로고침·undo/redo·idle의 undo 재정리 억제를 확인했다.1440/390px 실제 합성 노트 화면을 열어 제목·한글·수식·Mermaid와 가로 넘침을 확인했다. 실행 로그·실패 원인·CLI 비교·화면은 `.superpowers/hongdown-parity/`에 보존한다. 자동 생성된 기존 문서 화면26개는 별도 해시와 함께 보관하고 기존 추적 파일을 원상 복원했다. 데모/Chromium 검증이며 사용자 폴더 picker/권한·OS IME/한자·스크린리더 검증을 뜻하지 않는다.

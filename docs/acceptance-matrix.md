@@ -143,3 +143,13 @@ C는 `tests/components`의 빌드된 실제 운영 Storybook 검사를 뜻한다
 | S29b | 작은 읽는 속성 행과 요청할 때만 여는 이름→값 행. 첫 속성도 값 확정 전 저장하지 않고 사용자 type을 강제하지 않는다. 초안/오류 보호. | U [property-controls](../tests/unit/property-controls.test.tsx) CRLF 정확한 패치·새type 왕복·미확정 초안·오류·Add 보호; E [writing-ux](../tests/e2e/writing-ux.spec.ts), [schema-editing](../tests/e2e/schema-editing.spec.ts), [property-modes](../tests/e2e/property-modes.spec.ts); C 실제 Create/PropertiesType/PropertiesNew |
 | S29c | 수동 Format UI/story 제거, 자동 idle/CmdS·설정·undo·실패/복구 유지. | U [formatting](../tests/unit/formatting.test.tsx), E [auto-formatting](../tests/e2e/auto-formatting.spec.ts), [formatting](../tests/e2e/formatting.spec.ts); 제거된 story 대신 실제 자동 worker production 경로 유지 |
 | S29d |320/390px 포함 왼쪽 세로 분류, 읽을 수 있는 라디오 행, 기존 임시설정·적용/취소 유지. | E [writing-ux](../tests/e2e/writing-ux.spec.ts) 분류/내용 상대위치·라디오 행/레이블 높이; E [settings](../tests/e2e/settings.spec.ts), C 실제 Settings; 독립 작은 라이트/다크 검토 |
+
+## S31 블로그 CMS hongdown 기본값
+
+기준: [S31](superpowers/specs/2026-10-30-hongdown-cms-defaults.md). S20의 보수적인 옵션만 CMS와 같은0.5.3 기본값으로 대체한다. 수동 정리 대화상자를 다시 도입하지 않는다.
+
+- S31a: `tests/unit/hongdown-wasm.test.ts`가 실제 WASM 기본값과 제목/한글 재줄바꿈/인용부호/말줄임표/dash/fence/reference 출력의 일치를 검증한다.
+- S31b: `tests/e2e/hongdown-parity.spec.ts`가 실제 idle/CmdS worker의 정확한 문서·저장·새로고침·undo/redo를 검사한다. CmdS는 완성 탐색을 마친 뒤 동결 시계를600ms만 진행해1500ms idle 이전 적용을 구분한다.
+- S31c/d: `tests/unit/formatting.test.tsx`가 실제 기본값의 frontmatter CRLF·긴 위키 대상·로컬 이미지·수식 보존, fence 표기 변경 허용과 Mermaid 본문 변경 거절을 검사한다. 앱 브라우저는 Mermaid/수식 표시·fence 내부 제목 목차 제외와 위키 대상 변형 거절 후 원문 저장/재열기를 검사한다. 기존 S20 취소/조합/오래된 결과·실패/undo 회귀를 유지한다.
+
+실행 기록과 실제 합성 데모의1440/390px 화면은 `.superpowers/hongdown-parity/`에 있다. 폴더 picker/권한창·사용자 파일·OS IME 검증을 의미하지 않는다.
