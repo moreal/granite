@@ -1604,9 +1604,24 @@ span.cm-rich-math {
 }
 .cm-reference-definition {
   color: var(--text);
+  transition: color 140ms ease;
+}
+/* Keyboard editing must become legible immediately. */
+.cm-reference-definition:not(.cm-reference-definition--quiet) {
+  transition-duration: 0s;
 }
 .cm-reference-definition--quiet {
   color: var(--muted);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cm-reference-definition[data-reference-hover] {
+    color: var(--text);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-reference-definition {
+    transition: none;
+  }
 }
 .cm-editor .cm-reference-definition span {
   color: inherit;

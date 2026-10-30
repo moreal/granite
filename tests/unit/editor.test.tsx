@@ -581,6 +581,15 @@ it("subdues complete reference definitions and reveals only those touched by a s
     '  "제목"',
     "[다른]: https://example.org",
   ]);
+  const groups = [
+    ...box.querySelectorAll<HTMLElement>("[data-reference-definition]"),
+  ].map((line) => line.dataset.referenceDefinition);
+  expect(groups).toEqual([
+    String(first),
+    String(first),
+    String(first),
+    String(second),
+  ]);
   for (const anchor of [first, first + 10, end]) {
     act(() => view.dispatch({ selection: { anchor } }));
     expect(dimmed()).toEqual(["[다른]: https://example.org"]);

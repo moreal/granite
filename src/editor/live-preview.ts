@@ -93,10 +93,46 @@ export function preview() {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
+      hoveredDefinition: string | undefined;
+      view: EditorView;
+      hover(view: EditorView, target: EventTarget | null) {
+        const line =
+          target instanceof Element
+            ? target.closest<HTMLElement>("[data-reference-definition]")
+            : null;
+        const definition =
+          view.contentDOM.contains(line) &&
+          matchMedia("(hover: hover) and (pointer: fine)").matches
+            ? line?.dataset.referenceDefinition
+            : undefined;
+        if (definition === this.hoveredDefinition) return;
+        this.hoveredDefinition = definition;
+        this.syncHover(view);
+      }
+      syncHover(view: EditorView) {
+        // DOM-only feedback: pointer movement never dispatches an editor update.
+        for (const line of view.contentDOM.querySelectorAll<HTMLElement>(
+          "[data-reference-definition]",
+        )) {
+          line.toggleAttribute(
+            "data-reference-hover",
+            line.dataset.referenceDefinition === this.hoveredDefinition,
+          );
+        }
+      }
       constructor(view: EditorView) {
+        this.view = view;
         this.decorations = this.build(view);
       }
+      destroy() {
+        this.hoveredDefinition = undefined;
+        this.syncHover(this.view);
+      }
       update(update: ViewUpdate) {
+        if (update.docChanged || update.viewportChanged) {
+          this.hoveredDefinition = undefined;
+          this.syncHover(update.view);
+        }
         // Keep the composing DOM stable, while tracking positions through edits.
         if (update.view.composing) {
           this.decorations = this.decorations.map(update.changes);
@@ -111,6 +147,11 @@ export function preview() {
           )
         ) {
           this.decorations = this.build(update.view);
+          update.view.requestMeasure({
+            key: this,
+            read: () => null,
+            write: () => this.syncHover(update.view),
+          });
         }
       }
       build(view: EditorView) {
@@ -223,6 +264,9 @@ export function preview() {
                     class:
                       "cm-reference-definition" +
                       (active ? "" : " cm-reference-definition--quiet"),
+                    attributes: {
+                      "data-reference-definition": String(node.from),
+                    },
                   }).range(doc.line(number).from),
                 );
               }
@@ -322,6 +366,19 @@ export function preview() {
     {
       decorations: (plugin) => plugin.decorations,
       eventHandlers: {
+        scroll(_event, view) {
+          this.hoveredDefinition = undefined;
+          this.syncHover(view);
+        },
+        pointerover(event, view) {
+          this.hover(view, event.pointerType === "touch" ? null : event.target);
+        },
+        pointerout(event, view) {
+          this.hover(
+            view,
+            event.pointerType === "touch" ? null : event.relatedTarget,
+          );
+        },
         compositionend(_event, view) {
           // CodeMirror finishes its composition handler before the queued refresh.
           queueMicrotask(() => {

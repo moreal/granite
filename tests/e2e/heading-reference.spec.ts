@@ -91,6 +91,11 @@ for (const width of [1440, 390]) {
         color: getComputedStyle(el).color,
       })),
     );
+    await definitions.nth(1).hover();
+    await page.screenshot({
+      path: testInfo.outputPath(`reference-hover-${width}.png`),
+    });
+    await page.mouse.move(0, 0);
     await select(page, text.indexOf('"참고 제목"') + 2);
     await expect(quiet).toHaveCount(1);
     const after = await definitions.evaluateAll((elements) =>
@@ -161,3 +166,157 @@ for (const width of [1440, 390]) {
     ).toBe(true);
   });
 }
+
+// S32b/c: exercise actual pointer events and rendered CSS interpolation.
+test("S32 reference hover groups and reversible color feedback preserve editor state", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await disableAutomaticFormatting(page);
+  await demo(page, { panels: false });
+  const text =
+    '본문\n\n[ref]:\n  <https://example.com>\n  "제목"\n[other]: https://example.org\n\n끝';
+  await body(page, text);
+  await select(page, text.length);
+  const lines = page.locator(".cm-reference-definition");
+  const color = () =>
+    lines.first().evaluate((el) => getComputedStyle(el).color);
+  const settle = () =>
+    lines.evaluateAll(async (elements) => {
+      await Promise.all(
+        elements
+          .flatMap((el) => el.getAnimations())
+          .map((animation) => animation.finished.catch(() => {})),
+      );
+    });
+  await settle();
+  const quiet = await color();
+  const bright = await lines
+    .first()
+    .evaluate((el) => getComputedStyle(el).getPropertyValue("--text").trim());
+  expect(bright).toBeTruthy();
+  await editor(page).evaluate((element) => {
+    const host = element as HTMLElement & {
+      cmTile: { root: { view: EditorView } };
+      hoverSnapshot?: unknown;
+    };
+    const view = host.cmTile.root.view;
+    host.hoverSnapshot = {
+      view,
+      state: view.state,
+      lines: [...view.contentDOM.children],
+    };
+  });
+  const sample = () =>
+    lines.first().evaluate(async (el) => {
+      const values: string[] = [];
+      const start = performance.now();
+      do {
+        await new Promise(requestAnimationFrame);
+        values.push(getComputedStyle(el).color);
+      } while (performance.now() - start < 200);
+      return values;
+    });
+  // Hybrid fine-pointer devices must also ignore an actual touch event.
+  await lines.first().dispatchEvent("pointerover", { pointerType: "touch" });
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+  await lines.nth(1).hover();
+  const entering = await sample();
+  const lit = await color();
+  expect(lit).not.toBe(quiet);
+  expect(entering.some((value) => value !== quiet && value !== lit)).toBe(true);
+  expect(
+    await lines.evaluateAll((elements) =>
+      elements.map((el) => getComputedStyle(el).color),
+    ),
+  ).toEqual([lit, lit, lit, quiet]);
+  await page.mouse.move(0, 0);
+  const leaving = await sample();
+  expect(leaving.some((value) => value !== quiet && value !== lit)).toBe(true);
+  expect(await color()).toBe(quiet);
+  // Reverse a real running transition before it completes.
+  await lines.nth(2).hover();
+  const running = await lines.first().evaluate(async (el) => {
+    for (let frame = 0; frame < 10; frame++) {
+      await new Promise(requestAnimationFrame);
+      if (
+        el
+          .getAnimations()
+          .some((animation) => Number(animation.currentTime) > 0)
+      )
+        return true;
+    }
+    return false;
+  });
+  expect(running).toBe(true);
+  const interrupted = await color();
+  expect(interrupted).not.toBe(quiet);
+  await page.mouse.move(0, 0);
+  await settle();
+  expect(await color()).toBe(quiet);
+  expect(
+    await editor(page).evaluate((element) => {
+      const host = element as HTMLElement & {
+        cmTile: { root: { view: EditorView } };
+        hoverSnapshot: { view: EditorView; state: unknown; lines: Element[] };
+      };
+      const view = host.cmTile.root.view;
+      return (
+        view === host.hoverSnapshot.view &&
+        view.state === host.hoverSnapshot.state &&
+        [...view.contentDOM.children].every(
+          (line, index) => line === host.hoverSnapshot.lines[index],
+        )
+      );
+    }),
+  ).toBe(true);
+  await select(page, text.indexOf('"제목"') + 1);
+  expect(await color()).toBe(lit);
+  await lines.first().hover();
+  await page.mouse.move(0, 0);
+  expect(await color()).toBe(lit);
+  await select(page, text.length);
+  await settle();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await lines.first().hover();
+  expect(await color()).toBe(lit);
+  expect(await lines.first().evaluate((el) => el.getAnimations().length)).toBe(
+    0,
+  );
+  await page.mouse.move(0, 0);
+  expect(await color()).toBe(quiet);
+  expect(await raw(page)).toBe(text);
+  await lines.first().hover();
+  await source(page);
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "라이브 프리뷰", exact: true })
+    .click();
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+  await lines.first().hover();
+  await page.locator(".cm-scroller").dispatchEvent("scroll");
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+  await lines.first().hover();
+  await body(page, text.replace("example.com", "example.net"));
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+});
+
+test("S32 touch does not acquire sticky reference hover", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  await disableAutomaticFormatting(page);
+  await demo(page, { panels: false });
+  const text = "본문\n\n[ref]: https://example.com\n\n끝";
+  await body(page, text);
+  await select(page, text.length);
+  const definition = page.locator(".cm-reference-definition");
+  await definition.dispatchEvent("pointerover", { pointerType: "touch" });
+  await expect(page.locator("[data-reference-hover]")).toHaveCount(0);
+  await context.close();
+});
